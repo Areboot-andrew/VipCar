@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import Link from 'next/link';
 import Calculator from '../components/Calculator';
 import ContactForm from '../components/ContactForm';
+import GlobalGallery from '../components/GlobalGallery';
 
 const prisma = new PrismaClient();
 
@@ -18,94 +19,193 @@ export default async function Home() {
     return acc;
   }, {} as Record<string, string>);
 
+  // Zbirayemo media z usih avto dlya golovnoi galerei
+  const allMedia: { type: 'image' | 'video', url: string }[] = [];
+  cars.forEach(car => {
+    car.images.forEach(img => allMedia.push({ type: 'image', url: img }));
+    car.videos.forEach(vid => allMedia.push({ type: 'video', url: vid }));
+  });
+
   return (
     <div className="bg-[#131314] text-[#e4e2e3] font-body-md antialiased min-h-screen flex flex-col">
       {/* TopNavBar */}
-      <nav className="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-[24px] md:px-[64px] py-[8px] max-w-[1280px] mx-auto bg-[#131314]/90 backdrop-blur-md border-b border-white/10">
-        <div className="font-display-lg text-[#e4e2e3] text-[32px] cursor-pointer hover:text-white/80 transition-colors">
-          {c['hero_title']?.split(' ')[0] || 'First'} {c['hero_title']?.split(' ')[1] || 'Line'} Transfer
-        </div>
+      <nav className="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-[24px] md:px-[64px] py-[12px] max-w-[1280px] mx-auto bg-[#131314]/90 backdrop-blur-md border-b border-white/10">
+        
+        {/* LOGO SLOT */}
+        <Link href="/" className="flex items-center gap-3 cursor-pointer">
+          {c['logo_url'] ? (
+            <img src={c['logo_url']} alt="Logo" className="h-10 w-auto object-contain" />
+          ) : (
+            <div className="w-10 h-10 bg-[#e9c349] rounded-lg flex items-center justify-center font-bold text-black">FLT</div>
+          )}
+          <span className="font-display-lg text-[#e4e2e3] text-[20px] md:text-[28px] hover:text-white/80 transition-colors hidden sm:block">
+            {c['brand_name'] || 'First Line Transfer'}
+          </span>
+        </Link>
+
         <div className="hidden md:flex gap-[32px] items-center">
-          <Link href="#services" className="text-[#c7c6ca] hover:text-[#e4e2e3] font-label-caps text-[12px] uppercase">Послуги</Link>
-          <Link href="#fleet" className="text-[#c7c6ca] hover:text-[#e4e2e3] font-label-caps text-[12px] uppercase">Автопарк</Link>
-          <Link href="#calculator" className="text-[#c7c6ca] hover:text-[#e4e2e3] font-label-caps text-[12px] uppercase">Бронювання</Link>
-          <Link href="#contact" className="text-[#c7c6ca] hover:text-[#e4e2e3] font-label-caps text-[12px] uppercase">Контакти</Link>
+          <Link href="#services" className="text-[#c7c6ca] hover:text-[#e4e2e3] font-label-caps text-[12px] uppercase">{c['menu_services'] || 'Послуги'}</Link>
+          <Link href="#fleet" className="text-[#c7c6ca] hover:text-[#e4e2e3] font-label-caps text-[12px] uppercase">{c['menu_fleet'] || 'Автопарк'}</Link>
+          <Link href="#gallery" className="text-[#c7c6ca] hover:text-[#e4e2e3] font-label-caps text-[12px] uppercase">{c['menu_gallery'] || 'Галерея'}</Link>
+          <Link href="#contact" className="text-[#c7c6ca] hover:text-[#e4e2e3] font-label-caps text-[12px] uppercase">{c['menu_contact'] || 'Контакти'}</Link>
         </div>
         <div className="flex items-center gap-4">
-          <Link href="/admin" className="hidden md:block text-[#e4e2e3] hover:text-[#e9c349] font-label-caps text-[12px] uppercase border border-white/20 px-4 py-2 rounded-lg">
-            Увійти (Адмін)
+          <Link href="#calculator" className="hidden md:block gold-button text-[12px] uppercase px-4 py-2 rounded-lg font-bold">
+            {c['btn_book_now'] || 'Бронювати'}
           </Link>
         </div>
       </nav>
 
-      <main className="flex-grow pt-24 md:pt-32">
+      <main className="flex-grow">
         {/* Hero Section */}
-        <section className="relative w-full h-[819px] min-h-[600px] flex items-center justify-center px-[24px] md:px-[64px] mb-[80px]">
-          <div className="absolute inset-0 w-full h-full z-0 overflow-hidden rounded-xl">
-            <div className="absolute inset-0 bg-gradient-to-t from-[#131314] via-[#131314]/50 to-transparent z-10"></div>
+        <section className="relative w-full h-[100vh] min-h-[700px] flex items-center justify-center px-[24px] md:px-[64px] mb-[80px]">
+          <div className="absolute inset-0 w-full h-full z-0 overflow-hidden">
+            {c['hero_bg_video'] ? (
+              <video src={c['hero_bg_video']} autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover scale-105" />
+            ) : (
+              <div className="absolute inset-0 w-full h-full bg-cover bg-center scale-105" style={{ backgroundImage: `url(${c['hero_bg_image'] || 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80'})` }}></div>
+            )}
+            <div className="absolute inset-0 bg-gradient-to-b from-[#131314]/80 via-[#131314]/60 to-[#131314] z-10"></div>
           </div>
-          <div className="relative z-10 max-w-3xl text-center flex flex-col items-center">
-            <h1 className="font-display-lg text-[40px] md:text-[64px] text-[#e4e2e3] mb-6 drop-shadow-lg leading-tight" dangerouslySetInnerHTML={{__html: c['hero_title'] || 'First Line Transfer —<br/>Ваш час. Ваші правила.'}}></h1>
-            <p className="font-body-lg text-[18px] text-[#c7c6ca] mb-10 max-w-2xl">
-              {c['hero_subtitle'] || 'Преміум-трансфер від дверей до дверей з гарантованою пунктуальністю та абсолютною конфіденційністю.'}
+          
+          <div className="relative z-20 max-w-4xl text-center flex flex-col items-center pt-20">
+            <h1 className="font-display-lg text-[48px] md:text-[80px] text-white mb-6 drop-shadow-2xl leading-[1.1]" dangerouslySetInnerHTML={{__html: c['hero_title'] || 'ПРЕМІУМ ТРАНСФЕР<br/><span style="color: #e9c349">БЕЗ КОМПРОМІСІВ</span>'}}></h1>
+            <p className="font-body-lg text-[18px] md:text-[22px] text-[#c7c6ca] mb-10 max-w-2xl drop-shadow-md">
+              {c['hero_subtitle'] || 'Ваш час. Ваші правила. Ідеальний сервіс від дверей до дверей з гарантованою пунктуальністю.'}
             </p>
-            <Link href="#calculator" className="gold-button font-button text-[14px] uppercase px-8 py-4 rounded-lg">
-              Забронювати поїздку
+            <Link href="#calculator" className="gold-button font-button text-[16px] uppercase px-10 py-5 rounded-xl font-bold tracking-widest shadow-[0_10px_30px_rgba(212,175,55,0.2)] hover:scale-105 transition-all">
+              {c['btn_hero_cta'] || 'Розрахувати вартість'}
             </Link>
           </div>
         </section>
 
         {/* Services Section */}
-        <section className="max-w-[1280px] mx-auto px-[24px] md:px-[64px] mb-[80px]" id="services">
-          <h2 className="font-headline-lg text-[48px] text-[#e4e2e3] mb-[48px] text-center">Чому ми?</h2>
+        <section className="max-w-[1280px] mx-auto px-[24px] md:px-[64px] mb-[100px]" id="services">
+          <h2 className="font-headline-lg text-[40px] md:text-[56px] text-[#e4e2e3] mb-[64px] text-center">
+            {c['services_title'] || 'Чому обирають нас?'}
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-[32px]">
             {[1, 2, 3, 4].map((i) => {
               const defaults = [
-                { t: 'Пунктуальність 10/10', d: 'Ми цінуємо ваш час.' },
-                { t: 'Турбота з першої секунди', d: 'Допомога з багажем.' },
-                { t: 'Гнучкість', d: 'Підлаштовуємося під ваш графік.' },
-                { t: 'Абсолютна конфіденційність', d: 'Ваш простір недоторканний.' }
+                { t: 'Пунктуальність', d: 'Ми завжди прибуваємо за 15 хвилин до вказаного часу.', i: 'schedule' },
+                { t: 'Преміум Автопарк', d: 'Тільки нові автомобілі в ідеальному технічному стані.', i: 'directions_car' },
+                { t: 'Конфіденційність', d: 'Повна гарантія анонімності та безпеки ваших поїздок.', i: 'verified_user' },
+                { t: 'Професійні Водії', d: 'Англомовні водії з багаторічним досвідом VIP-обслуговування.', i: 'workspace_premium' }
               ];
               return (
-              <div key={i} className="glass-panel p-8 rounded-xl hover-gold-border transition-colors duration-300 flex flex-col items-start group">
-                <span className="material-symbols-outlined text-[#ffe088] text-4xl mb-6 group-hover:scale-110 transition-transform">star</span>
-                <h3 className="font-headline-md text-xl text-[#e4e2e3] mb-4">{c[`feature_${i}_title`] || defaults[i-1].t}</h3>
-                <p className="font-body-md text-[#c7c6ca]">{c[`feature_${i}_desc`] || defaults[i-1].d}</p>
+              <div key={i} className="glass-panel p-8 rounded-2xl hover-gold-border transition-all duration-300 flex flex-col items-start group">
+                <span className="material-symbols-outlined text-[#e9c349] text-5xl mb-6 group-hover:scale-110 transition-transform">{c[`feature_${i}_icon`] || defaults[i-1].i}</span>
+                <h3 className="font-headline-md text-2xl text-[#e4e2e3] mb-4">{c[`feature_${i}_title`] || defaults[i-1].t}</h3>
+                <p className="font-body-md text-[#c7c6ca] leading-relaxed">{c[`feature_${i}_desc`] || defaults[i-1].d}</p>
               </div>
             )})}
           </div>
         </section>
 
-        {/* Calculator Section */}
-        <Calculator cars={cars} />
+        {/* Global Gallery Section */}
+        <section className="w-full mb-[100px] overflow-hidden" id="gallery">
+          <div className="max-w-[1280px] mx-auto px-[24px] md:px-[64px] mb-[48px]">
+            <h2 className="font-headline-lg text-[40px] md:text-[56px] text-[#e4e2e3] text-center">
+              {c['gallery_title'] || 'Галерея'}
+            </h2>
+            <p className="text-center text-[#c7c6ca] mt-4 max-w-2xl mx-auto">{c['gallery_subtitle'] || 'Наш автопарк в реальному житті. Відео та фото преміум-якості.'}</p>
+          </div>
+          <GlobalGallery media={allMedia.length > 0 ? allMedia : [
+            { type: 'image', url: 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80' },
+            { type: 'image', url: 'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?auto=format&fit=crop&q=80' },
+            { type: 'image', url: 'https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&q=80' }
+          ]} />
+        </section>
 
         {/* Fleet Section */}
-        <section className="max-w-[1280px] mx-auto px-[24px] md:px-[64px] mb-[80px]" id="fleet">
-          <h2 className="font-headline-lg text-[48px] text-[#e4e2e3] mb-[48px] text-center">Наш автопарк</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[32px]">
+        <section className="max-w-[1280px] mx-auto px-[24px] md:px-[64px] mb-[100px]" id="fleet">
+          <h2 className="font-headline-lg text-[40px] md:text-[56px] text-[#e4e2e3] mb-[64px] text-center">
+            {c['fleet_title'] || 'Оберіть свій клас'}
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[40px]">
             {cars.map(car => (
-              <div key={car.id} className="glass-panel rounded-xl overflow-hidden hover-gold-border transition-colors duration-300 group flex flex-col">
-                <div className="h-64 bg-[#1b1b1c] flex items-center justify-center">
-                  <span className="material-symbols-outlined text-[#46474a] text-6xl">directions_car</span>
-                </div>
-                <div className="p-8 flex-1 flex flex-col">
-                  <h3 className="font-headline-md text-2xl text-[#e4e2e3] mb-2">{car.make} {car.model}</h3>
-                  <p className="font-body-md text-[#c7c6ca] mb-6">Рік випуску: {car.year}. Базова ставка: €{car.baseRate}/км</p>
-                  <button className="ghost-button w-full font-button text-[14px] uppercase px-6 py-3 rounded mt-auto">
-                    Обрати авто
-                  </button>
+              <div key={car.id} className="glass-panel rounded-3xl overflow-hidden hover-gold-border transition-all duration-300 group flex flex-col relative border border-white/10">
+                <Link href={`/cars/${car.id}`} className="block h-72 relative overflow-hidden bg-[#1b1b1c]">
+                  {car.images[0] ? (
+                    <img src={car.images[0]} alt={car.model} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center"><span className="material-symbols-outlined text-[#46474a] text-6xl">directions_car</span></div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#131314] to-transparent opacity-90"></div>
+                  <div className="absolute bottom-4 left-6 right-6 flex justify-between items-end">
+                    <div>
+                      <h3 className="font-headline-md text-3xl text-white mb-1">{car.make}</h3>
+                      <p className="text-[#c7c6ca] font-bold">{car.model}</p>
+                    </div>
+                  </div>
+                </Link>
+                <div className="p-6 flex-1 flex flex-col">
+                  <div className="flex justify-between items-center mb-6 py-4 border-y border-white/10">
+                    <div className="text-center">
+                      <div className="text-[#e9c349] font-bold text-xl">{car.year}</div>
+                      <div className="text-[11px] text-[#c7c6ca] uppercase tracking-widest mt-1">Рік</div>
+                    </div>
+                    <div className="text-center border-l border-white/10 pl-6">
+                      <div className="text-white font-bold text-xl flex items-center justify-center gap-1"><span className="material-symbols-outlined text-[18px]">person</span> {car.capacity}</div>
+                      <div className="text-[11px] text-[#c7c6ca] uppercase tracking-widest mt-1">Місць</div>
+                    </div>
+                    <div className="text-center border-l border-white/10 pl-6">
+                      <div className="text-white font-bold text-xl">€{car.baseRate}</div>
+                      <div className="text-[11px] text-[#c7c6ca] uppercase tracking-widest mt-1">За км</div>
+                    </div>
+                  </div>
+                  <div className="mt-auto grid grid-cols-2 gap-4">
+                    <Link href={`/cars/${car.id}`} className="ghost-button font-button text-[14px] uppercase px-4 py-3 rounded-lg text-center font-bold">
+                      Детальніше
+                    </Link>
+                    <Link href={`/?carId=${car.id}#calculator`} className="gold-button font-button text-[14px] uppercase px-4 py-3 rounded-lg text-center font-bold">
+                      Бронювати
+                    </Link>
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         </section>
 
+        {/* Calculator Section */}
+        <Calculator cars={cars} />
+
         <ContactForm />
       </main>
 
-      <footer className="w-full py-[48px] px-[24px] md:px-[64px] max-w-[1280px] mx-auto border-t border-white/5 mt-auto">
-        <div className="font-headline-md text-[#e4e2e3] mb-2">First Line Transfer</div>
-        <p className="font-body-md text-[#ffe088] mb-4">© 2024 First Line Transfer. The First Class of the Road.</p>
+      <footer className="w-full py-[64px] px-[24px] md:px-[64px] bg-[#0a0a0a] border-t border-white/5 mt-auto">
+        <div className="max-w-[1280px] mx-auto grid grid-cols-1 md:grid-cols-3 gap-12">
+          <div>
+            <div className="flex items-center gap-3 mb-6">
+              {c['logo_url'] ? (
+                <img src={c['logo_url']} alt="Logo" className="h-8 w-auto object-contain grayscale opacity-70" />
+              ) : (
+                <div className="w-8 h-8 bg-white/10 rounded flex items-center justify-center font-bold text-white/50 text-xs">FLT</div>
+              )}
+              <span className="font-display-lg text-white/70 text-[20px]">{c['brand_name'] || 'First Line Transfer'}</span>
+            </div>
+            <p className="text-[#c7c6ca]/70 text-sm">{c['footer_text'] || 'Преміальні трансфери Європою та Україною. Комфорт, безпека та конфіденційність.'}</p>
+          </div>
+          <div>
+            <h4 className="text-white font-bold mb-6 uppercase tracking-widest text-sm">Меню</h4>
+            <div className="flex flex-col gap-3 text-[#c7c6ca]/70 text-sm">
+              <Link href="#services" className="hover:text-[#e9c349] transition-colors">{c['menu_services'] || 'Послуги'}</Link>
+              <Link href="#fleet" className="hover:text-[#e9c349] transition-colors">{c['menu_fleet'] || 'Автопарк'}</Link>
+              <Link href="#calculator" className="hover:text-[#e9c349] transition-colors">{c['menu_calculator'] || 'Бронювання'}</Link>
+            </div>
+          </div>
+          <div>
+            <h4 className="text-white font-bold mb-6 uppercase tracking-widest text-sm">Контакти</h4>
+            <div className="flex flex-col gap-3 text-[#c7c6ca]/70 text-sm">
+              <a href={`tel:${c['contact_phone']}`} className="hover:text-[#e9c349] transition-colors flex items-center gap-2"><span className="material-symbols-outlined text-[18px]">call</span> {c['contact_phone'] || '+380 00 000 00 00'}</a>
+              <a href={`mailto:${c['contact_email']}`} className="hover:text-[#e9c349] transition-colors flex items-center gap-2"><span className="material-symbols-outlined text-[18px]">mail</span> {c['contact_email'] || 'info@firstline.com'}</a>
+            </div>
+          </div>
+        </div>
+        <div className="max-w-[1280px] mx-auto mt-16 pt-8 border-t border-white/5 text-center text-[#c7c6ca]/50 text-xs">
+          © {new Date().getFullYear()} {c['brand_name'] || 'First Line Transfer'}. Всі права захищено.
+        </div>
       </footer>
     </div>
   );
