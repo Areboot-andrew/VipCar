@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { CalendarDays, Car, Users, LayoutDashboard, Settings, TicketPercent } from 'lucide-react';
+import { CalendarDays, Car, Users, LayoutDashboard, Settings, TicketPercent, MessageSquare } from 'lucide-react';
 import '../globals.css'; // Ensure we have globals
 
 export const metadata = {
@@ -43,6 +43,10 @@ export default function AdminLayout({
           <Link href="/admin/cms" className="admin-nav-link">
             <Settings size={20} />
             <span>CMS Сайту</span>
+          </Link>
+          <Link href="/admin/feedback" className="admin-nav-link">
+            <MessageSquare size={20} />
+            <span>Повідомлення</span>
           </Link>
         </nav>
       </aside>

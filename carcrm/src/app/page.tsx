@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import Link from 'next/link';
 import Calculator from '../components/Calculator';
+import ContactForm from '../components/ContactForm';
 
 const prisma = new PrismaClient();
 
@@ -98,6 +99,8 @@ export default async function Home() {
             ))}
           </div>
         </section>
+
+        <ContactForm />
       </main>
 
       <footer className="w-full py-[48px] px-[24px] md:px-[64px] max-w-[1280px] mx-auto border-t border-white/5 mt-auto">

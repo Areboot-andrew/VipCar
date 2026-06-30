@@ -1,28 +1,32 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useJsApiLoader, Autocomplete, DirectionsService } from '@react-google-maps/api';
+import { useJsApiLoader, Autocomplete } from '@react-google-maps/api';
 
-type Car = {
-  id: string;
-  make: string;
-  model: string;
-  baseRate: number;
-};
+type Car = { id: string; make: string; model: string; baseRate: number; };
 
 const libraries: "places"[] = ["places"];
 
 export default function Calculator({ cars }: { cars: Car[] }) {
   const [distance, setDistance] = useState(100);
+  const [durationMins, setDurationMins] = useState(0); // in minutes
   const [selectedCarId, setSelectedCarId] = useState<string>(cars[0]?.id || '');
   const [crossBorder, setCrossBorder] = useState(false);
   const [isWeekend, setIsWeekend] = useState(false);
   const [price, setPrice] = useState(0);
 
-  // Google Maps State
   const [origin, setOrigin] = useState<string>('');
   const [destination, setDestination] = useState<string>('');
-  const [directionsResponse, setDirectionsResponse] = useState<google.maps.DirectionsResult | null>(null);
+
+  // Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  // date = arrival time
+  const [bookingData, setBookingData] = useState({ name: '', phone: '', email: '', date: '', password: '' });
+  const [pickupTime, setPickupTime] = useState<Date | null>(null);
+  
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [availabilityStatus, setAvailabilityStatus] = useState<'idle'|'checking'|'available'|'unavailable'>('idle');
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
@@ -34,6 +38,8 @@ export default function Calculator({ cars }: { cars: Car[] }) {
 
   const calculateRoute = async () => {
     if (!originRef.current?.value || !destinationRef.current?.value) return;
+    setOrigin(originRef.current.value);
+    setDestination(destinationRef.current.value);
     
     // eslint-disable-next-line no-undef
     const directionsService = new google.maps.DirectionsService();
@@ -44,9 +50,10 @@ export default function Calculator({ cars }: { cars: Car[] }) {
         // eslint-disable-next-line no-undef
         travelMode: google.maps.TravelMode.DRIVING,
       });
-      setDirectionsResponse(results);
       const distMeters = results.routes[0].legs[0].distance?.value || 0;
+      const durationSeconds = results.routes[0].legs[0].duration?.value || 0;
       setDistance(Math.ceil(distMeters / 1000));
+      setDurationMins(Math.ceil(durationSeconds / 60));
     } catch (error) {
       console.error("Помилка розрахунку маршруту:", error);
     }
@@ -56,13 +63,85 @@ export default function Calculator({ cars }: { cars: Car[] }) {
     const selectedCar = cars.find(c => c.id === selectedCarId);
     if (!selectedCar) return;
 
-    // Logic for calculating price
     let currentPrice = distance * selectedCar.baseRate;
     if (crossBorder) currentPrice += 150;
     if (isWeekend) currentPrice *= 1.10;
-
+    
     setPrice(Math.round(currentPrice));
   }, [distance, selectedCarId, crossBorder, isWeekend, cars]);
+
+  // Calculate pickup time and check availability when Arrival time changes
+  useEffect(() => {
+    if (!bookingData.date || durationMins === 0) return;
+    
+    const arrivalDate = new Date(bookingData.date);
+    // Add 1 hour buffer if crossing border, else 30 mins
+    const bufferMins = crossBorder ? 60 : 30;
+    const totalSubtractMins = durationMins + bufferMins;
+    
+    const calculatedPickup = new Date(arrivalDate.getTime() - totalSubtractMins * 60000);
+    setPickupTime(calculatedPickup);
+
+    // Check availability
+    const checkAvailability = async () => {
+      setAvailabilityStatus('checking');
+      try {
+        const res = await fetch('/api/cars/availability', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            carId: selectedCarId,
+            dateStart: calculatedPickup.toISOString(),
+            dateEnd: arrivalDate.toISOString(),
+          })
+        });
+        const data = await res.json();
+        if (data.available) {
+          setAvailabilityStatus('available');
+        } else {
+          setAvailabilityStatus('unavailable');
+        }
+      } catch (err) {
+        console.error(err);
+        setAvailabilityStatus('idle');
+      }
+    };
+
+    checkAvailability();
+  }, [bookingData.date, durationMins, crossBorder, selectedCarId]);
+
+  const handleBookingSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (availabilityStatus === 'unavailable' || !pickupTime) return;
+
+    setIsSubmitting(true);
+    try {
+      const res = await fetch('/api/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: bookingData.name,
+          phone: bookingData.phone,
+          email: bookingData.email,
+          password: bookingData.password,
+          routeFrom: origin || originRef.current?.value || 'Не вказано',
+          routeTo: destination || destinationRef.current?.value || 'Не вказано',
+          distance,
+          price,
+          dateStart: pickupTime.toISOString(),
+          dateEnd: new Date(bookingData.date).toISOString(),
+          carId: selectedCarId
+        })
+      });
+      if (res.ok) {
+        setSubmitSuccess(true);
+        setTimeout(() => { setIsModalOpen(false); setSubmitSuccess(false); }, 3000);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+    setIsSubmitting(false);
+  };
 
   return (
     <section className="max-w-[1280px] mx-auto px-6 md:px-[64px] mb-[80px]" id="calculator">
@@ -86,7 +165,7 @@ export default function Calculator({ cars }: { cars: Car[] }) {
                   <span className="material-symbols-outlined absolute left-4 text-[#e9c349]/60">my_location</span>
                   {isLoaded ? (
                     <Autocomplete onPlaceChanged={calculateRoute}>
-                      <input ref={originRef} type="text" className="w-full bg-[#353536]/30 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-[#e4e2e3] focus:border-[#e9c349] outline-none" placeholder="Введіть адресу або місто" />
+                      <input ref={originRef} type="text" className="w-full bg-[#353536]/30 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-[#e4e2e3] focus:border-[#e9c349] outline-none" placeholder="Введіть адресу або місто" onChange={e => setOrigin(e.target.value)} />
                     </Autocomplete>
                   ) : (
                     <input type="text" className="w-full bg-[#353536]/30 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-[#e4e2e3] focus:border-[#e9c349] outline-none" placeholder="Завантаження карт..." disabled />
@@ -99,7 +178,7 @@ export default function Calculator({ cars }: { cars: Car[] }) {
                   <span className="material-symbols-outlined absolute left-4 text-[#e9c349]/60">location_on</span>
                   {isLoaded ? (
                     <Autocomplete onPlaceChanged={calculateRoute}>
-                      <input ref={destinationRef} type="text" className="w-full bg-[#353536]/30 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-[#e4e2e3] focus:border-[#e9c349] outline-none" placeholder="Введіть адресу або місто" />
+                      <input ref={destinationRef} type="text" className="w-full bg-[#353536]/30 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-[#e4e2e3] focus:border-[#e9c349] outline-none" placeholder="Введіть адресу або місто" onChange={e => setDestination(e.target.value)} />
                     </Autocomplete>
                   ) : (
                     <input type="text" className="w-full bg-[#353536]/30 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-[#e4e2e3] focus:border-[#e9c349] outline-none" placeholder="Завантаження карт..." disabled />
@@ -117,11 +196,13 @@ export default function Calculator({ cars }: { cars: Car[] }) {
               <div className="flex justify-between items-end relative z-10">
                 <div>
                   <span className="block font-label-caps text-[10px] text-[#e9c349] uppercase tracking-widest mb-2">Відстань (км)</span>
-                  {/* Fallback manual slider if maps fails or API key missing */}
                   <input type="range" min="1" max="2000" value={distance} onChange={(e) => setDistance(Number(e.target.value))} className="w-full mb-2" />
                 </div>
                 <div className="text-right">
                   <span className="text-4xl font-display-lg text-[#e9c349]" id="distance-display">{distance} км</span>
+                  {durationMins > 0 && (
+                    <div className="text-sm text-[#c7c6ca] mt-2">В дорозі: ~{Math.floor(durationMins/60)}г {durationMins%60}хв</div>
+                  )}
                 </div>
               </div>
             </div>
@@ -175,13 +256,89 @@ export default function Calculator({ cars }: { cars: Car[] }) {
               </div>
             </div>
             <div className="w-full md:w-auto">
-              <button className="gold-button font-button text-[14px] px-12 py-6 rounded-2xl hover:scale-[0.98] transition-all text-lg shadow-[0_10px_30px_rgba(212,175,55,0.2)] uppercase tracking-wider font-semibold">
+              <button 
+                onClick={() => setIsModalOpen(true)}
+                className="gold-button font-button text-[14px] px-12 py-6 rounded-2xl hover:scale-[0.98] transition-all text-lg shadow-[0_10px_30px_rgba(212,175,55,0.2)] uppercase tracking-wider font-semibold"
+              >
                 Продовжити бронювання
               </button>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Booking Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#1a1a1b] border border-[#e9c349]/20 rounded-3xl p-8 max-w-lg w-full shadow-2xl relative">
+            <button 
+              onClick={() => setIsModalOpen(false)}
+              className="absolute top-4 right-4 text-[#c7c6ca] hover:text-white"
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+            
+            {submitSuccess ? (
+              <div className="text-center py-10">
+                <span className="material-symbols-outlined text-[#e9c349] text-6xl mb-4">check_circle</span>
+                <h3 className="text-2xl font-headline-md text-white mb-2">Заявка прийнята!</h3>
+                <p className="text-[#c7c6ca]">Ми зв'яжемося з вами найближчим часом для підтвердження. Ваш акаунт створено.</p>
+              </div>
+            ) : (
+              <>
+                <h3 className="text-2xl font-headline-md text-white mb-2">Реєстрація та Бронювання</h3>
+                <p className="text-[#c7c6ca] text-sm mb-6">Для здійснення бронювання створіть обліковий запис або увійдіть.</p>
+                <form onSubmit={handleBookingSubmit} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm text-[#c7c6ca] mb-1">Ім'я *</label>
+                      <input required type="text" className="w-full bg-[#131314] border border-white/10 rounded-lg p-3 text-white focus:border-[#e9c349] outline-none"
+                        value={bookingData.name} onChange={e => setBookingData({...bookingData, name: e.target.value})} />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-[#c7c6ca] mb-1">Телефон *</label>
+                      <input required type="tel" className="w-full bg-[#131314] border border-white/10 rounded-lg p-3 text-white focus:border-[#e9c349] outline-none"
+                        value={bookingData.phone} onChange={e => setBookingData({...bookingData, phone: e.target.value})} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-[#c7c6ca] mb-1">Email * (Логін)</label>
+                    <input required type="email" className="w-full bg-[#131314] border border-white/10 rounded-lg p-3 text-white focus:border-[#e9c349] outline-none"
+                      value={bookingData.email} onChange={e => setBookingData({...bookingData, email: e.target.value})} />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-[#c7c6ca] mb-1">Придумайте пароль *</label>
+                    <input required type="password" minLength={6} className="w-full bg-[#131314] border border-white/10 rounded-lg p-3 text-white focus:border-[#e9c349] outline-none"
+                      value={bookingData.password} onChange={e => setBookingData({...bookingData, password: e.target.value})} />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-[#c7c6ca] mb-1">Бажаний час прибуття *</label>
+                    <input required type="datetime-local" className="w-full bg-[#131314] border border-white/10 rounded-lg p-3 text-white focus:border-[#e9c349] outline-none"
+                      value={bookingData.date} onChange={e => setBookingData({...bookingData, date: e.target.value})} />
+                  </div>
+                  
+                  {pickupTime && (
+                    <div className="bg-[#131314] p-4 rounded-lg mt-4 border border-white/5 relative">
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-[#c7c6ca]">Час подачі авто:</span>
+                        <span className="text-white font-bold">{pickupTime.toLocaleString('uk-UA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
+                      
+                      {availabilityStatus === 'checking' && <div className="text-xs text-blue-400 mt-2 flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">sync</span> Перевірка доступності...</div>}
+                      {availabilityStatus === 'available' && <div className="text-xs text-green-400 mt-2 flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">check_circle</span> Автомобіль доступний</div>}
+                      {availabilityStatus === 'unavailable' && <div className="text-xs text-red-400 mt-2 flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">cancel</span> Автомобіль вже заброньовано на цей час</div>}
+                    </div>
+                  )}
+
+                  <button type="submit" disabled={isSubmitting || availabilityStatus === 'unavailable'} className="w-full gold-button font-bold rounded-lg p-4 mt-6 disabled:opacity-50 disabled:cursor-not-allowed">
+                    {isSubmitting ? 'Відправка...' : 'Підтвердити заявку'}
+                  </button>
+                </form>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </section>
   );
 }
