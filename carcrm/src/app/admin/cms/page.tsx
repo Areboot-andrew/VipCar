@@ -24,16 +24,21 @@ export default function CMSPage() {
     setUploadingState(prev => ({ ...prev, [key]: true }));
     const formData = new FormData();
     formData.append('file', file);
+    
+    if (key.includes('hero')) formData.append('type', 'hero');
+    else if (key.includes('gallery')) formData.append('type', 'gallery');
+    else formData.append('type', 'default');
+
     try {
       const res = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
       });
       const data = await res.json();
-      if (data.success) {
+      if (data.url) {
         handleChange(key, data.url);
       } else {
-        alert('Помилка завантаження файлу');
+        alert('Помилка завантаження файлу: ' + (data.error || 'Невідома помилка'));
       }
     } catch (e) {
       console.error(e);

@@ -1,15 +1,23 @@
 import { NextResponse } from 'next/server';
-import { writeFile } from 'fs/promises';
+import fs from 'fs';
 import path from 'path';
 import sharp from 'sharp';
 
+// Утиліта для створення папок
+const ensureDirExists = (dirPath: string) => {
+  if (!fs.existsSync(dirPath)) {
+    fs.mkdirSync(dirPath, { recursive: true });
+  }
+};
+
 export async function POST(request: Request) {
   try {
-    const data = await request.formData();
-    const file: File | null = data.get('file') as unknown as File;
+    const formData = await request.formData();
+    const file = formData.get('file') as File;
+    const type = formData.get('type') as string; // 'hero', 'fleet', 'gallery'
 
     if (!file) {
-      return NextResponse.json({ success: false, error: 'No file uploaded' }, { status: 400 });
+      return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
     }
 
     const bytes = await file.arrayBuffer();
@@ -17,35 +25,53 @@ export async function POST(request: Request) {
 
     const isVideo = file.type.startsWith('video/');
     const isImage = file.type.startsWith('image/');
+
+    const publicDir = path.join(process.cwd(), 'public');
+    const uploadsDir = path.join(publicDir, 'uploads');
     
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    
+    let relativeUrl = '';
+
     if (isVideo) {
-      const ext = path.extname(file.name) || '.mp4';
-      const filename = `vid-${uniqueSuffix}${ext}`;
-      const filepath = path.join(process.cwd(), 'public', 'uploads', 'videos', filename);
-      await writeFile(filepath, buffer);
-      return NextResponse.json({ success: true, url: `/uploads/videos/${filename}` });
-    } 
-    
-    if (isImage) {
-      const filename = `img-${uniqueSuffix}.webp`;
-      const filepath = path.join(process.cwd(), 'public', 'uploads', 'images', filename);
+      const videosDir = path.join(uploadsDir, 'videos');
+      ensureDirExists(videosDir);
       
-      // Optimizaciya zobrazhen' cherez sharp. 
-      // Zberigayemo originalni proporcii (krop robyt koristuvach sam do zavantazhennya),
-      // ale obmezhuyemo max width 1920px dlya shvidkosti zavantazhennya
-      await sharp(buffer)
-        .resize({ width: 1920, withoutEnlargement: true })
-        .webp({ quality: 85 })
-        .toFile(filepath);
-        
-      return NextResponse.json({ success: true, url: `/uploads/images/${filename}` });
+      const fileName = `${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
+      const filePath = path.join(videosDir, fileName);
+      
+      fs.writeFileSync(filePath, buffer);
+      relativeUrl = `/uploads/videos/${fileName}`;
+    } else if (isImage) {
+      const imagesDir = path.join(uploadsDir, 'images');
+      ensureDirExists(imagesDir);
+      
+      const fileName = `${Date.now()}_optimized.webp`;
+      const filePath = path.join(imagesDir, fileName);
+
+      let sharpInstance = sharp(buffer);
+
+      // Обрізка відповідно дизайну сайту
+      if (type === 'hero') {
+        sharpInstance = sharpInstance.resize(1920, 1080, { fit: 'cover' }); // Широкоформатний для фону
+      } else if (type === 'fleet') {
+        sharpInstance = sharpInstance.resize(800, 500, { fit: 'cover' }); // Для карток автопарку (16:10)
+      } else if (type === 'gallery') {
+        sharpInstance = sharpInstance.resize(1280, 853, { fit: 'cover' }); // Для великої галереї (3:2)
+      } else {
+        sharpInstance = sharpInstance.resize(1280, null, { withoutEnlargement: true }); // Дефолтне обмеження ширини
+      }
+
+      await sharpInstance
+        .webp({ quality: 80 }) // Конвертація у WebP для SEO та швидкості
+        .toFile(filePath);
+
+      relativeUrl = `/uploads/images/${fileName}`;
+    } else {
+      return NextResponse.json({ error: 'Unsupported file type' }, { status: 400 });
     }
 
-    return NextResponse.json({ success: false, error: 'Unsupported file type' }, { status: 400 });
+    return NextResponse.json({ url: relativeUrl });
   } catch (error) {
     console.error('Upload Error:', error);
-    return NextResponse.json({ success: false, error: 'Upload failed' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 });
   }
 }
