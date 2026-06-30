@@ -91,6 +91,12 @@ model Booking {
   price       Float         // calculated price
   dateStart   DateTime
   dateEnd     DateTime
+  
+  passengers  Int           @default(1)
+  children    Int           @default(0)
+  luggage     String        @default("Немає")
+  animals     Boolean       @default(false)
+  
   status      BookingStatus @default(PENDING)
   notes       String?
 

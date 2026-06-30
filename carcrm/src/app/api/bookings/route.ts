@@ -6,7 +6,10 @@ const prisma = new PrismaClient();
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, phone, email, password, routeFrom, routeTo, distance, price, dateStart, dateEnd, carId } = body;
+    const { 
+      name, phone, email, password, routeFrom, routeTo, distance, price, dateStart, dateEnd, carId,
+      passengers, children, luggage, animals
+    } = body;
 
     // Створюємо або знаходимо користувача
     const user = await prisma.user.upsert({
@@ -31,6 +34,10 @@ export async function POST(request: Request) {
         price: Number(price),
         dateStart: new Date(dateStart),
         dateEnd: new Date(dateEnd),
+        passengers: Number(passengers),
+        children: Number(children),
+        luggage,
+        animals: Boolean(animals),
         status: 'PENDING'
       }
     });

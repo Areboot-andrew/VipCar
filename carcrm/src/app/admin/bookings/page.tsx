@@ -50,16 +50,24 @@ export default function AdminBookingsPage() {
               </div>
             </div>
             
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', fontSize: '14px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px', fontSize: '14px', backgroundColor: 'rgba(0,0,0,0.2)', padding: '16px', borderRadius: '8px' }}>
               <div>
-                <p><strong style={{ color: 'var(--text-secondary)' }}>Клієнт:</strong> {booking.client.name}</p>
-                <p><strong style={{ color: 'var(--text-secondary)' }}>Телефон:</strong> {booking.client.phone}</p>
-                <p><strong style={{ color: 'var(--text-secondary)' }}>Email:</strong> {booking.client.email}</p>
+                <p style={{ color: 'var(--accent-gold)', marginBottom: '4px', fontWeight: 'bold' }}>Клієнт</p>
+                <p>{booking.client.name}</p>
+                <p>{booking.client.phone}</p>
+                <p>{booking.client.email}</p>
               </div>
               <div>
-                <p><strong style={{ color: 'var(--text-secondary)' }}>Автомобіль:</strong> {booking.car.make} {booking.car.model}</p>
-                <p><strong style={{ color: 'var(--text-secondary)' }}>Відстань:</strong> {booking.distance} км</p>
-                <p><strong style={{ color: 'var(--text-secondary)' }}>Вартість:</strong> €{booking.price}</p>
+                <p style={{ color: 'var(--accent-gold)', marginBottom: '4px', fontWeight: 'bold' }}>Рейс</p>
+                <p>Авто: {booking.car.make} {booking.car.model}</p>
+                <p>Відстань: {booking.distance} км</p>
+                <p>Вартість: €{booking.price}</p>
+              </div>
+              <div>
+                <p style={{ color: 'var(--accent-gold)', marginBottom: '4px', fontWeight: 'bold' }}>Деталі поїздки</p>
+                <p>Пасажири: {booking.passengers} (Діти: {booking.children})</p>
+                <p>Багаж: {booking.luggage}</p>
+                <p>Тварини: {booking.animals ? 'Так' : 'Ні'}</p>
               </div>
             </div>
 

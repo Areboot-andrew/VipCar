@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useJsApiLoader, Autocomplete } from '@react-google-maps/api';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 type Car = { id: string; make: string; model: string; baseRate: number; };
 
@@ -9,7 +11,7 @@ const libraries: "places"[] = ["places"];
 
 export default function Calculator({ cars }: { cars: Car[] }) {
   const [distance, setDistance] = useState(100);
-  const [durationMins, setDurationMins] = useState(0); // in minutes
+  const [durationMins, setDurationMins] = useState(0); 
   const [selectedCarId, setSelectedCarId] = useState<string>(cars[0]?.id || '');
   const [crossBorder, setCrossBorder] = useState(false);
   const [isWeekend, setIsWeekend] = useState(false);
@@ -18,15 +20,21 @@ export default function Calculator({ cars }: { cars: Car[] }) {
   const [origin, setOrigin] = useState<string>('');
   const [destination, setDestination] = useState<string>('');
 
-  // Modal state
+  // Modal & Booking state
   const [isModalOpen, setIsModalOpen] = useState(false);
-  // date = arrival time
-  const [bookingData, setBookingData] = useState({ name: '', phone: '', email: '', date: '', password: '' });
+  const [bookingData, setBookingData] = useState({ 
+    name: '', phone: '', email: '', password: '', 
+    passengers: '1', children: '0', luggage: 'Немає', animals: 'Ні' 
+  });
+  
+  const [arrivalDate, setArrivalDate] = useState<Date | null>(null);
   const [pickupTime, setPickupTime] = useState<Date | null>(null);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [availabilityStatus, setAvailabilityStatus] = useState<'idle'|'checking'|'available'|'unavailable'>('idle');
+
+  const [excludeIntervals, setExcludeIntervals] = useState<{start: Date, end: Date}[]>([]);
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
@@ -35,6 +43,22 @@ export default function Calculator({ cars }: { cars: Car[] }) {
 
   const originRef = useRef<HTMLInputElement>(null);
   const destinationRef = useRef<HTMLInputElement>(null);
+
+  // Fetch booked dates for visual calendar
+  useEffect(() => {
+    if (!selectedCarId) return;
+    fetch(`/api/cars/${selectedCarId}/booked-dates`)
+      .then(res => res.json())
+      .then((data: any[]) => {
+        if (Array.isArray(data)) {
+          setExcludeIntervals(data.map(d => ({
+            start: new Date(d.dateStart),
+            end: new Date(d.dateEnd)
+          })));
+        }
+      })
+      .catch(console.error);
+  }, [selectedCarId]);
 
   const calculateRoute = async () => {
     if (!originRef.current?.value || !destinationRef.current?.value) return;
@@ -70,19 +94,16 @@ export default function Calculator({ cars }: { cars: Car[] }) {
     setPrice(Math.round(currentPrice));
   }, [distance, selectedCarId, crossBorder, isWeekend, cars]);
 
-  // Calculate pickup time and check availability when Arrival time changes
+  // Calculate pickup time and double-check availability on backend
   useEffect(() => {
-    if (!bookingData.date || durationMins === 0) return;
+    if (!arrivalDate || durationMins === 0) return;
     
-    const arrivalDate = new Date(bookingData.date);
-    // Add 1 hour buffer if crossing border, else 30 mins
     const bufferMins = crossBorder ? 60 : 30;
     const totalSubtractMins = durationMins + bufferMins;
     
     const calculatedPickup = new Date(arrivalDate.getTime() - totalSubtractMins * 60000);
     setPickupTime(calculatedPickup);
 
-    // Check availability
     const checkAvailability = async () => {
       setAvailabilityStatus('checking');
       try {
@@ -96,11 +117,7 @@ export default function Calculator({ cars }: { cars: Car[] }) {
           })
         });
         const data = await res.json();
-        if (data.available) {
-          setAvailabilityStatus('available');
-        } else {
-          setAvailabilityStatus('unavailable');
-        }
+        setAvailabilityStatus(data.available ? 'available' : 'unavailable');
       } catch (err) {
         console.error(err);
         setAvailabilityStatus('idle');
@@ -108,11 +125,11 @@ export default function Calculator({ cars }: { cars: Car[] }) {
     };
 
     checkAvailability();
-  }, [bookingData.date, durationMins, crossBorder, selectedCarId]);
+  }, [arrivalDate, durationMins, crossBorder, selectedCarId]);
 
   const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (availabilityStatus === 'unavailable' || !pickupTime) return;
+    if (availabilityStatus === 'unavailable' || !pickupTime || !arrivalDate) return;
 
     setIsSubmitting(true);
     try {
@@ -129,8 +146,12 @@ export default function Calculator({ cars }: { cars: Car[] }) {
           distance,
           price,
           dateStart: pickupTime.toISOString(),
-          dateEnd: new Date(bookingData.date).toISOString(),
-          carId: selectedCarId
+          dateEnd: arrivalDate.toISOString(),
+          carId: selectedCarId,
+          passengers: Number(bookingData.passengers),
+          children: Number(bookingData.children),
+          luggage: bookingData.luggage,
+          animals: bookingData.animals === 'Так'
         })
       });
       if (res.ok) {
@@ -269,8 +290,8 @@ export default function Calculator({ cars }: { cars: Car[] }) {
 
       {/* Booking Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-[#1a1a1b] border border-[#e9c349]/20 rounded-3xl p-8 max-w-lg w-full shadow-2xl relative">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-[#1a1a1b] border border-[#e9c349]/20 rounded-3xl p-8 max-w-2xl w-full shadow-2xl relative my-8">
             <button 
               onClick={() => setIsModalOpen(false)}
               className="absolute top-4 right-4 text-[#c7c6ca] hover:text-white"
@@ -286,50 +307,93 @@ export default function Calculator({ cars }: { cars: Car[] }) {
               </div>
             ) : (
               <>
-                <h3 className="text-2xl font-headline-md text-white mb-2">Реєстрація та Бронювання</h3>
-                <p className="text-[#c7c6ca] text-sm mb-6">Для здійснення бронювання створіть обліковий запис або увійдіть.</p>
-                <form onSubmit={handleBookingSubmit} className="space-y-4">
+                <h3 className="text-2xl font-headline-md text-white mb-2">Деталі поїздки та Авторизація</h3>
+                <p className="text-[#c7c6ca] text-sm mb-6">Будь ласка, заповніть всі деталі для завершення бронювання.</p>
+                <form onSubmit={handleBookingSubmit} className="space-y-6">
+                  
+                  {/* Visual Calendar */}
+                  <div className="bg-[#131314] p-5 rounded-xl border border-white/5">
+                    <label className="block text-sm text-[#e9c349] mb-3 font-bold uppercase tracking-widest">Бажаний час прибуття (Куди) *</label>
+                    <DatePicker
+                      selected={arrivalDate}
+                      onChange={(date) => setArrivalDate(date)}
+                      showTimeSelect
+                      timeFormat="HH:mm"
+                      timeIntervals={30}
+                      dateFormat="d MMMM yyyy, HH:mm"
+                      excludeDateIntervals={excludeIntervals}
+                      minDate={new Date()}
+                      className="w-full bg-transparent border-b border-white/20 p-2 text-white focus:border-[#e9c349] outline-none"
+                      placeholderText="Оберіть вільну дату та час"
+                      required
+                    />
+                    
+                    {pickupTime && (
+                      <div className="mt-4 pt-4 border-t border-white/10 relative">
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="text-[#c7c6ca]">Час подачі авто:</span>
+                          <span className="text-white font-bold">{pickupTime.toLocaleString('uk-UA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
+                        
+                        {availabilityStatus === 'checking' && <div className="text-xs text-blue-400 mt-2 flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">sync</span> Перевірка доступності...</div>}
+                        {availabilityStatus === 'available' && <div className="text-xs text-green-400 mt-2 flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">check_circle</span> Автомобіль доступний</div>}
+                        {availabilityStatus === 'unavailable' && <div className="text-xs text-red-400 mt-2 flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">cancel</span> Автомобіль зайнятий у розрахований час подачі</div>}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Trip Details */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-[#131314] p-5 rounded-xl border border-white/5">
+                    <div>
+                      <label className="block text-xs text-[#c7c6ca] mb-1">Пасажири</label>
+                      <select className="w-full bg-transparent border-b border-white/20 p-2 text-white focus:border-[#e9c349] outline-none" value={bookingData.passengers} onChange={e => setBookingData({...bookingData, passengers: e.target.value})}>
+                        {[1,2,3,4,5,6,7,8].map(n => <option key={n} value={n} className="bg-[#131314]">{n}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-[#c7c6ca] mb-1">Діти</label>
+                      <select className="w-full bg-transparent border-b border-white/20 p-2 text-white focus:border-[#e9c349] outline-none" value={bookingData.children} onChange={e => setBookingData({...bookingData, children: e.target.value})}>
+                        {[0,1,2,3,4].map(n => <option key={n} value={n} className="bg-[#131314]">{n}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-[#c7c6ca] mb-1">Багаж</label>
+                      <select className="w-full bg-transparent border-b border-white/20 p-2 text-white focus:border-[#e9c349] outline-none" value={bookingData.luggage} onChange={e => setBookingData({...bookingData, luggage: e.target.value})}>
+                        {['Немає', 'Малий (Ручна поклажа)', 'Середній (1-2 валізи)', 'Великий (3+ валіз)'].map(o => <option key={o} value={o} className="bg-[#131314]">{o}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-[#c7c6ca] mb-1">Тварини</label>
+                      <select className="w-full bg-transparent border-b border-white/20 p-2 text-white focus:border-[#e9c349] outline-none" value={bookingData.animals} onChange={e => setBookingData({...bookingData, animals: e.target.value})}>
+                        {['Ні', 'Так'].map(o => <option key={o} value={o} className="bg-[#131314]">{o}</option>)}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Contact / Auth */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm text-[#c7c6ca] mb-1">Ім'я *</label>
-                      <input required type="text" className="w-full bg-[#131314] border border-white/10 rounded-lg p-3 text-white focus:border-[#e9c349] outline-none"
+                      <input required type="text" className="w-full bg-transparent border-b border-white/20 p-2 text-white focus:border-[#e9c349] outline-none"
                         value={bookingData.name} onChange={e => setBookingData({...bookingData, name: e.target.value})} />
                     </div>
                     <div>
                       <label className="block text-sm text-[#c7c6ca] mb-1">Телефон *</label>
-                      <input required type="tel" className="w-full bg-[#131314] border border-white/10 rounded-lg p-3 text-white focus:border-[#e9c349] outline-none"
+                      <input required type="tel" className="w-full bg-transparent border-b border-white/20 p-2 text-white focus:border-[#e9c349] outline-none"
                         value={bookingData.phone} onChange={e => setBookingData({...bookingData, phone: e.target.value})} />
                     </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm text-[#c7c6ca] mb-1">Email * (Логін)</label>
-                    <input required type="email" className="w-full bg-[#131314] border border-white/10 rounded-lg p-3 text-white focus:border-[#e9c349] outline-none"
-                      value={bookingData.email} onChange={e => setBookingData({...bookingData, email: e.target.value})} />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-[#c7c6ca] mb-1">Придумайте пароль *</label>
-                    <input required type="password" minLength={6} className="w-full bg-[#131314] border border-white/10 rounded-lg p-3 text-white focus:border-[#e9c349] outline-none"
-                      value={bookingData.password} onChange={e => setBookingData({...bookingData, password: e.target.value})} />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-[#c7c6ca] mb-1">Бажаний час прибуття *</label>
-                    <input required type="datetime-local" className="w-full bg-[#131314] border border-white/10 rounded-lg p-3 text-white focus:border-[#e9c349] outline-none"
-                      value={bookingData.date} onChange={e => setBookingData({...bookingData, date: e.target.value})} />
+                    <div>
+                      <label className="block text-sm text-[#c7c6ca] mb-1">Email * (Логін)</label>
+                      <input required type="email" className="w-full bg-transparent border-b border-white/20 p-2 text-white focus:border-[#e9c349] outline-none"
+                        value={bookingData.email} onChange={e => setBookingData({...bookingData, email: e.target.value})} />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-[#c7c6ca] mb-1">Пароль *</label>
+                      <input required type="password" minLength={6} className="w-full bg-transparent border-b border-white/20 p-2 text-white focus:border-[#e9c349] outline-none"
+                        value={bookingData.password} onChange={e => setBookingData({...bookingData, password: e.target.value})} />
+                    </div>
                   </div>
                   
-                  {pickupTime && (
-                    <div className="bg-[#131314] p-4 rounded-lg mt-4 border border-white/5 relative">
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="text-[#c7c6ca]">Час подачі авто:</span>
-                        <span className="text-white font-bold">{pickupTime.toLocaleString('uk-UA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
-                      </div>
-                      
-                      {availabilityStatus === 'checking' && <div className="text-xs text-blue-400 mt-2 flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">sync</span> Перевірка доступності...</div>}
-                      {availabilityStatus === 'available' && <div className="text-xs text-green-400 mt-2 flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">check_circle</span> Автомобіль доступний</div>}
-                      {availabilityStatus === 'unavailable' && <div className="text-xs text-red-400 mt-2 flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">cancel</span> Автомобіль вже заброньовано на цей час</div>}
-                    </div>
-                  )}
-
                   <button type="submit" disabled={isSubmitting || availabilityStatus === 'unavailable'} className="w-full gold-button font-bold rounded-lg p-4 mt-6 disabled:opacity-50 disabled:cursor-not-allowed">
                     {isSubmitting ? 'Відправка...' : 'Підтвердити заявку'}
                   </button>
