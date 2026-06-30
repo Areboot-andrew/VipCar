@@ -1,36 +1,83 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# First Line Transfer — VIP Car CRM
 
-## Getting Started
+Преміум CRM-система для трансферного бізнесу з онлайн-бронюванням, розрахунком вартості поїздки через Google Maps, візуальним календарем зайнятості авто та адмін-панеллю з повним CMS.
 
-First, run the development server:
+## 🚀 Технологічний стек
+
+- **Frontend:** Next.js 16 (App Router), React 19, TypeScript
+- **Styling:** Tailwind CSS + Custom CSS (Obsidian + Gold дизайн)
+- **Backend:** Next.js API Routes
+- **Database:** PostgreSQL (Docker) + Prisma ORM
+- **Maps:** Google Maps API (Autocomplete + Directions)
+- **Gallery:** Embla Carousel (автопрокрутка)
+- **Image Processing:** Sharp (WebP конвертація, кроп)
+- **Calendar:** React Datepicker (візуальна зайнятість)
+- **Notifications:** Telegram Bot API
+
+## ⚙️ Встановлення
 
 ```bash
+# 1. Клонувати репозиторій
+git clone https://github.com/Areboot-andrew/VipCar.git
+cd VipCar/carcrm
+
+# 2. Встановити залежності
+npm install
+
+# 3. Налаштувати .env
+cp .env.example .env
+# Відредагувати .env (додати ключі Google Maps, Telegram)
+
+# 4. Запустити базу даних
+cd .. && docker-compose up -d db && cd carcrm
+
+# 5. Виконати міграцію та наповнити базу
+npx prisma migrate dev --name init
+npx prisma db seed
+
+# 6. Запустити сервер розробки
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 📋 Структура проекту
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+carcrm/
+├── prisma/
+│   ├── schema.prisma    # Модель бази даних
+│   └── seed.ts          # Скрипт наповнення бази
+├── public/
+│   └── uploads/         # Локальні медіа файли (фото/відео)
+├── src/
+│   ├── app/
+│   │   ├── page.tsx         # Головна сторінка (100% CMS)
+│   │   ├── layout.tsx       # Root layout + SEO Schema
+│   │   ├── cars/[id]/       # Окремі сторінки авто
+│   │   ├── admin/           # Адмін панель
+│   │   │   ├── fleet/       # Управління автопарком
+│   │   │   ├── bookings/    # Заявки на бронювання
+│   │   │   ├── cms/         # CMS (тексти, фони, логотип)
+│   │   │   ├── feedback/    # Повідомлення від клієнтів
+│   │   │   └── promotions/  # Знижки / Empty Legs
+│   │   ├── driver/          # Портал водія
+│   │   └── api/             # API Endpoints
+│   └── components/
+│       ├── Calculator.tsx   # Калькулятор з Google Maps
+│       ├── ContactForm.tsx  # Форма зворотнього зв'язку
+│       └── GlobalGallery.tsx # Карусель галереї
+└── docker-compose.yml       # PostgreSQL контейнер
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🔑 Облікові записи (після seed)
 
-## Learn More
+| Роль | Email | Пароль |
+|------|-------|--------|
+| Адмін | admin@firstline.com | admin123 |
+| Водій | driver@firstline.com | driver123 |
 
-To learn more about Next.js, take a look at the following resources:
+## 🎨 Дизайн-система
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Основний фон:** `#131314` (Obsidian Charcoal)
+- **Акцент:** `#D4AF37` (Gold)
+- **Текст:** `#e4e2e3` (Light)
+- **Вторинний текст:** `#c7c6ca`
