@@ -118,6 +118,9 @@ The palette is rooted in a deep, "obsidian" charcoal that provides a more sophis
 - **Secondary (Metallic Gold):** Used sparingly for high-value calls to action, interactive states, and premium signifiers. Never use for large blocks of text.
 - **Tertiary (Crisp White):** Reserved for primary body text and high-contrast headlines to ensure maximum readability against the dark background.
 - **Neutral (Slate Gray):** A slightly lighter charcoal (#2A2A2B) used for input fields, secondary containers, and borders to create subtle layering.
+- **Data Storage:** PostgreSQL, connected via Prisma ORM.
+- **Authentication:** NextAuth.js (v4) using JWT strategy.
+- **Deployment:** Dockerized via Coolify (multi-stage Next.js standalone build).
 
 ## Typography
 
@@ -134,6 +137,16 @@ The layout philosophy is built on an **8-pixel grid system** with an emphasis on
 - **Spacing Logic:** Use `stack-lg` (80px) for separating major sections and `stack-md` (48px) for separating groups within a section. 
 
 The design avoids cluttered "dashboards," instead opting for a linear, progressive disclosure model that guides the user through the booking process one step at a time.
+
+### Security Rules
+- All non-public endpoints MUST be protected.
+- Drivers can only see their assigned bookings.
+- Passwords must be hashed using `bcryptjs` before DB storage.
+
+## Deployment & DevOps
+- **Docker**: The application is containerized using a multi-stage `Dockerfile` optimizing for Next.js standalone output.
+- **Coolify**: Intended to be deployed via Coolify.
+- **Database Migrations**: The `docker-entrypoint.sh` automatically runs `npx prisma migrate deploy` and `npx tsx prisma/seed.ts` before starting the Node server, ensuring the PostgreSQL DB schema and base content are fully synced.
 
 ## Elevation & Depth
 

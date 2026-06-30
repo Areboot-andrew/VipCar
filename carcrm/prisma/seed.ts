@@ -1,9 +1,13 @@
-const { PrismaClient } = require('@prisma/client');
+import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 async function seed() {
   console.log('🌱 Починаємо наповнення бази даних...\n');
+
+  const adminPassword = await bcrypt.hash('admin123', 10);
+  const driverPassword = await bcrypt.hash('driver123', 10);
 
   // ==========================================
   // 1. ADMIN USER
@@ -13,7 +17,7 @@ async function seed() {
     update: {},
     create: {
       email: 'admin@firstline.com',
-      password: 'admin123', // Потрібно замінити на хеш в продакшені
+      password: adminPassword,
       name: 'Адміністратор',
       phone: '+380991234567',
       role: 'ADMIN',
@@ -111,19 +115,45 @@ async function seed() {
     { key: 'btn_hero_cta', value: 'Розрахувати вартість' },
 
     // Features
-    { key: 'services_title', value: 'Чому обирають нас?' },
+    // Features
+    { key: 'services_title', value: 'First Line Transfer — це *преміум-трансфер* від дверей до дверей, де все працює за *вашими* правилами:' },
     { key: 'feature_1_icon', value: 'schedule' },
-    { key: 'feature_1_title', value: 'Пунктуальність' },
-    { key: 'feature_1_desc', value: 'Ми завжди прибуваємо за 15 хвилин до вказаного часу. Жодних запізнень, навіть на хвилину.' },
-    { key: 'feature_2_icon', value: 'directions_car' },
-    { key: 'feature_2_title', value: 'Преміум Автопарк' },
-    { key: 'feature_2_desc', value: 'Тільки нові автомобілі класу люкс в ідеальному технічному стані. Mercedes S-Class, BMW 7 Series, Audi A8.' },
-    { key: 'feature_3_icon', value: 'verified_user' },
-    { key: 'feature_3_title', value: 'Конфіденційність' },
-    { key: 'feature_3_desc', value: 'Повна гарантія анонімності та безпеки ваших поїздок. Дані клієнтів не передаються третім особам.' },
-    { key: 'feature_4_icon', value: 'workspace_premium' },
-    { key: 'feature_4_title', value: 'Професійні Водії' },
-    { key: 'feature_4_desc', value: 'Англомовні водії з багаторічним досвідом VIP-обслуговування. Завжди у діловому костюмі.' },
+    { key: 'feature_1_title', value: 'Пунктуальність 10/10' },
+    { key: 'feature_1_desc', value: 'Ми цінуємо ваш час, тому авто буде на місці хвилину в хвилину.' },
+    { key: 'feature_2_icon', value: 'workspace_premium' },
+    { key: 'feature_2_title', value: 'Турбота з першої секунди' },
+    { key: 'feature_2_desc', value: 'Водій допоможе з важким багажем та організує простір під вас.' },
+    { key: 'feature_3_icon', value: 'event_available' },
+    { key: 'feature_3_title', value: 'Гнучкість' },
+    { key: 'feature_3_desc', value: 'Ми підлаштовуємося під ваш графік і форс-мажори, а не навпаки.' },
+    { key: 'feature_4_icon', value: 'verified_user' },
+    { key: 'feature_4_title', value: 'Абсолютна конфіденційність' },
+    { key: 'feature_4_desc', value: 'Ваш простір у дорозі — недоторканний. Можна попрацювати в тиші або просто відпочити.' },
+    
+    // Comforts & Advantages
+    { key: 'comforts_title', value: 'Для комфортної поїздки наші авто забезпечені:' },
+    { key: 'comforts_list', value: JSON.stringify([
+      'водою',
+      'пледами',
+      'подушками',
+      'вологими та сухими серветками',
+      'зарядними пристроями та кабелями для різних типів телефонів',
+      'фірмовим шоколадом (на етапі реалізації)',
+      'компактними travel-наборами для подорожей: подушка, беруші та пов’язка на очі (на етапі реалізації)'
+    ])},
+    { key: 'advantages_title', value: 'Наші переваги:' },
+    { key: 'advantages_list', value: JSON.stringify([
+      'завжди чисті та доглянуті авто',
+      'уважні та досвідчені водії',
+      'знижка 10% на першу поїздку',
+      'однаковий рівень комфорту для всіх клієнтів, без поділу на “пакети” чи “класи”',
+      'прозорі та зрозумілі умови бронювання',
+      'підтримка клієнтів 24/7 до, під час та після поїздки',
+      'продуманий маршрут з урахуванням ваших побажань',
+      'програма лояльності для постійних клієнтів (на фінальному етапі формування умов)',
+      'картка постійного клієнта (поки на етапі ідеї)',
+      'Telegram-бот для самостійного бронювання трансферу (розглядаємо як окремий майбутній сервіс)'
+    ])},
 
     // Gallery
     { key: 'gallery_title', value: 'Галерея' },
@@ -157,7 +187,7 @@ async function seed() {
     update: {},
     create: {
       email: 'driver@firstline.com',
-      password: 'driver123',
+      password: driverPassword,
       name: 'Олександр Петренко',
       phone: '+380671112233',
       role: 'DRIVER',

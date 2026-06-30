@@ -66,7 +66,7 @@ export default function CMSPage() {
     <div className="p-8">
       <h1 className="text-3xl font-display-lg text-[#e9c349] mb-8">Управління контентом (CMS)</h1>
       
-      <div className="bg-[#131314] rounded-2xl border border-white/10 p-8 space-y-6 max-w-4xl">
+      <div className="bg-[#080818] rounded-2xl border border-white/10 p-8 space-y-6 max-w-4xl">
         {Object.entries(content).map(([key, value]) => {
           const isMedia = key.includes('image') || key.includes('video') || key.includes('logo');
           return (

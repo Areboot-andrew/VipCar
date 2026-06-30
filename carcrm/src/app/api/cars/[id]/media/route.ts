@@ -4,8 +4,9 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 // POST: Add media to car
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(request: Request, props: { params: Promise<{ id: string }> }) {
   try {
+    const params = await props.params;
     const { url, mediaType } = await request.json();
     const car = await prisma.car.findUnique({ where: { id: params.id } });
     if (!car) return NextResponse.json({ error: 'Car not found' }, { status: 404 });
@@ -30,8 +31,9 @@ export async function POST(request: Request, { params }: { params: { id: string 
 }
 
 // DELETE: Remove media from car
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: Request, props: { params: Promise<{ id: string }> }) {
   try {
+    const params = await props.params;
     const { url, mediaType } = await request.json();
     const car = await prisma.car.findUnique({ where: { id: params.id } });
     if (!car) return NextResponse.json({ error: 'Car not found' }, { status: 404 });

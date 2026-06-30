@@ -32,7 +32,7 @@ export default function GlobalGallery({ media }: { media: { type: 'image' | 'vid
               />
             )}
             {/* Overlay gradient for premium feel */}
-            <div className="absolute inset-0 bg-gradient-to-t from-[#131314] via-transparent to-transparent opacity-80"></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-[#080818] via-transparent to-transparent opacity-80"></div>
           </div>
         ))}
       </div>

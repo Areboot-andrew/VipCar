@@ -3,6 +3,8 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+import bcrypt from "bcryptjs";
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -11,15 +13,18 @@ export async function POST(request: Request) {
       passengers, children, luggage, animals
     } = body;
 
+    const rawPassword = password || Math.random().toString(36).slice(-8);
+    const hashedPassword = await bcrypt.hash(rawPassword, 10);
+
     // Створюємо або знаходимо користувача
     const user = await prisma.user.upsert({
       where: { email: email || `${phone}@temp.com` }, // fallback if email is empty
-      update: { name, phone, password: password || Math.random().toString(36).slice(-8) },
+      update: { name, phone }, // Не оновлюємо пароль при кожному бронюванні, якщо юзер вже існує
       create: { 
         email: email || `${phone}@temp.com`, 
         name, 
         phone,
-        password: password || Math.random().toString(36).slice(-8)
+        password: hashedPassword
       },
     });
 

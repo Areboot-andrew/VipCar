@@ -23,7 +23,7 @@ export default async function CarDetailsPage({ params }: { params: { id: string 
   const car = await prisma.car.findUnique({ where: { id: params.id } });
   
   if (!car) {
-    return <div className="min-h-screen flex items-center justify-center bg-[#131314] text-white"><h1>Автомобіль не знайдено</h1></div>;
+    return <div className="min-h-screen flex items-center justify-center bg-[#080818] text-white"><h1>Автомобіль не знайдено</h1></div>;
   }
 
   const allMedia: { type: 'image'|'video', url: string }[] = [];
@@ -31,10 +31,12 @@ export default async function CarDetailsPage({ params }: { params: { id: string 
   car.videos.forEach(vid => allMedia.push({ type: 'video', url: vid }));
 
   return (
-    <div className="bg-[#131314] text-[#e4e2e3] font-body-md antialiased min-h-screen flex flex-col pt-24">
+    <div className="bg-[#080818] text-[#e4e2e3] font-body-md antialiased min-h-screen flex flex-col pt-24">
       {/* NavBar (Simplified) */}
-      <nav className="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-6 md:px-16 py-4 bg-[#131314]/90 backdrop-blur-md border-b border-white/10">
-        <Link href="/" className="font-display-lg text-white text-2xl">First Line Transfer</Link>
+      <nav className="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-6 md:px-16 py-4 bg-[#080818]/90 backdrop-blur-md border-b border-white/10">
+        <Link href="/" className="relative z-50 block">
+          <img src="/logo.png" alt="First Line Transfer" className="h-[40px] md:h-[50px] object-contain" />
+        </Link>
         <Link href="/" className="text-[#c7c6ca] hover:text-white flex items-center gap-2">
           <span className="material-symbols-outlined">arrow_back</span> На головну
         </Link>

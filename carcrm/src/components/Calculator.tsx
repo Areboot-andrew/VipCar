@@ -312,11 +312,11 @@ export default function Calculator({ cars }: { cars: Car[] }) {
                 <form onSubmit={handleBookingSubmit} className="space-y-6">
                   
                   {/* Visual Calendar */}
-                  <div className="bg-[#131314] p-5 rounded-xl border border-white/5">
+                  <div className="bg-[#080818] p-5 rounded-xl border border-white/5">
                     <label className="block text-sm text-[#e9c349] mb-3 font-bold uppercase tracking-widest">Бажаний час прибуття (Куди) *</label>
                     <DatePicker
                       selected={arrivalDate}
-                      onChange={(date) => setArrivalDate(date)}
+                      onChange={(date: Date | null) => setArrivalDate(date)}
                       showTimeSelect
                       timeFormat="HH:mm"
                       timeIntervals={30}
@@ -343,29 +343,29 @@ export default function Calculator({ cars }: { cars: Car[] }) {
                   </div>
 
                   {/* Trip Details */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-[#131314] p-5 rounded-xl border border-white/5">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-[#080818] p-5 rounded-xl border border-white/5">
                     <div>
                       <label className="block text-xs text-[#c7c6ca] mb-1">Пасажири</label>
                       <select className="w-full bg-transparent border-b border-white/20 p-2 text-white focus:border-[#e9c349] outline-none" value={bookingData.passengers} onChange={e => setBookingData({...bookingData, passengers: e.target.value})}>
-                        {[1,2,3,4,5,6,7,8].map(n => <option key={n} value={n} className="bg-[#131314]">{n}</option>)}
+                        {[1,2,3,4,5,6,7,8].map(n => <option key={n} value={n} className="bg-[#080818]">{n}</option>)}
                       </select>
                     </div>
                     <div>
                       <label className="block text-xs text-[#c7c6ca] mb-1">Діти</label>
                       <select className="w-full bg-transparent border-b border-white/20 p-2 text-white focus:border-[#e9c349] outline-none" value={bookingData.children} onChange={e => setBookingData({...bookingData, children: e.target.value})}>
-                        {[0,1,2,3,4].map(n => <option key={n} value={n} className="bg-[#131314]">{n}</option>)}
+                        {[0,1,2,3,4].map(n => <option key={n} value={n} className="bg-[#080818]">{n}</option>)}
                       </select>
                     </div>
                     <div>
                       <label className="block text-xs text-[#c7c6ca] mb-1">Багаж</label>
                       <select className="w-full bg-transparent border-b border-white/20 p-2 text-white focus:border-[#e9c349] outline-none" value={bookingData.luggage} onChange={e => setBookingData({...bookingData, luggage: e.target.value})}>
-                        {['Немає', 'Малий (Ручна поклажа)', 'Середній (1-2 валізи)', 'Великий (3+ валіз)'].map(o => <option key={o} value={o} className="bg-[#131314]">{o}</option>)}
+                        {['Немає', 'Малий (Ручна поклажа)', 'Середній (1-2 валізи)', 'Великий (3+ валіз)'].map(o => <option key={o} value={o} className="bg-[#080818]">{o}</option>)}
                       </select>
                     </div>
                     <div>
                       <label className="block text-xs text-[#c7c6ca] mb-1">Тварини</label>
                       <select className="w-full bg-transparent border-b border-white/20 p-2 text-white focus:border-[#e9c349] outline-none" value={bookingData.animals} onChange={e => setBookingData({...bookingData, animals: e.target.value})}>
-                        {['Ні', 'Так'].map(o => <option key={o} value={o} className="bg-[#131314]">{o}</option>)}
+                        {['Ні', 'Так'].map(o => <option key={o} value={o} className="bg-[#080818]">{o}</option>)}
                       </select>
                     </div>
                   </div>

@@ -26,7 +26,7 @@ export default async function AdminDashboardPage() {
     },
     include: {
       client: true,
-      driver: true,
+      driver: { include: { user: true } },
     }
   });
 
