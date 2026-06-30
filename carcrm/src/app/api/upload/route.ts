@@ -3,7 +3,6 @@ import fs from 'fs';
 import path from 'path';
 import sharp from 'sharp';
 
-// Утиліта для створення папок
 const ensureDirExists = (dirPath: string) => {
   if (!fs.existsSync(dirPath)) {
     fs.mkdirSync(dirPath, { recursive: true });
@@ -14,7 +13,7 @@ export async function POST(request: Request) {
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File;
-    const type = formData.get('type') as string; // 'hero', 'fleet', 'gallery'
+    const type = formData.get('type') as string; 
 
     if (!file) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
@@ -49,19 +48,18 @@ export async function POST(request: Request) {
 
       let sharpInstance = sharp(buffer);
 
-      // Обрізка відповідно дизайну сайту
       if (type === 'hero') {
-        sharpInstance = sharpInstance.resize(1920, 1080, { fit: 'cover' }); // Широкоформатний для фону
+        sharpInstance = sharpInstance.resize(1920, 1080, { fit: 'cover' });
       } else if (type === 'fleet') {
-        sharpInstance = sharpInstance.resize(800, 500, { fit: 'cover' }); // Для карток автопарку (16:10)
+        sharpInstance = sharpInstance.resize(800, 500, { fit: 'cover' });
       } else if (type === 'gallery') {
-        sharpInstance = sharpInstance.resize(1280, 853, { fit: 'cover' }); // Для великої галереї (3:2)
+        sharpInstance = sharpInstance.resize(1280, 853, { fit: 'cover' });
       } else {
-        sharpInstance = sharpInstance.resize(1280, null, { withoutEnlargement: true }); // Дефолтне обмеження ширини
+        sharpInstance = sharpInstance.resize(1280, null, { withoutEnlargement: true });
       }
 
       await sharpInstance
-        .webp({ quality: 80 }) // Конвертація у WebP для SEO та швидкості
+        .webp({ quality: 80 })
         .toFile(filePath);
 
       relativeUrl = `/uploads/images/${fileName}`;

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { CalendarDays, Car, Users, LayoutDashboard, Settings, TicketPercent, MessageSquare } from 'lucide-react';
+import { CalendarDays, Car, Users, LayoutDashboard, Settings, TicketPercent, MessageSquare, ExternalLink } from 'lucide-react';
 import '../globals.css'; // Ensure we have globals
 
 export const metadata = {
@@ -47,6 +47,11 @@ export default function AdminLayout({
           <Link href="/admin/feedback" className="admin-nav-link">
             <MessageSquare size={20} />
             <span>Повідомлення</span>
+          </Link>
+          <hr style={{ borderColor: 'rgba(255,255,255,0.1)', margin: '16px 0' }} />
+          <Link href="/" className="admin-nav-link" target="_blank">
+            <ExternalLink size={20} />
+            <span>Відкрити сайт ↗</span>
           </Link>
         </nav>
       </aside>
