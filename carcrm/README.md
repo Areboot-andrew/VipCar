@@ -1,83 +1,138 @@
-# First Line Transfer — VIP Car CRM
+# VipCar — Преміум Трансфер CRM
 
-Преміум CRM-система для трансферного бізнесу з онлайн-бронюванням, розрахунком вартості поїздки через Google Maps, візуальним календарем зайнятості авто та адмін-панеллю з повним CMS.
-
-## 🚀 Технологічний стек
-
-- **Frontend:** Next.js 16 (App Router), React 19, TypeScript
-- **Styling:** Tailwind CSS + Custom CSS (Obsidian + Gold дизайн)
-- **Backend:** Next.js API Routes
-- **Database:** PostgreSQL (Docker) + Prisma ORM
-- **Maps:** Google Maps API (Autocomplete + Directions)
-- **Gallery:** Embla Carousel (автопрокрутка)
-- **Image Processing:** Sharp (WebP конвертація, кроп)
-- **Calendar:** React Datepicker (візуальна зайнятість)
-- **Notifications:** Telegram Bot API
-
-## ⚙️ Встановлення
+## 🚀 Швидкий старт
 
 ```bash
-# 1. Клонувати репозиторій
+# 1. Клонуй репо
 git clone https://github.com/Areboot-andrew/VipCar.git
 cd VipCar/carcrm
 
-# 2. Встановити залежності
+# 2. Встанови залежності
 npm install
 
-# 3. Налаштувати .env
+# 3. Скопіюй .env
 cp .env.example .env
-# Відредагувати .env (додати ключі Google Maps, Telegram)
+# Відредагуй .env — впиши свої ключі (див. нижче)
 
-# 4. Запустити базу даних
-cd .. && docker-compose up -d db && cd carcrm
+# 4. Запусти базу даних (Docker)
+cd ..
+docker-compose up -d db
+cd carcrm
 
-# 5. Виконати міграцію та наповнити базу
+# 5. Створи таблиці в базі
 npx prisma migrate dev --name init
-npx prisma db seed
 
-# 6. Запустити сервер розробки
+# 6. Наповни базу початковими даними
+npx ts-node --compiler-options '{"module":"CommonJS"}' prisma/seed.ts
+
+# 7. Запусти проект
 npm run dev
 ```
 
-## 📋 Структура проекту
+Відкрий: http://localhost:3000 (сайт) та http://localhost:3000/admin (адмінка)
+
+---
+
+## 🔑 Змінні оточення (.env)
+
+| Змінна | Опис | Обов'язково |
+|--------|------|:-----------:|
+| `DATABASE_URL` | Postgres URL | ✅ |
+| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Google Maps API для автозаповнення адрес та розрахунку маршруту | ⚠️ Для калькулятора |
+| `TELEGRAM_BOT_TOKEN` | Токен Telegram бота (створи через @BotFather) | ⚠️ Для сповіщень |
+| `TELEGRAM_CHAT_ID` | ID чату/користувача для сповіщень | ⚠️ Для сповіщень |
+
+---
+
+## 📁 Структура проекту
 
 ```
-carcrm/
-├── prisma/
-│   ├── schema.prisma    # Модель бази даних
-│   └── seed.ts          # Скрипт наповнення бази
-├── public/
-│   └── uploads/         # Локальні медіа файли (фото/відео)
-├── src/
-│   ├── app/
-│   │   ├── page.tsx         # Головна сторінка (100% CMS)
-│   │   ├── layout.tsx       # Root layout + SEO Schema
-│   │   ├── cars/[id]/       # Окремі сторінки авто
-│   │   ├── admin/           # Адмін панель
-│   │   │   ├── fleet/       # Управління автопарком
-│   │   │   ├── bookings/    # Заявки на бронювання
-│   │   │   ├── cms/         # CMS (тексти, фони, логотип)
-│   │   │   ├── feedback/    # Повідомлення від клієнтів
-│   │   │   └── promotions/  # Знижки / Empty Legs
-│   │   ├── driver/          # Портал водія
-│   │   └── api/             # API Endpoints
-│   └── components/
-│       ├── Calculator.tsx   # Калькулятор з Google Maps
-│       ├── ContactForm.tsx  # Форма зворотнього зв'язку
-│       └── GlobalGallery.tsx # Карусель галереї
-└── docker-compose.yml       # PostgreSQL контейнер
+VipCar/
+├── docker-compose.yml          # Docker: Postgres + Web
+├── carcrm/                     # Next.js App
+│   ├── prisma/
+│   │   ├── schema.prisma       # Моделі бази даних
+│   │   └── seed.ts             # Скрипт наповнення бази
+│   ├── public/
+│   │   └── uploads/            # Завантажені фото/відео (локально)
+│   │       ├── images/         # Оптимізовані WebP зображення
+│   │       └── videos/         # Відео файли
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── layout.tsx      # Root layout (SEO, шрифти, JSON-LD)
+│   │   │   ├── page.tsx        # Головна сторінка (100% CMS)
+│   │   │   ├── globals.css     # Глобальні стилі + DatePicker тема
+│   │   │   ├── cars/
+│   │   │   │   └── [id]/page.tsx   # Окрема SEO-сторінка авто
+│   │   │   ├── admin/
+│   │   │   │   ├── layout.tsx      # Sidebar адмінки
+│   │   │   │   ├── page.tsx        # Дашборд (Календар 90 днів)
+│   │   │   │   ├── fleet/page.tsx  # Автопарк (CRUD + завантаж. фото/відео)
+│   │   │   │   ├── bookings/page.tsx # Заявки (пасажири, багаж, тварини)
+│   │   │   │   ├── cms/page.tsx    # CMS Тексти + Файли
+│   │   │   │   ├── feedback/page.tsx # Повідомлення клієнтів
+│   │   │   │   ├── promotions/page.tsx # Знижки (Empty Legs)
+│   │   │   │   └── DashboardCalendar.tsx
+│   │   │   ├── driver/
+│   │   │   │   ├── layout.tsx      # Layout водія
+│   │   │   │   ├── page.tsx        # Дашборд водія
+│   │   │   │   └── settlements/page.tsx # Розрахунки водія
+│   │   │   └── api/
+│   │   │       ├── bookings/route.ts    # CRUD бронювань
+│   │   │       ├── cars/
+│   │   │       │   ├── route.ts         # GET/POST автопарк
+│   │   │       │   ├── availability/route.ts # Перевірка зайнятості
+│   │   │       │   └── [id]/
+│   │   │       │       ├── route.ts     # GET/DELETE/PATCH авто
+│   │   │       │       ├── media/route.ts    # Додати/Видалити фото
+│   │   │       │       └── booked-dates/route.ts # Зайняті дати
+│   │   │       ├── cms/route.ts         # CMS тексти (масовий update)
+│   │   │       ├── feedback/route.ts    # Зворотній зв'язок + Telegram
+│   │   │       ├── promotions/route.ts  # Знижки
+│   │   │       └── upload/route.ts      # Завантаження файлів (Sharp)
+│   │   └── components/
+│   │       ├── Calculator.tsx    # Калькулятор з DatePicker + Google Maps
+│   │       ├── ContactForm.tsx   # Форма зв'язку
+│   │       └── GlobalGallery.tsx # Авто-карусель (Embla)
+│   ├── Dockerfile
+│   ├── .env.example
+│   └── package.json
+└── DESIGN.md                   # Дизайн-система
 ```
 
-## 🔑 Облікові записи (після seed)
+---
+
+## 🗄️ Моделі бази даних
+
+| Модель | Опис |
+|--------|------|
+| `User` | Клієнти, адміни, водії (role: ADMIN/CLIENT/DRIVER) |
+| `Driver` | Водії (прив'язані до User) |
+| `Car` | Автопарк (images[], videos[], baseRate) |
+| `Booking` | Бронювання (passengers, children, luggage, animals, dateStart, dateEnd) |
+| `Invoice` | Рахунки |
+| `Settlement` | Розрахунки з водіями |
+| `SiteContent` | CMS тексти (key/value) |
+| `Promotion` | Знижки / Empty Legs |
+| `Feedback` | Повідомлення зворотнього зв'язку |
+
+---
+
+## 🔐 Доступ після seed
 
 | Роль | Email | Пароль |
 |------|-------|--------|
 | Адмін | admin@firstline.com | admin123 |
 | Водій | driver@firstline.com | driver123 |
 
-## 🎨 Дизайн-система
+---
 
-- **Основний фон:** `#131314` (Obsidian Charcoal)
-- **Акцент:** `#D4AF37` (Gold)
-- **Текст:** `#e4e2e3` (Light)
-- **Вторинний текст:** `#c7c6ca`
+## 🛠️ Технології
+
+- **Frontend:** Next.js 16, React 19, TailwindCSS
+- **Backend:** Next.js API Routes, Prisma ORM
+- **DB:** PostgreSQL 15 (Docker)
+- **Медіа:** Sharp (WebP оптимізація), Embla Carousel
+- **Maps:** Google Maps API (Autocomplete + Directions)
+- **Notifications:** Telegram Bot API
+- **Calendar:** react-datepicker (візуальна зайнятість)
