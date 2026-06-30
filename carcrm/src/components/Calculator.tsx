@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useJsApiLoader, Autocomplete, DirectionsService } from '@react-google-maps/api';
 
 type Car = {
   id: string;
@@ -9,13 +10,47 @@ type Car = {
   baseRate: number;
 };
 
+const libraries: "places"[] = ["places"];
+
 export default function Calculator({ cars }: { cars: Car[] }) {
   const [distance, setDistance] = useState(100);
   const [selectedCarId, setSelectedCarId] = useState<string>(cars[0]?.id || '');
   const [crossBorder, setCrossBorder] = useState(false);
   const [isWeekend, setIsWeekend] = useState(false);
-  
   const [price, setPrice] = useState(0);
+
+  // Google Maps State
+  const [origin, setOrigin] = useState<string>('');
+  const [destination, setDestination] = useState<string>('');
+  const [directionsResponse, setDirectionsResponse] = useState<google.maps.DirectionsResult | null>(null);
+
+  const { isLoaded } = useJsApiLoader({
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
+    libraries,
+  });
+
+  const originRef = useRef<HTMLInputElement>(null);
+  const destinationRef = useRef<HTMLInputElement>(null);
+
+  const calculateRoute = async () => {
+    if (!originRef.current?.value || !destinationRef.current?.value) return;
+    
+    // eslint-disable-next-line no-undef
+    const directionsService = new google.maps.DirectionsService();
+    try {
+      const results = await directionsService.route({
+        origin: originRef.current.value,
+        destination: destinationRef.current.value,
+        // eslint-disable-next-line no-undef
+        travelMode: google.maps.TravelMode.DRIVING,
+      });
+      setDirectionsResponse(results);
+      const distMeters = results.routes[0].legs[0].distance?.value || 0;
+      setDistance(Math.ceil(distMeters / 1000));
+    } catch (error) {
+      console.error("Помилка розрахунку маршруту:", error);
+    }
+  };
 
   useEffect(() => {
     const selectedCar = cars.find(c => c.id === selectedCarId);
@@ -23,16 +58,8 @@ export default function Calculator({ cars }: { cars: Car[] }) {
 
     // Logic for calculating price
     let currentPrice = distance * selectedCar.baseRate;
-    
-    // Border crossing coefficient (fixed fee or multiplier)
-    if (crossBorder) {
-      currentPrice += 150; // Example: 150 EUR border fee
-    }
-
-    // Weekend coefficient (10% extra)
-    if (isWeekend) {
-      currentPrice *= 1.10;
-    }
+    if (crossBorder) currentPrice += 150;
+    if (isWeekend) currentPrice *= 1.10;
 
     setPrice(Math.round(currentPrice));
   }, [distance, selectedCarId, crossBorder, isWeekend, cars]);
@@ -57,14 +84,26 @@ export default function Calculator({ cars }: { cars: Car[] }) {
                 <label className="block font-label-caps text-[12px] uppercase text-[#c7c6ca] mb-2 ml-1">Звідки</label>
                 <div className="relative flex items-center">
                   <span className="material-symbols-outlined absolute left-4 text-[#e9c349]/60">my_location</span>
-                  <input type="text" className="w-full bg-[#353536]/30 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-[#e4e2e3] focus:border-[#e9c349] outline-none" placeholder="Введіть адресу або місто" />
+                  {isLoaded ? (
+                    <Autocomplete onPlaceChanged={calculateRoute}>
+                      <input ref={originRef} type="text" className="w-full bg-[#353536]/30 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-[#e4e2e3] focus:border-[#e9c349] outline-none" placeholder="Введіть адресу або місто" />
+                    </Autocomplete>
+                  ) : (
+                    <input type="text" className="w-full bg-[#353536]/30 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-[#e4e2e3] focus:border-[#e9c349] outline-none" placeholder="Завантаження карт..." disabled />
+                  )}
                 </div>
               </div>
               <div className="relative group">
                 <label className="block font-label-caps text-[12px] uppercase text-[#c7c6ca] mb-2 ml-1">Куди</label>
                 <div className="relative flex items-center">
                   <span className="material-symbols-outlined absolute left-4 text-[#e9c349]/60">location_on</span>
-                  <input type="text" className="w-full bg-[#353536]/30 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-[#e4e2e3] focus:border-[#e9c349] outline-none" placeholder="Введіть адресу або місто" />
+                  {isLoaded ? (
+                    <Autocomplete onPlaceChanged={calculateRoute}>
+                      <input ref={destinationRef} type="text" className="w-full bg-[#353536]/30 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-[#e4e2e3] focus:border-[#e9c349] outline-none" placeholder="Введіть адресу або місто" />
+                    </Autocomplete>
+                  ) : (
+                    <input type="text" className="w-full bg-[#353536]/30 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-[#e4e2e3] focus:border-[#e9c349] outline-none" placeholder="Завантаження карт..." disabled />
+                  )}
                 </div>
               </div>
             </div>
@@ -78,7 +117,8 @@ export default function Calculator({ cars }: { cars: Car[] }) {
               <div className="flex justify-between items-end relative z-10">
                 <div>
                   <span className="block font-label-caps text-[10px] text-[#e9c349] uppercase tracking-widest mb-2">Відстань (км)</span>
-                  <input type="range" min="10" max="2000" value={distance} onChange={(e) => setDistance(Number(e.target.value))} className="w-full mb-2" />
+                  {/* Fallback manual slider if maps fails or API key missing */}
+                  <input type="range" min="1" max="2000" value={distance} onChange={(e) => setDistance(Number(e.target.value))} className="w-full mb-2" />
                 </div>
                 <div className="text-right">
                   <span className="text-4xl font-display-lg text-[#e9c349]" id="distance-display">{distance} км</span>
