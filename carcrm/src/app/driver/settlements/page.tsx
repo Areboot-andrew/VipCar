@@ -1,16 +1,25 @@
 import { PrismaClient } from '@prisma/client';
 import { DollarSign, CheckCircle, Clock } from 'lucide-react';
 
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "../../api/auth/[...nextauth]/route";
+
 const prisma = new PrismaClient();
 export const dynamic = 'force-dynamic';
 
 export default async function DriverSettlementsPage() {
-  const driver = await prisma.driver.findFirst({
-    where: { active: true },
+  const session = await getServerSession(authOptions);
+  
+  if (!session || session.user.role !== 'DRIVER') {
+    return <div className="admin-page-container"><h1>Немає доступу. Тільки для водіїв.</h1></div>;
+  }
+
+  const driver = await prisma.driver.findUnique({
+    where: { userId: session.user.id as string },
     include: { user: true }
   });
 
-  if (!driver) return <div className="admin-page-container"><h1>Немає доступу</h1></div>;
+  if (!driver || !driver.active) return <div className="admin-page-container"><h1>Профіль водія неактивний</h1></div>;
 
   const settlements = await prisma.settlement.findMany({
     where: { driverId: driver.id },
