@@ -1,0 +1,471 @@
+<!DOCTYPE html><html class="dark scroll-smooth" lang="uk"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>First Line Transfer | The First Class of the Road</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&amp;family=Playfair+Display:wght@600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface": "#131314",
+                        "secondary-fixed": "#ffe088",
+                        "inverse-on-surface": "#303031",
+                        "on-primary-fixed-variant": "#474647",
+                        "on-tertiary-fixed": "#1a1c1c",
+                        "primary-fixed": "#e5e2e3",
+                        "primary": "#c8c6c7",
+                        "on-tertiary": "#2f3131",
+                        "on-error": "#690005",
+                        "outline-variant": "#46474a",
+                        "primary-container": "#1a1a1b",
+                        "outline": "#909094",
+                        "tertiary": "#c6c6c7",
+                        "secondary-container": "#af8d11",
+                        "on-secondary-fixed": "#241a00",
+                        "inverse-primary": "#5f5e5f",
+                        "tertiary-fixed": "#e2e2e2",
+                        "on-secondary-fixed-variant": "#574500",
+                        "inverse-surface": "#e4e2e3",
+                        "on-error-container": "#ffdad6",
+                        "on-secondary": "#3c2f00",
+                        "tertiary-container": "#191b1b",
+                        "background": "#131314",
+                        "surface-bright": "#39393a",
+                        "surface-container-low": "#1b1b1c",
+                        "surface-container-lowest": "#0e0e0f",
+                        "error": "#ffb4ab",
+                        "secondary": "#e9c349",
+                        "surface-dim": "#131314",
+                        "on-primary": "#303031",
+                        "on-background": "#e4e2e3",
+                        "on-surface-variant": "#c7c6ca",
+                        "primary-fixed-dim": "#c8c6c7",
+                        "tertiary-fixed-dim": "#c6c6c7",
+                        "on-tertiary-fixed-variant": "#454747",
+                        "on-primary-container": "#848283",
+                        "error-container": "#93000a",
+                        "surface-container-high": "#2a2a2b",
+                        "surface-variant": "#353536",
+                        "on-secondary-container": "#342800",
+                        "on-tertiary-container": "#828383",
+                        "surface-tint": "#c8c6c7",
+                        "secondary-fixed-dim": "#e9c349",
+                        "on-surface": "#e4e2e3",
+                        "on-primary-fixed": "#1b1b1c",
+                        "surface-container-highest": "#353536",
+                        "surface-container": "#1f1f20"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-desktop": "64px",
+                        "container-max": "1280px",
+                        "gutter": "32px",
+                        "unit": "8px",
+                        "stack-md": "48px",
+                        "margin-mobile": "24px",
+                        "stack-lg": "80px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Playfair Display"],
+                        "label-caps": ["Montserrat"],
+                        "body-md": ["Montserrat"],
+                        "headline-lg": ["Playfair Display"],
+                        "display-lg": ["Playfair Display"],
+                        "body-lg": ["Montserrat"],
+                        "display-lg-mobile": ["Playfair Display"],
+                        "button": ["Montserrat"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["32px", { "lineHeight": "40px", "fontWeight": "600" }],
+                        "label-caps": ["12px", { "lineHeight": "16px", "letterSpacing": "0.15em", "fontWeight": "700" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-lg": ["48px", { "lineHeight": "56px", "fontWeight": "600" }],
+                        "display-lg": ["64px", { "lineHeight": "72px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "letterSpacing": "0.01em", "fontWeight": "400" }],
+                        "display-lg-mobile": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "button": ["14px", { "lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .bg-clip-text { -webkit-background-clip: text; background-clip: text; }
+        .glass-panel { background: rgba(36, 36, 37, 0.4); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .hover-gold-border:hover { border-color: #D4AF37; }
+        .gold-button { background-color: #D4AF37; color: #131314; }
+        .gold-button:hover { background: linear-gradient(135deg, #e9c349 0%, #af8d11 100%); }
+        .ghost-button { border: 1px solid rgba(255,255,255,0.2); color: #e4e2e3; background: transparent; }
+        .ghost-button:hover { border-color: #e4e2e3; background: rgba(255,255,255,0.05); }
+    </style>
+<script>
+        function updatePrice() {
+            const distance = document.getElementById('distance-slider').value;
+            let multiplier = 1;
+            const serviceClass = document.querySelector('input[name="service_class"]:checked');
+            if (serviceClass) {
+                if (serviceClass.value === 'business') multiplier = 1.5;
+                if (serviceClass.value === 'first') multiplier = 2.5;
+            }
+            
+            const baseRate = 2; // base rate per km
+            const estimatedPrice = distance * baseRate * multiplier;
+            
+            document.getElementById('price-display').innerText = `€ ${estimatedPrice.toLocaleString()}`;
+            document.getElementById('distance-display').innerText = `${distance} км`;
+        }
+    </script>
+</head>
+<body class="bg-surface text-on-surface font-body-md antialiased min-h-screen flex flex-col">
+<!-- TopNavBar -->
+<nav class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-margin-mobile md:px-margin-desktop py-unit max-w-container-max mx-auto bg-surface/90 backdrop-blur-md dark:bg-surface/90 border-b border-white/10 flat no shadows">
+<div class="font-display-lg text-display-lg tracking-tighter text-on-surface dark:text-on-surface text-headline-md md:text-headline-md font-headline-md cursor-pointer hover:text-white/80 transition-colors">
+            First Line Transfer
+        </div>
+<div class="hidden md:flex gap-gutter items-center">
+<a class="text-on-surface-variant hover:text-on-surface transition-colors font-label-caps text-label-caps hover:bg-white/5 transition-all duration-300 px-3 py-2 rounded" href="#services">Послуги</a>
+<a class="text-on-surface-variant hover:text-on-surface transition-colors font-label-caps text-label-caps hover:bg-white/5 transition-all duration-300 px-3 py-2 rounded" href="#fleet">Автопарк</a>
+<a class="text-on-surface-variant hover:text-on-surface transition-colors font-label-caps text-label-caps hover:bg-white/5 transition-all duration-300 px-3 py-2 rounded" href="#calculator">Бронювання</a>
+<a class="text-on-surface-variant hover:text-on-surface transition-colors font-label-caps text-label-caps hover:bg-white/5 transition-all duration-300 px-3 py-2 rounded" href="#contact">Контакти</a>
+</div>
+<div class="flex items-center gap-4">
+<a class="hidden md:block text-on-surface hover:text-secondary transition-colors font-label-caps text-label-caps transition-all duration-300 border border-white/20 px-4 py-2 rounded-lg hover:border-secondary/50" href="#">
+            Увійти
+        </a>
+<button class="gold-button font-button text-button px-6 py-3 rounded hover:scale-95 duration-150 ease-in-out transition-all">
+            Забронювати
+        </button>
+</div>
+</nav>
+<main class="flex-grow pt-24 md:pt-32">
+<!-- Hero Section -->
+<section class="relative w-full h-[819px] min-h-[600px] flex items-center justify-center px-margin-mobile md:px-margin-desktop mb-stack-lg">
+<div class="absolute inset-0 w-full h-full z-0 overflow-hidden rounded-xl">
+<div class="bg-cover bg-center w-full h-full opacity-40" data-alt="A cinematic, low-light shot of a sleek black luxury sedan gliding down an empty highway at night, illuminated by soft golden streetlights reflecting off the polished exterior. High-contrast minimalism with deep charcoal tones and sharp metallic accents, conveying motion, exclusivity, and premium travel." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAoQhUvZ2cpa3ifYkKhPZ4PrJKIBxhSKUfwT9cfMuWPju10EocnjdAXfU0KNe5g1bbrINchNHKQtJe2ikdO5qNVPNQTFzqTg9j5hQMjbwkKdrRyIHBTuPBIQASjC49diPF69vdkRhUKSjS4gc4NUgnLgkZtpZmEtC3ZLGiZxiFzYDYmuJWU3oNeKyheMJMDP_RMYY4R7ltbxUMwKe_2wZ8BFbc27UaARNwkR1VXy8zNW8-hd9Kyv8P9EfokpW6tDQVxgOpG7ERHQnA')"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-surface via-surface/50 to-transparent"></div>
+</div>
+<div class="relative z-10 max-w-3xl text-center flex flex-col items-center">
+<h1 class="font-display-lg-mobile md:font-display-lg text-display-lg-mobile md:text-display-lg text-on-surface mb-6 drop-shadow-lg">
+                    First Line Transfer —<br>Ваш час. Ваші правила.
+                </h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant mb-10 max-w-2xl">
+                    Преміум-трансфер від дверей до дверей з гарантованою пунктуальністю та абсолютною конфіденційністю.
+                </p>
+<button class="gold-button font-button text-button px-8 py-4 rounded-lg hover:scale-95 transition-transform">
+                    Забронювати поїздку
+                </button>
+</div>
+</section>
+<!-- Services/Values Section -->
+<section class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop mb-stack-lg" id="services">
+<h2 class="font-headline-lg text-headline-lg text-on-surface mb-stack-md text-center">Чому ми?</h2>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter">
+<!-- Card 1 -->
+<div class="glass-panel p-8 rounded-xl hover-gold-border transition-colors duration-300 flex flex-col items-start group">
+<span class="material-symbols-outlined text-secondary-fixed text-4xl mb-6 group-hover:scale-110 transition-transform">schedule</span>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-4 text-xl">Пунктуальність 10/10</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Ми цінуємо ваш час.</p>
+</div>
+<!-- Card 2 -->
+<div class="glass-panel p-8 rounded-xl hover-gold-border transition-colors duration-300 flex flex-col items-start group">
+<span class="material-symbols-outlined text-secondary-fixed text-4xl mb-6 group-hover:scale-110 transition-transform">luggage</span>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-4 text-xl">Турбота з першої секунди</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Допомога з багажем.</p>
+</div>
+<!-- Card 3 -->
+<div class="glass-panel p-8 rounded-xl hover-gold-border transition-colors duration-300 flex flex-col items-start group">
+<span class="material-symbols-outlined text-secondary-fixed text-4xl mb-6 group-hover:scale-110 transition-transform">sync_alt</span>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-4 text-xl">Гнучкість</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Підлаштовуємося під ваш графік.</p>
+</div>
+<!-- Card 4 -->
+<div class="glass-panel p-8 rounded-xl hover-gold-border transition-colors duration-300 flex flex-col items-start group">
+<span class="material-symbols-outlined text-secondary-fixed text-4xl mb-6 group-hover:scale-110 transition-transform">lock</span>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-4 text-xl">Абсолютна конфіденційність</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Ваш простір недоторканний.</p>
+</div>
+</div>
+</section>
+<!-- Modern Trip Price Calculator Section -->
+<section class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop mb-stack-lg" id="calculator">
+<h2 class="font-headline-lg text-headline-lg text-on-surface mb-stack-md text-center">Розрахунок вартості преміум-поїздки</h2>
+<div class="glass-panel p-8 md:p-12 rounded-3xl max-w-5xl mx-auto border border-white/10 shadow-2xl relative overflow-hidden md:p-16 flex flex-col gap-12">
+<div class="absolute -top-40 -right-40 w-96 h-96 bg-secondary/10 rounded-full blur-3xl pointer-events-none"></div>
+<div class="absolute -bottom-40 -left-40 w-96 h-96 bg-secondary/5 rounded-full blur-3xl pointer-events-none"></div>
+<!-- Route Selection and Distance Row -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-10 relative z-10">
+<!-- Route Selection -->
+<div class="space-y-8">
+<h3 class="font-headline-md text-2xl text-on-surface flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary">route</span> Маршрут поїздки
+        </h3>
+<div class="space-y-6">
+<div class="relative group">
+<label class="block font-label-caps text-label-caps text-on-surface-variant mb-2 uppercase ml-1">Звідки</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-4 text-secondary/60 group-focus-within:text-secondary transition-colors">my_location</span>
+<input class="w-full bg-surface-container-highest/30 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-on-surface font-body-md focus:border-secondary focus:ring-1 focus:ring-secondary transition-all outline-none placeholder:text-on-surface-variant/30" placeholder="Введіть адресу або місто" type="text">
+</div>
+</div>
+<div class="relative group">
+<label class="block font-label-caps text-label-caps text-on-surface-variant mb-2 uppercase ml-1">Куди</label>
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-4 text-secondary/60 group-focus-within:text-secondary transition-colors">location_on</span>
+<input class="w-full bg-surface-container-highest/30 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-on-surface font-body-md focus:border-secondary focus:ring-1 focus:ring-secondary transition-all outline-none placeholder:text-on-surface-variant/30" placeholder="Введіть адресу або місто" type="text">
+</div>
+</div>
+</div>
+</div>
+<!-- Distance Calculator -->
+<div class="flex flex-col h-full justify-end">
+<div class="bg-secondary/5 border border-secondary/20 rounded-2xl p-8 space-y-6 relative overflow-hidden flex flex-col justify-center h-full">
+<div class="absolute top-0 right-0 p-3">
+<span class="material-symbols-outlined text-secondary/20 text-5xl">auto_mode</span>
+</div>
+<div class="flex justify-between items-end relative z-10">
+<div>
+<span class="block font-label-caps text-[10px] text-secondary uppercase tracking-widest mb-2">Автоматичний розрахунок</span>
+<h4 class="font-headline-md text-2xl text-on-surface">Відстань маршруту</h4>
+</div>
+<div class="text-right">
+<span class="text-4xl font-display-lg text-secondary" id="distance-display">100 км</span>
+</div>
+</div>
+
+</div>
+</div>
+</div>
+<!-- Map Row -->
+<div class="w-full h-[400px] rounded-2xl overflow-hidden border border-white/10 relative group z-10">
+<div class="absolute inset-0 bg-[#1a1a1b] flex items-center justify-center">
+<div class="absolute inset-0 opacity-40 bg-[url('https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?auto=format&amp;fit=crop&amp;q=80&amp;w=1000')] bg-cover bg-center grayscale"></div>
+<svg class="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 800 400">
+<path class="animate-pulse" d="M 150 250 Q 400 50 650 150" fill="none" stroke="#e9c349" stroke-dasharray="8 4" stroke-width="3"></path>
+<circle cx="150" cy="250" fill="#e9c349" r="6"></circle>
+<circle cx="150" cy="250" fill="#e9c349" fill-opacity="0.2" r="12"></circle>
+<circle cx="650" cy="150" fill="#e9c349" r="6"></circle>
+<circle cx="650" cy="150" fill="#e9c349" fill-opacity="0.2" r="12"></circle>
+</svg>
+<div class="absolute bottom-4 right-4 flex flex-col gap-2">
+<button class="w-10 h-10 bg-surface/90 backdrop-blur-md border border-white/10 rounded-lg flex items-center justify-center text-on-surface hover:bg-secondary hover:text-surface transition-colors">
+<span class="material-symbols-outlined">add</span>
+</button>
+<button class="w-10 h-10 bg-surface/90 backdrop-blur-md border border-white/10 rounded-lg flex items-center justify-center text-on-surface hover:bg-secondary hover:text-surface transition-colors">
+<span class="material-symbols-outlined">remove</span>
+</button>
+</div>
+<div class="absolute top-4 left-4 bg-surface/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-secondary animate-ping"></span>
+<span class="text-[10px] font-label-caps uppercase tracking-widest text-on-surface">Інтерактивна карта</span>
+</div>
+</div>
+</div>
+<!-- Vehicle Class Selection Row -->
+<div class="space-y-6 relative z-10">
+<h3 class="font-headline-md text-2xl text-on-surface flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary">diamond</span> Клас обслуговування
+    </h3>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<label class="cursor-pointer">
+<input checked="" class="peer sr-only" name="service_class" onchange="updatePrice()" type="radio" value="standard">
+<div class="glass-panel px-6 py-6 rounded-xl border border-white/10 peer-checked:border-secondary peer-checked:bg-secondary/10 transition-all flex items-center justify-between h-full">
+<div class="text-left">
+<span class="block font-headline-md text-xl mb-1">Standard</span>
+<span class="text-sm text-on-surface-variant">Mercedes E-Class</span>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant peer-checked:text-secondary text-3xl">check_circle</span>
+</div>
+</label>
+<label class="cursor-pointer">
+<input class="peer sr-only" name="service_class" onchange="updatePrice()" type="radio" value="business">
+<div class="glass-panel px-6 py-6 rounded-xl border border-white/10 peer-checked:border-secondary peer-checked:bg-secondary/10 transition-all flex items-center justify-between relative overflow-hidden h-full">
+<div class="absolute top-0 right-0 bg-secondary text-surface text-[10px] font-bold px-3 py-1 rounded-bl-lg tracking-widest">POPULAR</div>
+<div class="text-left">
+<span class="block font-headline-md text-xl text-secondary mb-1">Business</span>
+<span class="text-sm text-on-surface-variant">Mercedes V-Class</span>
+</div>
+<span class="material-symbols-outlined text-secondary text-3xl">check_circle</span>
+</div>
+</label>
+<label class="cursor-pointer">
+<input class="peer sr-only" name="service_class" onchange="updatePrice()" type="radio" value="first">
+<div class="glass-panel px-6 py-6 rounded-xl border border-white/10 peer-checked:border-secondary peer-checked:bg-secondary/10 transition-all flex items-center justify-between h-full">
+<div class="text-left">
+<span class="block font-headline-md text-xl text-white mb-1">First</span>
+<span class="text-sm text-on-surface-variant">Mercedes S-Class / BMW 7</span>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant peer-checked:text-secondary text-3xl">check_circle</span>
+</div>
+</label>
+</div>
+</div>
+<!-- Bottom Row: Price and CTA -->
+<div class="pt-8 border-t border-white/10 relative z-10">
+<div class="flex flex-col md:flex-row items-center justify-between gap-8 bg-surface-container-highest/30 p-8 rounded-2xl border border-white/5 backdrop-blur-sm">
+<div class="flex-1 text-center md:text-left">
+<h4 class="font-label-caps text-label-caps text-on-surface-variant mb-2 uppercase tracking-widest">Орієнтовна вартість</h4>
+<div class="relative inline-block">
+<div class="text-6xl md:text-7xl font-display-lg text-white tracking-tight drop-shadow-2xl" id="price-display">
+                    € 200
+                </div>
+<div class="absolute -right-6 -top-4 w-12 h-12 rounded-full bg-secondary/10 animate-pulse blur-xl"></div>
+</div>
+</div>
+<div class="flex-1 w-full flex justify-center md:justify-start">
+<ul class="text-sm text-on-surface-variant space-y-3">
+<li class="flex items-center gap-3"><span class="material-symbols-outlined text-secondary text-xl">verified</span> Фіксована ціна після підтвердження</li>
+<li class="flex items-center gap-3"><span class="material-symbols-outlined text-secondary text-xl">timer</span> Безкоштовне очікування (60 хв)</li>
+<li class="flex items-center gap-3"><span class="material-symbols-outlined text-secondary text-xl">badge</span> Зустріч з іменною табличкою</li>
+</ul>
+</div>
+<div class="w-full md:w-auto">
+<button class="w-full md:w-auto gold-button font-button text-button px-12 py-6 rounded-2xl hover:scale-[0.98] transition-all text-lg shadow-[0_10px_30px_rgba(212,175,55,0.2)]">
+                Продовжити бронювання
+            </button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Fleet Section -->
+<section class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop mb-stack-lg" id="fleet">
+<h2 class="font-headline-lg text-headline-lg text-on-surface mb-stack-md text-center">Наш автопарк</h2>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
+<!-- Vehicle 1 -->
+<div class="glass-panel rounded-xl overflow-hidden hover-gold-border transition-colors duration-300 group flex flex-col">
+<div class="h-64 overflow-hidden relative">
+<img alt="Mercedes S-Class" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBOjZjSPO30oaw36BcWVuu7WZrFXwI49-mHVUiWkA4froSPnSeK4XcNugEhEn23TXx6jrmStTfOvMCLAFDAPuTmv54s_o1zdCXY-Xd3buJB6bwVUw9aZG7flUnW7SbzHrFLQoVP_DBJJrjDhDbkUbtd6HhAUsN_kGHEnU0M-hkLna1Vq3fdNUMc_F4ChhchRzF2ND9-Jsk73YhV6kA0RBpItvGTBMjsrW26jzfmJJi774VVDk5LCAPCRE4l7XO06z-16BnWRAOOUDo">
+<div class="absolute inset-0 bg-gradient-to-t from-surface to-transparent"></div>
+</div>
+<div class="p-8 flex-1 flex flex-col">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-2 text-2xl">Mercedes-Benz S-Class</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mb-6">Еталон розкоші та комфорту для ділових поїздок та VIP-трансферів.</p>
+<div class="flex gap-4 mb-8 mt-auto">
+<div class="flex items-center text-on-surface-variant gap-1"><span class="material-symbols-outlined text-sm">person</span> 3</div>
+<div class="flex items-center text-on-surface-variant gap-1"><span class="material-symbols-outlined text-sm">work</span> 2</div>
+<div class="flex items-center text-on-surface-variant gap-1"><span class="material-symbols-outlined text-sm">wifi</span></div>
+</div>
+<button class="ghost-button w-full font-button text-button px-6 py-3 rounded hover:scale-95 duration-150 ease-in-out transition-all">
+                    Обрати авто
+                </button>
+</div>
+</div>
+<!-- Vehicle 2 -->
+<div class="glass-panel rounded-xl overflow-hidden hover-gold-border transition-colors duration-300 group flex flex-col">
+<div class="h-64 overflow-hidden relative">
+<img alt="Mercedes V-Class" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDzZMBC1Lh2TN19y5k2d9ZNrxBvgPpPWql9BNh70wx2aGY0-1rAKMGkPMs_SoV8URvDV_HYlodWxd9nR0OcmA_Vr1Te-2V4VfmcxtGQ5exJgof0-yusPrYpxdyMBf5NvA3hSsjeGyx4ErSVnxQGP7-PYwE9JMPtpj3m2fscOCdQvA3jKb2putKxr1Gg8sYi1nS7VCvKyHpbjbc7SI_D61V-gR_tPtLSqm8YLWyvGJ3rMD9EqxNjzXCDZ4bKhfBfVRxWK6a4aPs0hDY">
+<div class="absolute inset-0 bg-gradient-to-t from-surface to-transparent"></div>
+</div>
+<div class="p-8 flex-1 flex flex-col">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-2 text-2xl">Mercedes-Benz V-Class</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mb-6">Просторий преміум-мінівен для делегацій та сімейних подорожей.</p>
+<div class="flex gap-4 mb-8 mt-auto">
+<div class="flex items-center text-on-surface-variant gap-1"><span class="material-symbols-outlined text-sm">person</span> 6</div>
+<div class="flex items-center text-on-surface-variant gap-1"><span class="material-symbols-outlined text-sm">work</span> 6</div>
+<div class="flex items-center text-on-surface-variant gap-1"><span class="material-symbols-outlined text-sm">wifi</span></div>
+</div>
+<button class="ghost-button w-full font-button text-button px-6 py-3 rounded hover:scale-95 duration-150 ease-in-out transition-all">
+                    Обрати авто
+                </button>
+</div>
+</div>
+<!-- Vehicle 3 -->
+<div class="glass-panel rounded-xl overflow-hidden hover-gold-border transition-colors duration-300 group flex flex-col">
+<div class="h-64 overflow-hidden relative">
+<img alt="BMW 7 Series" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDdM6Eq6QEhD-QTRiP4Mml0uEp1bmLSJfz-Zfv4_Nw4YNhk7z4KXiXUuxgmRd43hdVxSwoEnithF8hMrdF5V66EYamFt1_D30PZ5oKom2citLrgbneTwiqUBczflqXctW9BlcGOE15jgxbk_sMCW_d2Ew5bGjj0jn8ND_EF69XWGaQOv6R_f8eatJcmr7_znB6VnnxLiwfO0BRlOzaYAGKEkvgijpz43lR88hLzG9XYnun4Atd8eRxY4E043GXHtEp53FFHRkQB_UU">
+<div class="absolute inset-0 bg-gradient-to-t from-surface to-transparent"></div>
+</div>
+<div class="p-8 flex-1 flex flex-col">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-2 text-2xl">BMW 7 Series</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mb-6">Динамічний седан представницького класу з інноваційними технологіями.</p>
+<div class="flex gap-4 mb-8 mt-auto">
+<div class="flex items-center text-on-surface-variant gap-1"><span class="material-symbols-outlined text-sm">person</span> 3</div>
+<div class="flex items-center text-on-surface-variant gap-1"><span class="material-symbols-outlined text-sm">work</span> 2</div>
+<div class="flex items-center text-on-surface-variant gap-1"><span class="material-symbols-outlined text-sm">wifi</span></div>
+</div>
+<button class="ghost-button w-full font-button text-button px-6 py-3 rounded hover:scale-95 duration-150 ease-in-out transition-all">
+                    Обрати авто
+                </button>
+</div>
+</div>
+</div>
+</section>
+<!-- Testimonials Section -->
+<section class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop mb-stack-lg">
+<h2 class="font-headline-lg text-headline-lg text-on-surface mb-stack-md text-center">Відгуки клієнтів</h2>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+<div class="glass-panel p-8 rounded-xl flex flex-col">
+<div class="flex text-secondary-fixed mb-4">
+<span class="material-symbols-outlined">star</span>
+<span class="material-symbols-outlined">star</span>
+<span class="material-symbols-outlined">star</span>
+<span class="material-symbols-outlined">star</span>
+<span class="material-symbols-outlined">star</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-6 italic">"Бездоганний сервіс. Водій прибув за 15 хвилин до призначеного часу. Автомобіль в ідеальному стані, поїздка пройшла максимально комфортно."</p>
+<div class="mt-auto">
+<h4 class="font-headline-md text-on-surface text-lg">Олександр В.</h4>
+<p class="font-label-caps text-label-caps text-on-surface-variant/50 mt-1">CEO</p>
+</div>
+</div>
+<div class="glass-panel p-8 rounded-xl flex flex-col">
+<div class="flex text-secondary-fixed mb-4">
+<span class="material-symbols-outlined">star</span>
+<span class="material-symbols-outlined">star</span>
+<span class="material-symbols-outlined">star</span>
+<span class="material-symbols-outlined">star</span>
+<span class="material-symbols-outlined">star</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-6 italic">"Використовуємо First Line Transfer для зустрічі іноземних партнерів. Рівень обслуговування завжди відповідає найвищим стандартам."</p>
+<div class="mt-auto">
+<h4 class="font-headline-md text-on-surface text-lg">Марія К.</h4>
+<p class="font-label-caps text-label-caps text-on-surface-variant/50 mt-1">Event Manager</p>
+</div>
+</div>
+<div class="glass-panel p-8 rounded-xl flex flex-col">
+<div class="flex text-secondary-fixed mb-4">
+<span class="material-symbols-outlined">star</span>
+<span class="material-symbols-outlined">star</span>
+<span class="material-symbols-outlined">star</span>
+<span class="material-symbols-outlined">star</span>
+<span class="material-symbols-outlined">star</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-6 italic">"Абсолютна конфіденційність та професіоналізм. Рекомендую для тих, хто цінує свій час та комфорт у дорозі."</p>
+<div class="mt-auto">
+<h4 class="font-headline-md text-on-surface text-lg">Дмитро С.</h4>
+<p class="font-label-caps text-label-caps text-on-surface-variant/50 mt-1">Приватний клієнт</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Contact Form Section -->
+<section class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop mb-stack-lg" id="contact">
+<div class="glass-panel p-8 md:p-16 rounded-2xl max-w-4xl mx-auto"><h2 class="font-headline-lg text-headline-lg text-on-surface mb-4 text-center">Зв'яжіться з нами</h2><p class="font-body-md text-body-md text-on-surface-variant mb-10 text-center max-w-xl mx-auto">Залиште свої контакти, і наш менеджер зв'яжеться з вами для уточнення деталей поїздки.</p><div class="grid grid-cols-1 lg:grid-cols-3 gap-12"><div class="lg:col-span-2"><form class="space-y-6"><div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div><label class="block font-label-caps text-label-caps text-on-surface-variant mb-2 uppercase">Ім'я</label><input class="w-full bg-transparent border-b border-white/20 px-0 py-3 text-on-surface font-body-md focus:border-secondary-fixed focus:ring-0 outline-none transition-colors placeholder:text-on-surface-variant/30" placeholder="Ваше ім'я" type="text"></div><div><label class="block font-label-caps text-label-caps text-on-surface-variant mb-2 uppercase">Телефон</label><input class="w-full bg-transparent border-b border-white/20 px-0 py-3 text-on-surface font-body-md focus:border-secondary-fixed focus:ring-0 outline-none transition-colors placeholder:text-on-surface-variant/30" placeholder="+380 (XX) XXX XX XX" type="tel"></div></div><div><label class="block font-label-caps text-label-caps text-on-surface-variant mb-2 uppercase">Email (необов'язково)</label><input class="w-full bg-transparent border-b border-white/20 px-0 py-3 text-on-surface font-body-md focus:border-secondary-fixed focus:ring-0 outline-none transition-colors placeholder:text-on-surface-variant/30" placeholder="Ваш email" type="email"></div><div><label class="block font-label-caps text-label-caps text-on-surface-variant mb-2 uppercase">Повідомлення</label><textarea class="w-full bg-transparent border-b border-white/20 px-0 py-3 text-on-surface font-body-md focus:border-secondary-fixed focus:ring-0 outline-none transition-colors placeholder:text-on-surface-variant/30 resize-none" placeholder="Додаткові побажання..." rows="3"></textarea></div><div class="pt-4"><button class="gold-button font-button text-button px-10 py-4 rounded-lg hover:scale-95 transition-transform inline-block" type="submit">Відправити запит</button></div></form></div><div class="space-y-10 border-t lg:border-t-0 lg:border-l border-white/10 pt-10 lg:pt-0 lg:pl-12"><div class="space-y-6"><div><h4 class="font-label-caps text-label-caps text-secondary mb-2 uppercase">Телефон</h4><a class="text-xl font-headline-md text-on-surface hover:text-secondary transition-colors" href="tel:+380000000000">+380 (XX) XXX XX XX</a></div><div><h4 class="font-label-caps text-label-caps text-secondary mb-2 uppercase">Email</h4><a class="text-xl font-headline-md text-on-surface hover:text-secondary transition-colors" href="mailto:office@firstlinetransfer.com">office@firstlinetransfer.com</a></div></div><div class="space-y-4"><h4 class="font-label-caps text-label-caps text-on-surface-variant mb-4 uppercase">Ми у соцмережах</h4><div class="flex gap-4"><a class="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center hover:border-secondary hover:text-secondary transition-all duration-300" href="#"><span class="material-symbols-outlined text-xl">public</span></a><a class="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center hover:border-secondary hover:text-secondary transition-all duration-300" href="#"><span class="material-symbols-outlined text-xl">share</span></a><a class="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center hover:border-secondary hover:text-secondary transition-all duration-300" href="#"><span class="material-symbols-outlined text-xl">groups</span></a></div></div></div></div></div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="w-full py-stack-md px-margin-mobile md:px-margin-desktop grid grid-cols-1 md:grid-cols-4 gap-gutter max-w-container-max mx-auto bg-surface-container-lowest dark:bg-surface-container-lowest border-t border-white/5 flat no shadows mt-auto">
+<div class="col-span-1 md:col-span-4 mb-4">
+<div class="font-headline-md text-headline-md text-on-surface">First Line Transfer</div>
+<p class="font-body-md text-body-md text-secondary-fixed dark:text-secondary-fixed mt-2">© 2024 First Line Transfer. The First Class of the Road.</p>
+</div>
+<div class="col-span-1 md:col-span-4 flex flex-wrap gap-4 mt-4 border-t border-white/10 pt-4">
+<a class="font-label-caps text-label-caps text-on-surface-variant hover:text-secondary transition-colors duration-200" href="#">Privacy Policy</a>
+<a class="font-label-caps text-label-caps text-on-surface-variant hover:text-secondary transition-colors duration-200" href="#">Terms of Service</a>
+<a class="font-label-caps text-label-caps text-on-surface-variant hover:text-secondary transition-colors duration-200" href="#">Carrier License</a>
+<a class="font-label-caps text-label-caps text-on-surface-variant hover:text-secondary transition-colors duration-200" href="#">Cookie Settings</a>
+</div>
+</footer>
+
+
+</body></html>

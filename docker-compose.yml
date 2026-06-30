@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: carcrm_db
+    restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin_password
+      POSTGRES_DB: carcrm
+    ports:
+      - '5432:5432'
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  web:
+    build:
+      context: ./carcrm
+      dockerfile: Dockerfile
+    container_name: carcrm_web
+    restart: always
+    ports:
+      - '3000:3000'
+    depends_on:
+      - db
+    environment:
+      - DATABASE_URL=postgresql://admin:admin_password@db:5432/carcrm?schema=public
+
+volumes:
+  db_data:
