@@ -307,6 +307,7 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
                   options={{
                     disableDefaultUI: true,
                     zoomControl: true,
+                    mapTypeId: 'roadmap',
                     styles: [
                       { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
                       { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
