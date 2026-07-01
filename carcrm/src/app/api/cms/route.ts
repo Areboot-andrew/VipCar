@@ -11,7 +11,11 @@ export async function GET() {
       fuel_price_uah: '60',
       eur_to_uah_rate: '42.5',
       weekend_coefficient: '1.2',
-      driver_daily_fee: '50'
+      child_seat_fee: '15',
+      animal_fee: '20',
+      meet_and_greet_fee: '15',
+      luggage_medium_fee: '10',
+      luggage_large_fee: '20'
     };
     content.forEach(item => { result[item.key] = item.value; });
     return NextResponse.json(result);

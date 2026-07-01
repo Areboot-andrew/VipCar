@@ -33,7 +33,18 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
   const fuelPriceUah = parseFloat(cmsSettings?.['fuel_price_uah'] || '60');
   const eurToUahRate = parseFloat(cmsSettings?.['eur_to_uah_rate'] || '42.5');
   const weekendCoeff = parseFloat(cmsSettings?.['weekend_coefficient'] || '1.2');
-  const driverDailyFeeEur = parseFloat(cmsSettings?.['driver_daily_fee'] || '50');
+  
+  const childSeatFee = parseFloat(cmsSettings?.['child_seat_fee'] || '15');
+  const animalFee = parseFloat(cmsSettings?.['animal_fee'] || '20');
+  const meetAndGreetFee = parseFloat(cmsSettings?.['meet_and_greet_fee'] || '15');
+  const luggageMedFee = parseFloat(cmsSettings?.['luggage_medium_fee'] || '10');
+  const luggageLargeFee = parseFloat(cmsSettings?.['luggage_large_fee'] || '20');
+
+  const [passengers, setPassengers] = useState('1');
+  const [children, setChildren] = useState('0');
+  const [luggage, setLuggage] = useState('Немає');
+  const [animals, setAnimals] = useState('Ні');
+  const [meetAndGreet, setMeetAndGreet] = useState(false);
 
   const [origin, setOrigin] = useState<string>('');
   const [destination, setDestination] = useState<string>('');
@@ -41,8 +52,7 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
   // Modal & Booking state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [bookingData, setBookingData] = useState({ 
-    name: '', phone: '', email: '', password: '', 
-    passengers: '1', children: '0', luggage: 'Немає', animals: 'Ні' 
+    name: '', phone: '', email: '', password: ''
   });
   
   const [arrivalDate, setArrivalDate] = useState<Date | null>(null);
@@ -133,6 +143,13 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
     let currentPrice = fuelCostEur + baseCostEur;
     if (crossBorder) currentPrice += 150;
     
+    if (meetAndGreet) currentPrice += meetAndGreetFee;
+    currentPrice += parseInt(children) * childSeatFee;
+    if (animals === 'Так') currentPrice += animalFee;
+    
+    if (luggage === 'Середній (1-2 валізи)') currentPrice += luggageMedFee;
+    else if (luggage === 'Великий (3+ валіз)') currentPrice += luggageLargeFee;
+    
     let isWeekendReal = false;
     if (arrivalDate) {
       const day = arrivalDate.getDay();
@@ -147,7 +164,7 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
     }
     
     setPrice(Math.round(currentPrice));
-  }, [distanceCity, distanceHighway, distance, selectedCarId, crossBorder, isWeekend, arrivalDate, withDriver, discountPercent, cars, fuelPriceUah, eurToUahRate, driverDailyFeeEur, weekendCoeff]);
+  }, [distanceCity, distanceHighway, distance, selectedCarId, crossBorder, isWeekend, arrivalDate, withDriver, discountPercent, cars, fuelPriceUah, eurToUahRate, weekendCoeff, children, luggage, animals, meetAndGreet, childSeatFee, animalFee, meetAndGreetFee, luggageMedFee, luggageLargeFee]);
 
   const handleManualDistanceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newDist = Number(e.target.value);
@@ -216,10 +233,10 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
           dateStart: pickupTime.toISOString(),
           dateEnd: arrivalDate.toISOString(),
           carId: selectedCarId,
-          passengers: Number(bookingData.passengers),
-          children: Number(bookingData.children),
-          luggage: bookingData.luggage,
-          animals: bookingData.animals === 'Так'
+          passengers: Number(passengers),
+          children: Number(children),
+          luggage: luggage,
+          animals: animals === 'Так'
         })
       });
       if (res.ok) {
@@ -298,6 +315,34 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
           </div>
         </div>
 
+        {/* Passenger & Luggage Options */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 relative z-10 border-t border-white/10 pt-8">
+          <div className="bg-[#353536]/30 border border-white/10 rounded-xl p-4">
+            <label className="block text-xs text-[#c7c6ca] mb-1 font-label-caps uppercase">Пасажири</label>
+            <select className="w-full bg-transparent text-white outline-none" value={passengers} onChange={e => setPassengers(e.target.value)}>
+              {[1,2,3,4,5,6,7,8].map(n => <option key={n} value={n} className="bg-[#1a1a1b]">{n}</option>)}
+            </select>
+          </div>
+          <div className="bg-[#353536]/30 border border-white/10 rounded-xl p-4">
+            <label className="block text-xs text-[#c7c6ca] mb-1 font-label-caps uppercase">Діти (+{childSeatFee}€)</label>
+            <select className="w-full bg-transparent text-white outline-none" value={children} onChange={e => setChildren(e.target.value)}>
+              {[0,1,2,3,4].map(n => <option key={n} value={n} className="bg-[#1a1a1b]">{n}</option>)}
+            </select>
+          </div>
+          <div className="bg-[#353536]/30 border border-white/10 rounded-xl p-4">
+            <label className="block text-xs text-[#c7c6ca] mb-1 font-label-caps uppercase">Багаж</label>
+            <select className="w-full bg-transparent text-white outline-none" value={luggage} onChange={e => setLuggage(e.target.value)}>
+              {['Немає', 'Малий (Ручна поклажа)', 'Середній (1-2 валізи)', 'Великий (3+ валіз)'].map(o => <option key={o} value={o} className="bg-[#1a1a1b]">{o}</option>)}
+            </select>
+          </div>
+          <div className="bg-[#353536]/30 border border-white/10 rounded-xl p-4">
+            <label className="block text-xs text-[#c7c6ca] mb-1 font-label-caps uppercase">Тварини (+{animalFee}€)</label>
+            <select className="w-full bg-transparent text-white outline-none" value={animals} onChange={e => setAnimals(e.target.value)}>
+              {['Ні', 'Так'].map(o => <option key={o} value={o} className="bg-[#1a1a1b]">{o}</option>)}
+            </select>
+          </div>
+        </div>
+
         {/* Options Row */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 relative z-10 border-t border-white/10 pt-8">
           <div className="space-y-4">
@@ -308,6 +353,10 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
             <label className="flex items-center gap-3 cursor-pointer">
               <input type="checkbox" checked={isWeekend} onChange={(e) => setIsWeekend(e.target.checked)} className="w-5 h-5 rounded border-gray-300 text-[#e9c349] focus:ring-[#e9c349]" />
               <span className="text-[#e4e2e3] font-body-md">Поїздка у вихідний день (+{Math.round((weekendCoeff - 1) * 100)}%)</span>
+            </label>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input type="checkbox" checked={meetAndGreet} onChange={(e) => setMeetAndGreet(e.target.checked)} className="w-5 h-5 rounded border-gray-300 text-[#e9c349] focus:ring-[#e9c349]" />
+              <span className="text-[#e4e2e3] font-body-md">Зустріч з табличкою (+{meetAndGreetFee}€)</span>
             </label>
           </div>
           <div className="space-y-4">
@@ -418,34 +467,6 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
                         {availabilityStatus === 'unavailable' && <div className="text-xs text-red-400 mt-2 flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">cancel</span> Автомобіль зайнятий у розрахований час подачі</div>}
                       </div>
                     )}
-                  </div>
-
-                  {/* Trip Details */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-[#080818] p-5 rounded-xl border border-white/5">
-                    <div>
-                      <label className="block text-xs text-[#c7c6ca] mb-1">Пасажири</label>
-                      <select className="w-full bg-transparent border-b border-white/20 p-2 text-white focus:border-[#e9c349] outline-none" value={bookingData.passengers} onChange={e => setBookingData({...bookingData, passengers: e.target.value})}>
-                        {[1,2,3,4,5,6,7,8].map(n => <option key={n} value={n} className="bg-[#080818]">{n}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs text-[#c7c6ca] mb-1">Діти</label>
-                      <select className="w-full bg-transparent border-b border-white/20 p-2 text-white focus:border-[#e9c349] outline-none" value={bookingData.children} onChange={e => setBookingData({...bookingData, children: e.target.value})}>
-                        {[0,1,2,3,4].map(n => <option key={n} value={n} className="bg-[#080818]">{n}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs text-[#c7c6ca] mb-1">Багаж</label>
-                      <select className="w-full bg-transparent border-b border-white/20 p-2 text-white focus:border-[#e9c349] outline-none" value={bookingData.luggage} onChange={e => setBookingData({...bookingData, luggage: e.target.value})}>
-                        {['Немає', 'Малий (Ручна поклажа)', 'Середній (1-2 валізи)', 'Великий (3+ валіз)'].map(o => <option key={o} value={o} className="bg-[#080818]">{o}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs text-[#c7c6ca] mb-1">Тварини</label>
-                      <select className="w-full bg-transparent border-b border-white/20 p-2 text-white focus:border-[#e9c349] outline-none" value={bookingData.animals} onChange={e => setBookingData({...bookingData, animals: e.target.value})}>
-                        {['Ні', 'Так'].map(o => <option key={o} value={o} className="bg-[#080818]">{o}</option>)}
-                      </select>
-                    </div>
                   </div>
 
                   {/* Contact / Auth */}
