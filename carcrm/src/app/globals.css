@@ -55,3 +55,18 @@
 .calendar-cell:hover { background-color: rgba(255, 255, 255, 0.05); }
 .calendar-cell.booked { background-color: rgba(233, 195, 73, 0.1); }
 .booking-chip { position: absolute; top: 8px; left: 4px; right: -60px; height: 44px; background-color: #e9c349; color: #000; font-size: 12px; font-weight: bold; border-radius: 4px; display: flex; align-items: center; padding: 0 8px; z-index: 5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.5); pointer-events: none; }
+
+/* Custom Leaflet Tooltip */
+.custom-map-tooltip {
+  background-color: #1b1b1c !important;
+  color: #e9c349 !important;
+  border: 1px solid rgba(233, 195, 73, 0.5) !important;
+  border-radius: 8px !important;
+  padding: 6px 12px !important;
+  font-weight: bold !important;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.8) !important;
+  font-family: inherit !important;
+}
+.custom-map-tooltip.leaflet-tooltip-top:before {
+  border-top-color: rgba(233, 195, 73, 0.5) !important;
+}

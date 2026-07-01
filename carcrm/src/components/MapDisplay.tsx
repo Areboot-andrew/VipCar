@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Polyline } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Polyline, Tooltip } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -19,8 +19,8 @@ export default function MapDisplay({
   destination 
 }: { 
   routeGeometry: any, 
-  origin: {lat: number, lng: number} | null, 
-  destination: {lat: number, lng: number} | null 
+  origin: {lat: number, lng: number, display_name?: string} | null, 
+  destination: {lat: number, lng: number, display_name?: string} | null 
 }) {
   const mapRef = useRef<L.Map>(null);
 
@@ -54,8 +54,24 @@ export default function MapDisplay({
         url="https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png"
       />
       {positions.length > 0 && <Polyline positions={positions} pathOptions={{ color: '#e9c349', weight: 4 }} />}
-      {origin && <Marker position={[origin.lat, origin.lng]} />}
-      {destination && <Marker position={[destination.lat, destination.lng]} />}
+      {origin && (
+        <Marker position={[origin.lat, origin.lng]}>
+          {origin.display_name && (
+            <Tooltip permanent direction="top" offset={[0, -35]} className="custom-map-tooltip">
+              Звідки: {origin.display_name.split(',')[0]}
+            </Tooltip>
+          )}
+        </Marker>
+      )}
+      {destination && (
+        <Marker position={[destination.lat, destination.lng]}>
+          {destination.display_name && (
+            <Tooltip permanent direction="top" offset={[0, -35]} className="custom-map-tooltip">
+              Куди: {destination.display_name.split(',')[0]}
+            </Tooltip>
+          )}
+        </Marker>
+      )}
     </MapContainer>
   );
 }
