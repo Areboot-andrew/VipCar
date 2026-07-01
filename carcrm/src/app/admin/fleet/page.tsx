@@ -12,7 +12,6 @@ type Car = {
   fuelType: string;
   fuelConsumptionCity: number;
   fuelConsumptionHighway: number;
-  selfDriveAllowed: boolean;
   status: string;
   images: string[];
   videos: string[];
@@ -25,7 +24,7 @@ export default function AdminFleetPage() {
   const [editingCar, setEditingCar] = useState<Car | null>(null);
   const [formData, setFormData] = useState({
     make: '', model: '', year: new Date().getFullYear(),
-    capacity: 4, baseRate: 0, fuelType: 'Бензин', fuelConsumptionCity: 0, fuelConsumptionHighway: 0, selfDriveAllowed: false
+    capacity: 4, baseRate: 0, fuelType: 'Бензин', fuelConsumptionCity: 0, fuelConsumptionHighway: 0
   });
   const [uploading, setUploading] = useState(false);
 
@@ -49,7 +48,7 @@ export default function AdminFleetPage() {
       });
       if (res.ok) {
         setIsModalOpen(false);
-        setFormData({ make: '', model: '', year: new Date().getFullYear(), capacity: 4, baseRate: 0, fuelType: 'Бензин', fuelConsumptionCity: 0, fuelConsumptionHighway: 0, selfDriveAllowed: false });
+        setFormData({ make: '', model: '', year: new Date().getFullYear(), capacity: 4, baseRate: 0, fuelType: 'Бензин', fuelConsumptionCity: 0, fuelConsumptionHighway: 0 });
         fetchCars();
       }
     } catch (err) { console.error(err); }
@@ -202,7 +201,7 @@ export default function AdminFleetPage() {
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Витрата (л/100км)</label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
                 <div>
                   <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)' }}>Тип палива</label>
                   <select required value={formData.fuelType} onChange={e => setFormData({...formData, fuelType: e.target.value})} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '6px' }}>
@@ -211,13 +210,6 @@ export default function AdminFleetPage() {
                     <option value="Газ">Газ</option>
                     <option value="Електро">Електро</option>
                   </select>
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)' }}>Без водія?</label>
-                  <label style={{ display: 'flex', alignItems: 'center', padding: '10px', gap: '8px', color: 'white' }}>
-                    <input type="checkbox" checked={formData.selfDriveAllowed} onChange={e => setFormData({...formData, selfDriveAllowed: e.target.checked})} />
-                    Дозволено брати без водія
-                  </label>
                 </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>

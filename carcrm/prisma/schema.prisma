@@ -57,6 +57,7 @@ model Driver {
   userId        String   @unique
   user          User     @relation(fields: [userId], references: [id])
   licenseNumber String?
+  salaryRate    Float    @default(50.0) // Daily salary or percentage
   active        Boolean  @default(true)
   
   bookings      Booking[] @relation("DriverBookings")
@@ -73,7 +74,6 @@ model Car {
   fuelType               String   @default("Бензин")
   fuelConsumptionCity    Float    @default(10.0) // L/100km
   fuelConsumptionHighway Float    @default(7.0)  // L/100km
-  selfDriveAllowed       Boolean  @default(false)
   status                 String   @default("AVAILABLE") // AVAILABLE, MAINTENANCE, IN_USE
   images          String[] // URLs of images
   videos          String[] // URLs of videos

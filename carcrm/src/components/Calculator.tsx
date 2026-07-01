@@ -131,13 +131,7 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
 
     const baseCostEur = distance * selectedCar.baseRate;
 
-    let driverFee = 0;
-    if (withDriver || !selectedCar.selfDriveAllowed) {
-      const days = Math.ceil(durationMins / (8 * 60)) || 1;
-      driverFee = days * driverDailyFeeEur;
-    }
-
-    let currentPrice = fuelCostEur + baseCostEur + driverFee;
+    let currentPrice = fuelCostEur + baseCostEur;
     if (crossBorder) currentPrice += 150;
     
     let isWeekendReal = false;
@@ -318,10 +312,6 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
             </label>
           </div>
           <div className="space-y-4">
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input type="checkbox" checked={withDriver} onChange={(e) => setWithDriver(e.target.checked)} className="w-5 h-5 rounded border-gray-300 text-[#e9c349] focus:ring-[#e9c349]" />
-              <span className="text-[#e4e2e3] font-body-md">Оренда з водієм (+{driverDailyFeeEur}€/день)</span>
-            </label>
             <div className="flex items-center gap-3">
               <input type="text" placeholder="Промокод" value={discountCode} onChange={(e) => {
                 setDiscountCode(e.target.value);
