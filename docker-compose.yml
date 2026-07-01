@@ -16,6 +16,8 @@ services:
     build:
       context: ./carcrm
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
     container_name: carcrm_web
     restart: always
     expose:
@@ -26,7 +28,8 @@ services:
       - 'DATABASE_URL=postgresql://admin:admin_password@db:5432/carcrm?schema=public'
       - 'NEXTAUTH_URL=https://firstline.texno.plus'
       - 'NEXTAUTH_SECRET=VipCarSecretKey2026!'
-      - 'TELEGRAM_BOT_TOKEN='
-      - 'TELEGRAM_CHAT_ID='
+      - 'TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}'
+      - 'TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}'
+      - 'NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}'
 volumes:
   db_data: null

@@ -20,6 +20,9 @@ RUN npx prisma generate
 # Next.js telemetry is disabled
 ENV NEXT_TELEMETRY_DISABLED 1
 
+ARG NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+ENV NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
+
 RUN npm run build
 
 # Production image, copy all the files and run next
