@@ -36,28 +36,33 @@ export default async function Home() {
 
   return (
     <div className="bg-[#080818] text-[#e4e2e3] font-body-md antialiased min-h-screen flex flex-col">
-      {/* TopNavBar */}
-      <nav className="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-[24px] md:px-[64px] py-[12px] max-w-[1280px] mx-auto bg-[#080818]/90 backdrop-blur-md border-b border-white/10">
-        
-        {/* LOGO SLOT */}
-        <Link href="/" className="flex items-center gap-3 cursor-pointer">
-          <img src="/logo.png" alt={c['brand_name'] || 'First Line Transfer'} className="h-[40px] md:h-[50px] object-contain" />
-        </Link>
-
-        <div className="hidden md:flex gap-[32px] items-center">
-          <Link href="#services" className="text-[#c7c6ca] hover:text-[#e4e2e3] font-label-caps text-[12px] uppercase">{c['menu_services'] || 'Послуги'}</Link>
-          <Link href="#fleet" className="text-[#c7c6ca] hover:text-[#e4e2e3] font-label-caps text-[12px] uppercase">{c['menu_fleet'] || 'Автопарк'}</Link>
-          <Link href="#gallery" className="text-[#c7c6ca] hover:text-[#e4e2e3] font-label-caps text-[12px] uppercase">{c['menu_gallery'] || 'Галерея'}</Link>
-          <Link href="#contact" className="text-[#c7c6ca] hover:text-[#e4e2e3] font-label-caps text-[12px] uppercase">{c['menu_contact'] || 'Контакти'}</Link>
-          <NavAuth loginText={c['menu_login'] || 'Увійти'} />
-        </div>
-        <div className="flex items-center gap-4">
-          <Link href="#calculator" className="hidden md:block gold-button text-[12px] uppercase px-4 py-2 rounded-lg font-bold">
-            {c['btn_book_now'] || 'Бронювати'}
+      {/* Top Header */}
+      <header className="fixed top-0 left-0 w-full z-50 bg-[#080818]/90 backdrop-blur-md border-b border-white/10">
+        <nav className="flex justify-between items-center px-[24px] md:px-[64px] py-[12px] max-w-[1280px] mx-auto w-full">
+          
+          {/* LOGO SLOT */}
+          <Link href="/" className="flex items-center gap-3 cursor-pointer flex-1">
+            <img src="/logo.png" alt={c['brand_name'] || 'First Line Transfer'} className="h-[40px] md:h-[50px] object-contain" />
           </Link>
-          <MobileMenu c={c} />
-        </div>
-      </nav>
+
+          {/* CENTER MENU */}
+          <div className="hidden md:flex flex-none gap-[32px] items-center justify-center">
+            <Link href="#services" className="text-[#c7c6ca] hover:text-[#e4e2e3] font-label-caps text-[12px] uppercase transition-colors">{c['menu_services'] || 'Послуги'}</Link>
+            <Link href="#fleet" className="text-[#c7c6ca] hover:text-[#e4e2e3] font-label-caps text-[12px] uppercase transition-colors">{c['menu_fleet'] || 'Автопарк'}</Link>
+            <Link href="#gallery" className="text-[#c7c6ca] hover:text-[#e4e2e3] font-label-caps text-[12px] uppercase transition-colors">{c['menu_gallery'] || 'Галерея'}</Link>
+            <Link href="#contact" className="text-[#c7c6ca] hover:text-[#e4e2e3] font-label-caps text-[12px] uppercase transition-colors">{c['menu_contact'] || 'Контакти'}</Link>
+            <NavAuth loginText={c['menu_login'] || 'Увійти'} />
+          </div>
+
+          {/* RIGHT BUTTON */}
+          <div className="flex items-center gap-4 flex-1 justify-end">
+            <Link href="#calculator" className="hidden md:block gold-button text-[12px] uppercase px-6 py-2.5 rounded-xl font-bold tracking-wider">
+              {c['btn_book_now'] || 'Бронювати'}
+            </Link>
+            <MobileMenu c={c} />
+          </div>
+        </nav>
+      </header>
 
       <main className="flex-grow">
         {/* Hero Section */}

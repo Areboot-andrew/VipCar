@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useJsApiLoader, Autocomplete, GoogleMap, DirectionsRenderer } from '@react-google-maps/api';
+import dynamic from 'next/dynamic';
 import DatePicker from 'react-datepicker';
+
+const MapDisplay = dynamic(() => import('./MapDisplay'), { ssr: false });
 import 'react-datepicker/dist/react-datepicker.css';
 
 type Car = { 
@@ -16,7 +18,6 @@ type Car = {
   capacity: number;
 };
 
-const libraries: "places"[] = ["places"];
 
 export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSettings?: Record<string, string> }) {
   const [distance, setDistance] = useState(100);
@@ -48,8 +49,15 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
   const [animals, setAnimals] = useState('Ні');
   const [meetAndGreet, setMeetAndGreet] = useState(false);
 
-  const [origin, setOrigin] = useState<string>('');
-  const [destination, setDestination] = useState<string>('');
+  const [originSearch, setOriginSearch] = useState('');
+  const [originResults, setOriginResults] = useState<any[]>([]);
+  const [originObj, setOriginObj] = useState<{lat: number, lng: number, display_name: string} | null>(null);
+
+  const [destSearch, setDestSearch] = useState('');
+  const [destResults, setDestResults] = useState<any[]>([]);
+  const [destObj, setDestObj] = useState<{lat: number, lng: number, display_name: string} | null>(null);
+
+  const [routeGeometry, setRouteGeometry] = useState<any>(null);
 
   // Modal & Booking state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -77,14 +85,6 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
     }
   }, [requiredCapacity, selectedCarId, cars]);
 
-  const { isLoaded } = useJsApiLoader({
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
-    libraries,
-  });
-
-  const originRef = useRef<HTMLInputElement>(null);
-  const destinationRef = useRef<HTMLInputElement>(null);
-
   // Fetch booked dates for visual calendar
   useEffect(() => {
     if (!selectedCarId) return;
@@ -101,46 +101,36 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
       .catch(console.error);
   }, [selectedCarId]);
 
-  const calculateRoute = async () => {
-    if (!originRef.current?.value || !destinationRef.current?.value) return;
-    setOrigin(originRef.current.value);
-    setDestination(destinationRef.current.value);
-    
-    // eslint-disable-next-line no-undef
-    const directionsService = new google.maps.DirectionsService();
+  const searchNominatim = async (query: string, setter: (res: any[]) => void) => {
+    if (query.length < 3) { setter([]); return; }
     try {
-      const results = await directionsService.route({
-        origin: originRef.current.value,
-        destination: destinationRef.current.value,
-        // eslint-disable-next-line no-undef
-        travelMode: google.maps.TravelMode.DRIVING,
-      });
-      setDirectionsResponse(results);
-      const route = results.routes[0].legs[0];
-      const distMeters = route.distance?.value || 0;
-      const durationSeconds = route.duration?.value || 0;
-      
-      let dCity = 0;
-      let dHighway = 0;
-      route.steps.forEach((step: any) => {
-        const stepDist = step.distance?.value || 0; // meters
-        const stepDur = step.duration?.value || 1; // seconds
-        const speedKmh = (stepDist / 1000) / (stepDur / 3600);
-        if (speedKmh > 70) {
-          dHighway += stepDist;
-        } else {
-          dCity += stepDist;
-        }
-      });
-
-      setDistanceCity(Math.ceil(dCity / 1000));
-      setDistanceHighway(Math.ceil(dHighway / 1000));
-      setDistance(Math.ceil(distMeters / 1000));
-      setDurationMins(Math.ceil(durationSeconds / 60));
-    } catch (error) {
-      console.error("Помилка розрахунку маршруту:", error);
-    }
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`);
+      const data = await res.json();
+      setter(data);
+    } catch (e) { console.error(e); }
   };
+
+  useEffect(() => {
+    if (originObj && destObj) {
+      const fetchRoute = async () => {
+        try {
+          const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${originObj.lng},${originObj.lat};${destObj.lng},${destObj.lat}?overview=full&geometries=geojson`);
+          const data = await res.json();
+          if (data.routes && data.routes.length > 0) {
+            const route = data.routes[0];
+            setRouteGeometry(route.geometry);
+            const distMeters = route.distance;
+            const durationSeconds = route.duration;
+            setDistance(Math.ceil(distMeters / 1000));
+            setDurationMins(Math.ceil(durationSeconds / 60));
+            setDistanceHighway(Math.ceil((distMeters * 0.7) / 1000));
+            setDistanceCity(Math.ceil((distMeters * 0.3) / 1000));
+          }
+        } catch (e) { console.error(e); }
+      };
+      fetchRoute();
+    }
+  }, [originObj, destObj]);
 
   useEffect(() => {
     const selectedCar = cars.find(c => c.id === selectedCarId);
@@ -229,8 +219,8 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
           phone: bookingData.phone,
           email: bookingData.email,
           password: bookingData.password,
-          routeFrom: origin || originRef.current?.value || 'Не вказано',
-          routeTo: destination || destinationRef.current?.value || 'Не вказано',
+          routeFrom: originObj?.display_name || originSearch || 'Не вказано',
+          routeTo: destObj?.display_name || destSearch || 'Не вказано',
           distance,
           price,
           dateStart: pickupTime.toISOString(),
@@ -268,29 +258,63 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
               <span className="material-symbols-outlined text-[#e9c349]">route</span> Маршрут поїздки
             </h3>
             <div className="space-y-6">
-              <div className="relative group">
+              <div className="relative group z-30">
                 <label className="block font-label-caps text-[12px] uppercase text-[#c7c6ca] mb-2 ml-1">Звідки</label>
                 <div className="relative flex items-center">
                   <span className="material-symbols-outlined absolute left-4 text-[#e9c349]/60">my_location</span>
-                  {isLoaded ? (
-                    <Autocomplete onPlaceChanged={calculateRoute}>
-                      <input ref={originRef} type="text" className="w-full bg-[#353536]/30 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-[#e4e2e3] focus:border-[#e9c349] outline-none" placeholder="Введіть адресу або місто" onChange={e => setOrigin(e.target.value)} />
-                    </Autocomplete>
-                  ) : (
-                    <input type="text" className="w-full bg-[#353536]/30 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-[#e4e2e3] focus:border-[#e9c349] outline-none" placeholder="Завантаження карт..." disabled />
+                  <input 
+                    type="text" 
+                    className="w-full bg-[#353536]/30 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-[#e4e2e3] focus:border-[#e9c349] outline-none" 
+                    placeholder="Введіть адресу або місто" 
+                    value={originSearch}
+                    onChange={e => {
+                      setOriginSearch(e.target.value);
+                      setOriginObj(null);
+                      searchNominatim(e.target.value, setOriginResults);
+                    }} 
+                  />
+                  {originResults.length > 0 && !originObj && (
+                    <div className="absolute top-full left-0 w-full mt-2 bg-[#1b1b1c] border border-white/10 rounded-xl shadow-2xl z-40 max-h-60 overflow-y-auto">
+                      {originResults.map(r => (
+                        <div key={r.place_id} className="p-3 hover:bg-white/5 cursor-pointer text-sm text-[#c7c6ca] border-b border-white/5 last:border-0" onClick={() => {
+                          setOriginObj({ lat: parseFloat(r.lat), lng: parseFloat(r.lon), display_name: r.display_name });
+                          setOriginSearch(r.display_name);
+                          setOriginResults([]);
+                        }}>
+                          {r.display_name}
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
               </div>
-              <div className="relative group">
+              <div className="relative group z-20">
                 <label className="block font-label-caps text-[12px] uppercase text-[#c7c6ca] mb-2 ml-1">Куди</label>
                 <div className="relative flex items-center">
                   <span className="material-symbols-outlined absolute left-4 text-[#e9c349]/60">location_on</span>
-                  {isLoaded ? (
-                    <Autocomplete onPlaceChanged={calculateRoute}>
-                      <input ref={destinationRef} type="text" className="w-full bg-[#353536]/30 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-[#e4e2e3] focus:border-[#e9c349] outline-none" placeholder="Введіть адресу або місто" onChange={e => setDestination(e.target.value)} />
-                    </Autocomplete>
-                  ) : (
-                    <input type="text" className="w-full bg-[#353536]/30 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-[#e4e2e3] focus:border-[#e9c349] outline-none" placeholder="Завантаження карт..." disabled />
+                  <input 
+                    type="text" 
+                    className="w-full bg-[#353536]/30 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-[#e4e2e3] focus:border-[#e9c349] outline-none" 
+                    placeholder="Введіть адресу або місто" 
+                    value={destSearch}
+                    onChange={e => {
+                      setDestSearch(e.target.value);
+                      setDestObj(null);
+                      searchNominatim(e.target.value, setDestResults);
+                    }} 
+                  />
+                  {destResults.length > 0 && !destObj && (
+                    <div className="absolute top-full left-0 w-full mt-2 bg-[#1b1b1c] border border-white/10 rounded-xl shadow-2xl z-40 max-h-60 overflow-y-auto">
+                      {destResults.map(r => (
+                        <div key={r.place_id} className="p-3 hover:bg-white/5 cursor-pointer text-sm text-[#c7c6ca] border-b border-white/5 last:border-0" onClick={() => {
+                          setDestObj({ lat: parseFloat(r.lat), lng: parseFloat(r.lon), display_name: r.display_name });
+                          setDestSearch(r.display_name);
+                          setDestResults([]);
+                        }}>
+                          {r.display_name}
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
               </div>
@@ -298,43 +322,8 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
           </div>
           
           <div className="flex flex-col h-full justify-end mt-4 md:mt-0">
-            <div className="bg-[#353536]/30 border border-white/10 rounded-2xl relative overflow-hidden flex flex-col h-full min-h-[300px]">
-              {isLoaded ? (
-                <GoogleMap
-                  mapContainerStyle={{ width: '100%', height: '100%', minHeight: '300px' }}
-                  center={{ lat: 48.3794, lng: 31.1656 }} // Ukraine center
-                  zoom={5}
-                  options={{
-                    disableDefaultUI: true,
-                    zoomControl: true,
-                    mapTypeId: 'roadmap',
-                    styles: [
-                      { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
-                      { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
-                      { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
-                      { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
-                      { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
-                      { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#263c3f" }] },
-                      { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#6b9a76" }] },
-                      { featureType: "road", elementType: "geometry", stylers: [{ color: "#38414e" }] },
-                      { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#212a37" }] },
-                      { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#9ca5b3" }] },
-                      { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#746855" }] },
-                      { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#1f2835" }] },
-                      { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#f3d19c" }] },
-                      { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] },
-                      { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#515c6d" }] },
-                      { featureType: "water", elementType: "labels.text.stroke", stylers: [{ color: "#17263c" }] },
-                    ]
-                  }}
-                >
-                  {directionsResponse && (
-                    <DirectionsRenderer directions={directionsResponse} options={{ suppressMarkers: false, polylineOptions: { strokeColor: "#e9c349", strokeWeight: 4 } }} />
-                  )}
-                </GoogleMap>
-              ) : (
-                <div className="flex-1 flex items-center justify-center text-[#c7c6ca]">Завантаження карти...</div>
-              )}
+            <div className="bg-[#353536]/30 border border-white/10 rounded-2xl relative flex flex-col h-full min-h-[300px]">
+              <MapDisplay routeGeometry={routeGeometry} origin={originObj} destination={destObj} />
               
               {distance > 0 && (
                 <div className="absolute top-4 right-4 bg-[#080818]/90 backdrop-blur-md border border-[#e9c349]/30 rounded-xl p-4 shadow-xl">
