@@ -13,6 +13,7 @@ type Car = {
   fuelType: string;
   fuelConsumptionCity: number;
   fuelConsumptionHighway: number;
+  capacity: number;
 };
 
 const libraries: "places"[] = ["places"];
@@ -63,6 +64,17 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
   const [availabilityStatus, setAvailabilityStatus] = useState<'idle'|'checking'|'available'|'unavailable'>('idle');
 
   const [excludeIntervals, setExcludeIntervals] = useState<{start: Date, end: Date}[]>([]);
+
+  const requiredCapacity = Number(passengers) + Number(children) * 1.5;
+
+  useEffect(() => {
+    const currentCar = cars.find(c => c.id === selectedCarId);
+    if (currentCar && currentCar.capacity < requiredCapacity) {
+      const firstFitCar = cars.find(c => c.capacity >= requiredCapacity);
+      if (firstFitCar) setSelectedCarId(firstFitCar.id);
+      else setSelectedCarId('');
+    }
+  }, [requiredCapacity, selectedCarId, cars]);
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '',
@@ -377,18 +389,25 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
             <span className="material-symbols-outlined text-[#e9c349]">diamond</span> Клас обслуговування (Авто)
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {cars.map(car => (
-              <label key={car.id} className="cursor-pointer">
-                <input type="radio" name="service_class" value={car.id} checked={selectedCarId === car.id} onChange={() => setSelectedCarId(car.id)} className="peer sr-only" />
-                <div className="glass-panel px-6 py-6 rounded-xl border border-white/10 peer-checked:border-[#e9c349] peer-checked:bg-[#e9c349]/10 transition-all flex items-center justify-between h-full">
+            {cars.map(car => {
+              const doesFit = car.capacity >= requiredCapacity;
+              return (
+              <label key={car.id} className={`cursor-pointer ${!doesFit ? 'opacity-50 grayscale cursor-not-allowed' : ''}`}>
+                <input type="radio" name="service_class" value={car.id} checked={selectedCarId === car.id} onChange={() => { if(doesFit) setSelectedCarId(car.id) }} disabled={!doesFit} className="peer sr-only" />
+                <div className="glass-panel px-6 py-6 rounded-xl border border-white/10 peer-checked:border-[#e9c349] peer-checked:bg-[#e9c349]/10 transition-all flex items-center justify-between h-full relative">
                   <div className="text-left">
                     <span className="block font-headline-md text-xl mb-1 text-white">{car.make}</span>
-                    <span className="text-sm text-[#c7c6ca]">{car.model}</span>
+                    <span className="text-sm text-[#c7c6ca]">{car.model} • до {car.capacity} місць</span>
                   </div>
-                  <span className={`material-symbols-outlined text-3xl ${selectedCarId === car.id ? 'text-[#e9c349]' : 'text-[#c7c6ca]'}`}>check_circle</span>
+                  {!doesFit ? (
+                    <span className="text-[10px] uppercase bg-red-500/20 border border-red-500/30 text-red-400 px-2 py-1 rounded absolute top-2 right-2">Не вмістить</span>
+                  ) : (
+                    <span className={`material-symbols-outlined text-3xl ${selectedCarId === car.id ? 'text-[#e9c349]' : 'text-[#c7c6ca]'}`}>check_circle</span>
+                  )}
                 </div>
               </label>
-            ))}
+              );
+            })}
           </div>
         </div>
 
