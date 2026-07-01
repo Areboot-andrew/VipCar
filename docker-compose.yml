@@ -8,7 +8,7 @@ services:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: admin_password
       POSTGRES_DB: carcrm
-    ports:
+    expose:
       - '5432'
     volumes:
       - 'db_data:/var/lib/postgresql/data'
@@ -18,8 +18,8 @@ services:
       dockerfile: Dockerfile
     container_name: carcrm_web
     restart: always
-    ports:
-      - '3005:3000'
+    expose:
+      - '3000'
     depends_on:
       - db
     environment:
