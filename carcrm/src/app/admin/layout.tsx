@@ -32,6 +32,10 @@ export default function AdminLayout({
             <CalendarDays size={20} />
             <span>Заявки</span>
           </Link>
+          <Link href="/admin/invoices" className="admin-nav-link">
+            <TicketPercent size={20} />
+            <span>Рахунки (Invoices)</span>
+          </Link>
           <Link href="/admin/users" className="admin-nav-link">
             <Users size={20} />
             <span>Клієнти / Водії</span>

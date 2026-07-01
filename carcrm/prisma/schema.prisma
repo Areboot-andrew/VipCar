@@ -50,6 +50,7 @@ model User {
   sessions      Session[]
   bookings      Booking[] @relation("ClientBookings")
   driver        Driver?
+  messages      Message[]
 }
 
 model Driver {
@@ -106,11 +107,13 @@ model Booking {
   
   status      BookingStatus @default(PENDING)
   notes       String?
+  driverNotes String?       // вказівки для водія від адміна
 
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
   invoice     Invoice?
+  chatRoom    ChatRoom?
 }
 
 model Invoice {
@@ -195,4 +198,25 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model ChatRoom {
+  id        String    @id @default(uuid())
+  bookingId String    @unique
+  booking   Booking   @relation(fields: [bookingId], references: [id])
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  messages  Message[]
+}
+
+model Message {
+  id         String   @id @default(uuid())
+  chatRoomId String
+  chatRoom   ChatRoom @relation(fields: [chatRoomId], references: [id], onDelete: Cascade)
+  senderId   String
+  sender     User     @relation(fields: [senderId], references: [id])
+  content    String?
+  imageUrl   String?
+  createdAt  DateTime @default(now())
 }

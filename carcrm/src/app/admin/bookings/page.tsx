@@ -1,12 +1,16 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Calendar, CheckCircle, XCircle, UserPlus, Car } from 'lucide-react';
+import { Calendar, CheckCircle, XCircle, UserPlus, Car, MessageSquare } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import ChatWidget from '@/components/ChatWidget';
 
 export default function AdminBookingsPage() {
+  const { data: session } = useSession();
   const [bookings, setBookings] = useState<any[]>([]);
   const [drivers, setDrivers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeChatBookingId, setActiveChatBookingId] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -96,7 +100,7 @@ export default function AdminBookingsPage() {
               <div>
                 <p style={{ color: 'var(--accent-gold)', marginBottom: '4px', fontWeight: 'bold' }}>Призначення</p>
                 <select 
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', backgroundColor: '#131314', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', backgroundColor: '#131314', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', marginBottom: '8px' }}
                   value={booking.driverId || ''}
                   onChange={(e) => updateBooking(booking.id, { driverId: e.target.value })}
                 >
@@ -105,7 +109,23 @@ export default function AdminBookingsPage() {
                     <option key={d.id} value={d.id}>{d.user.name}</option>
                   ))}
                 </select>
+                <input
+                  type="text"
+                  placeholder="Вказівки водію..."
+                  style={{ width: '100%', padding: '8px', borderRadius: '4px', backgroundColor: '#131314', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}
+                  value={booking.driverNotes || ''}
+                  onChange={(e) => updateBooking(booking.id, { driverNotes: e.target.value })}
+                />
               </div>
+            </div>
+
+            <div style={{ marginTop: '16px', display: 'flex', gap: '12px' }}>
+              <button 
+                onClick={() => setActiveChatBookingId(booking.id)}
+                style={{ padding: '8px 16px', backgroundColor: 'rgba(59, 130, 246, 0.2)', color: '#60a5fa', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', border: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}
+              >
+                <MessageSquare size={16} /> Чат Замовлення
+              </button>
             </div>
 
             {booking.status === 'PENDING' && (
@@ -128,6 +148,14 @@ export default function AdminBookingsPage() {
         ))}
         {bookings.length === 0 && <p>Немає жодної заявки.</p>}
       </div>
+
+      {activeChatBookingId && session?.user && (
+        <ChatWidget 
+          bookingId={activeChatBookingId} 
+          currentUserId={(session.user as any).id || ""} 
+          onClose={() => setActiveChatBookingId(null)} 
+        />
+      )}
     </div>
   );
 }

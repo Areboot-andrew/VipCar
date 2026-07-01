@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
 import { uk } from "date-fns/locale";
+import ChatWidget from "@/components/ChatWidget";
 
 type Booking = {
   id: string;
@@ -14,6 +15,10 @@ type Booking = {
   dateStart: string;
   price: number;
   status: string;
+  invoice?: {
+    id: string;
+    status: string;
+  };
 };
 
 export default function ProfilePage() {
@@ -21,6 +26,7 @@ export default function ProfilePage() {
   const router = useRouter();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeChatBookingId, setActiveChatBookingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -128,8 +134,20 @@ export default function ProfilePage() {
                       <div className="text-sm text-gray-400">Вартість</div>
                       <div className="text-lg text-white font-medium">€{booking.price}</div>
                     </div>
-                    <div className={`px-3 py-1 rounded-full text-xs font-medium border border-current ${getStatusColor(booking.status)}`}>
-                      {getStatusText(booking.status)}
+                    <div className="flex flex-col items-end gap-2">
+                      <div className={`px-3 py-1 rounded-full text-xs font-medium border border-current ${getStatusColor(booking.status)}`}>
+                        {getStatusText(booking.status)}
+                      </div>
+                      <div className="flex gap-3 mt-1">
+                        <button onClick={() => setActiveChatBookingId(booking.id)} className="text-xs text-blue-400 hover:underline flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[14px]">chat</span> Чат підтримки
+                        </button>
+                        {booking.invoice && (
+                          <Link href={`/invoice/${booking.invoice.id}`} target="_blank" className="text-xs text-[#e9c349] hover:underline flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[14px]">receipt</span> Рахунок {booking.invoice.status === 'PAID' ? '(Оплачено)' : '(Не оплачено)'}
+                          </Link>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -138,6 +156,14 @@ export default function ProfilePage() {
           )}
         </div>
       </div>
+      
+      {activeChatBookingId && session?.user && (
+        <ChatWidget 
+          bookingId={activeChatBookingId} 
+          currentUserId={(session.user as any).id || ""} 
+          onClose={() => setActiveChatBookingId(null)} 
+        />
+      )}
     </main>
   );
 }

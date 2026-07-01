@@ -47,6 +47,15 @@ export async function POST(request: Request) {
       }
     });
 
+    // Створюємо інвойс автоматично
+    await prisma.invoice.create({
+      data: {
+        bookingId: booking.id,
+        amount: Number(price),
+        status: 'UNPAID'
+      }
+    });
+
     return NextResponse.json(booking);
   } catch (error) {
     console.error('Error creating booking:', error);

@@ -4,6 +4,7 @@ import Calculator from '../components/Calculator';
 import ContactForm from '../components/ContactForm';
 import GlobalGallery from '../components/GlobalGallery';
 import NavAuth from '../components/NavAuth';
+import MobileMenu from '../components/MobileMenu';
 
 const prisma = new PrismaClient();
 
@@ -54,6 +55,7 @@ export default async function Home() {
           <Link href="#calculator" className="hidden md:block gold-button text-[12px] uppercase px-4 py-2 rounded-lg font-bold">
             {c['btn_book_now'] || 'Бронювати'}
           </Link>
+          <MobileMenu c={c} />
         </div>
       </nav>
 
@@ -69,10 +71,10 @@ export default async function Home() {
             <div className="absolute inset-0 bg-gradient-to-b from-[#080818]/80 via-[#080818]/60 to-[#080818] z-10"></div>
           </div>
           
-          <div className="relative z-20 max-w-4xl text-center flex flex-col items-center pt-20">
-            <h1 className="font-display-lg text-[48px] md:text-[80px] text-white mb-6 drop-shadow-2xl leading-[1.1]" dangerouslySetInnerHTML={{__html: c['hero_title'] || 'ПРЕМІУМ ТРАНСФЕР<br/><span style="color: #e9c349">БЕЗ КОМПРОМІСІВ</span>'}}></h1>
-            <p className="font-body-lg text-[18px] md:text-[22px] text-[#c7c6ca] mb-10 max-w-2xl drop-shadow-md" dangerouslySetInnerHTML={{ __html: parseAccent(c['hero_subtitle'], 'Ваш час. Ваші правила. Ідеальний сервіс від дверей до дверей з гарантованою пунктуальністю.') }}></p>
-            <Link href="#calculator" className="gold-button font-button text-[16px] uppercase px-10 py-5 rounded-xl font-bold tracking-widest shadow-[0_10px_30px_rgba(212,175,55,0.2)] hover:scale-105 transition-all">
+          <div className="relative z-20 max-w-4xl text-center flex flex-col items-center pt-20 px-4">
+            <h1 className="font-display-lg text-[36px] md:text-[80px] text-white mb-6 drop-shadow-2xl leading-[1.2] md:leading-[1.1]" dangerouslySetInnerHTML={{__html: c['hero_title'] || 'ПРЕМІУМ ТРАНСФЕР<br/><span style="color: #e9c349">БЕЗ КОМПРОМІСІВ</span>'}}></h1>
+            <p className="font-body-lg text-[16px] md:text-[22px] text-[#c7c6ca] mb-10 max-w-2xl drop-shadow-md" dangerouslySetInnerHTML={{ __html: parseAccent(c['hero_subtitle'], 'Ваш час. Ваші правила. Ідеальний сервіс від дверей до дверей з гарантованою пунктуальністю.') }}></p>
+            <Link href="#calculator" className="gold-button font-button text-[14px] md:text-[16px] uppercase px-6 py-4 md:px-10 md:py-5 rounded-xl font-bold tracking-widest shadow-[0_10px_30px_rgba(212,175,55,0.2)] hover:scale-105 transition-all w-full md:w-auto">
               {c['btn_hero_cta'] || 'Розрахувати вартість'}
             </Link>
           </div>
@@ -184,12 +186,13 @@ export default async function Home() {
                       <div className="text-[11px] text-[#c7c6ca] uppercase tracking-widest mt-1">За км</div>
                     </div>
                   </div>
-                  <div className="mt-auto grid grid-cols-2 gap-4">
-                    <Link href={`/cars/${car.id}`} className="ghost-button font-button text-[14px] uppercase px-4 py-3 rounded-lg text-center font-bold">
-                      Детальніше
+                  <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
+                    <Link href={`/?carId=${car.id}#calculator`} className="gold-button font-button text-[14px] px-8 py-4 rounded-xl flex items-center justify-center gap-2 hover:scale-105 transition-all text-center uppercase font-bold tracking-widest shadow-[0_10px_30px_rgba(212,175,55,0.3)]">
+                      {c['btn_book_now'] || 'Бронювати'}
+                      <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
                     </Link>
-                    <Link href={`/?carId=${car.id}#calculator`} className="gold-button font-button text-[14px] uppercase px-4 py-3 rounded-lg text-center font-bold">
-                      Бронювати
+                    <Link href={`/cars/${car.id}`} className="px-8 py-4 rounded-xl border border-white/20 hover:bg-white/5 transition-all font-button text-[14px] flex items-center justify-center gap-2 text-center uppercase font-bold tracking-widest backdrop-blur-sm">
+                      {c['btn_view_fleet'] || 'Детальніше'}
                     </Link>
                   </div>
                 </div>

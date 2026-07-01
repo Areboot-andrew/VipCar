@@ -262,17 +262,17 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
   };
 
   return (
-    <section className="max-w-[1280px] mx-auto px-6 md:px-[64px] mb-[80px]" id="calculator">
-      <h2 className="font-headline-lg text-[48px] leading-[56px] font-semibold text-[#e4e2e3] mb-[48px] text-center">
+    <section className="max-w-[1280px] mx-auto px-4 sm:px-6 md:px-[64px] mb-[80px]" id="calculator">
+      <h2 className="font-headline-lg text-[32px] md:text-[48px] leading-tight md:leading-[56px] font-semibold text-[#e4e2e3] mb-8 md:mb-[48px] text-center">
         Розрахунок вартості преміум-поїздки
       </h2>
-      <div className="glass-panel p-8 md:p-12 rounded-3xl max-w-5xl mx-auto border border-white/10 shadow-2xl relative overflow-hidden flex flex-col gap-12">
+      <div className="glass-panel p-5 sm:p-8 md:p-12 rounded-3xl max-w-5xl mx-auto border border-white/10 shadow-2xl relative overflow-hidden flex flex-col gap-8 md:gap-12">
         <div className="absolute -top-40 -right-40 w-96 h-96 bg-[#e9c349]/10 rounded-full blur-3xl pointer-events-none"></div>
         <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-[#e9c349]/5 rounded-full blur-3xl pointer-events-none"></div>
         
         {/* Route Selection and Distance Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 relative z-10">
-          <div className="space-y-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 relative z-10">
+          <div className="space-y-6 md:space-y-8">
             <h3 className="font-headline-md text-2xl text-[#e4e2e3] flex items-center gap-3">
               <span className="material-symbols-outlined text-[#e9c349]">route</span> Маршрут поїздки
             </h3>
@@ -306,8 +306,8 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
             </div>
           </div>
           
-          <div className="flex flex-col h-full justify-end">
-            <div className="bg-[#e9c349]/5 border border-[#e9c349]/20 rounded-2xl p-8 space-y-6 relative overflow-hidden flex flex-col justify-center h-full">
+          <div className="flex flex-col h-full justify-end mt-4 md:mt-0">
+            <div className="bg-[#e9c349]/5 border border-[#e9c349]/20 rounded-2xl p-6 md:p-8 space-y-6 relative overflow-hidden flex flex-col justify-center h-full">
               <div className="absolute top-0 right-0 p-3">
                 <span className="material-symbols-outlined text-[#e9c349]/20 text-5xl">auto_mode</span>
               </div>
@@ -328,7 +328,7 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
         </div>
 
         {/* Passenger & Luggage Options */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 relative z-10 border-t border-white/10 pt-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 relative z-10 border-t border-white/10 pt-6 md:pt-8">
           <div className="bg-[#353536]/30 border border-white/10 rounded-xl p-4">
             <label className="block text-xs text-[#c7c6ca] mb-1 font-label-caps uppercase">Пасажири</label>
             <select className="w-full bg-transparent text-white outline-none" value={passengers} onChange={e => setPassengers(e.target.value)}>
@@ -356,7 +356,7 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
         </div>
 
         {/* Options Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 relative z-10 border-t border-white/10 pt-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 relative z-10 border-t border-white/10 pt-6 md:pt-8">
           <div className="space-y-4">
             <label className="flex items-center gap-3 cursor-pointer">
               <input type="checkbox" checked={crossBorder} onChange={(e) => setCrossBorder(e.target.checked)} className="w-5 h-5 rounded border-gray-300 text-[#e9c349] focus:ring-[#e9c349]" />
@@ -384,11 +384,11 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
         </div>
 
         {/* Vehicle Selection Row */}
-        <div className="space-y-6 relative z-10">
+        <div className="space-y-6 relative z-10 border-t border-white/10 pt-6 md:pt-8">
           <h3 className="font-headline-md text-2xl text-[#e4e2e3] flex items-center gap-3">
             <span className="material-symbols-outlined text-[#e9c349]">diamond</span> Клас обслуговування (Авто)
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
             {cars.map(car => {
               const doesFit = car.capacity >= requiredCapacity;
               return (
@@ -412,12 +412,12 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
         </div>
 
         {/* Bottom Row */}
-        <div className="pt-8 border-t border-white/10 relative z-10">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-8 bg-[#353536]/30 p-8 rounded-2xl border border-white/5 backdrop-blur-sm">
+        <div className="pt-6 md:pt-8 border-t border-white/10 relative z-10">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8 bg-[#353536]/30 p-6 md:p-8 rounded-2xl border border-white/5 backdrop-blur-sm">
             <div className="flex-1 text-center md:text-left">
               <h4 className="font-label-caps text-[12px] text-[#c7c6ca] mb-2 uppercase tracking-widest">Орієнтовна вартість</h4>
               <div className="relative inline-block">
-                <div className="text-6xl md:text-7xl font-display-lg text-white tracking-tight drop-shadow-2xl">
+                <div className="text-5xl md:text-7xl font-display-lg text-white tracking-tight drop-shadow-2xl">
                   € {price}
                 </div>
               </div>
@@ -425,7 +425,7 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
             <div className="w-full md:w-auto">
               <button 
                 onClick={() => setIsModalOpen(true)}
-                className="gold-button font-button text-[14px] px-12 py-6 rounded-2xl hover:scale-[0.98] transition-all text-lg shadow-[0_10px_30px_rgba(212,175,55,0.2)] uppercase tracking-wider font-semibold"
+                className="gold-button font-button text-[14px] px-6 py-4 md:px-12 md:py-6 rounded-2xl hover:scale-[0.98] transition-all md:text-lg shadow-[0_10px_30px_rgba(212,175,55,0.2)] uppercase tracking-wider font-semibold w-full md:w-auto"
               >
                 Продовжити бронювання
               </button>
@@ -437,7 +437,7 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
       {/* Booking Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-[#1a1a1b] border border-[#e9c349]/20 rounded-3xl p-8 max-w-2xl w-full shadow-2xl relative my-8">
+          <div className="bg-[#1a1a1b] border border-[#e9c349]/20 rounded-2xl md:rounded-3xl p-5 md:p-8 max-w-2xl w-full shadow-2xl relative my-4 md:my-8 max-h-[90vh] overflow-y-auto">
             <button 
               onClick={() => setIsModalOpen(false)}
               className="absolute top-4 right-4 text-[#c7c6ca] hover:text-white"
