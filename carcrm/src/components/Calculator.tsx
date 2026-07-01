@@ -471,7 +471,9 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
                   
                   {/* Visual Calendar */}
                   <div className="bg-[#080818] p-5 rounded-xl border border-white/5">
-                    <label className="block text-sm text-[#e9c349] mb-3 font-bold uppercase tracking-widest">Бажаний час прибуття (Куди) *</label>
+                    <label className="block text-sm text-[#e9c349] mb-3 font-bold uppercase tracking-widest">
+                      Бажаний час прибуття {destObj?.display_name ? `в ${destObj.display_name.split(',')[0]}` : (destSearch ? `в ${destSearch.split(',')[0]}` : '')} *
+                    </label>
                     <DatePicker
                       selected={arrivalDate}
                       onChange={(date: Date | null) => setArrivalDate(date)}
