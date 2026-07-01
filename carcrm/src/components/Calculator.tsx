@@ -342,7 +342,7 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
         {/* Passenger & Luggage Options */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 relative z-10 border-t border-white/10 pt-6 md:pt-8">
           <div className="bg-[#353536]/30 border border-white/10 rounded-xl p-4">
-            <label className="block text-xs text-[#c7c6ca] mb-1 font-label-caps uppercase">Пасажири</label>
+            <label className="block text-xs text-[#c7c6ca] mb-1 font-label-caps uppercase">Дорослі</label>
             <select className="w-full bg-transparent text-white outline-none" value={passengers} onChange={e => setPassengers(e.target.value)}>
               {[1,2,3,4,5,6,7,8].map(n => <option key={n} value={n} className="bg-[#1a1a1b]">{n}</option>)}
             </select>
