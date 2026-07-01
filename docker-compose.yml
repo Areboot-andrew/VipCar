@@ -1,8 +1,7 @@
 version: '3.8'
-
 services:
   db:
-    image: postgres:15-alpine
+    image: 'postgres:15-alpine'
     container_name: carcrm_db
     restart: always
     environment:
@@ -10,10 +9,9 @@ services:
       POSTGRES_PASSWORD: admin_password
       POSTGRES_DB: carcrm
     ports:
-      - '5432:5432'
+      - '5432'
     volumes:
-      - db_data:/var/lib/postgresql/data
-
+      - 'db_data:/var/lib/postgresql/data'
   web:
     build:
       context: ./carcrm
@@ -21,11 +19,14 @@ services:
     container_name: carcrm_web
     restart: always
     ports:
-      - '3000:3000'
+      - '3005:3000'
     depends_on:
       - db
     environment:
-      - DATABASE_URL=postgresql://admin:admin_password@db:5432/carcrm?schema=public
-
+      - 'DATABASE_URL=postgresql://admin:admin_password@db:5432/carcrm?schema=public'
+      - 'NEXTAUTH_URL=https://firstline.texno.plus'
+      - 'NEXTAUTH_SECRET=VipCarSecretKey2026!'
+      - 'TELEGRAM_BOT_TOKEN='
+      - 'TELEGRAM_CHAT_ID='
 volumes:
-  db_data:
+  db_data: null
