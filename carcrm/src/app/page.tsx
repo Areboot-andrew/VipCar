@@ -197,12 +197,11 @@ export default async function Home() {
                       <div className="text-[11px] text-[#c7c6ca] uppercase tracking-widest mt-1">За км</div>
                     </div>
                   </div>
-                  <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
-                    <Link href={`/?carId=${car.id}#calculator`} className="gold-button font-button text-[14px] px-8 py-4 rounded-xl flex items-center justify-center gap-2 hover:scale-105 transition-all text-center uppercase font-bold tracking-widest shadow-[0_10px_30px_rgba(212,175,55,0.3)]">
+                  <div className="grid grid-cols-2 gap-3">
+                    <Link href={`/?carId=${car.id}#calculator`} className="gold-button font-button text-[12px] px-2 py-3.5 rounded-xl flex items-center justify-center gap-1 hover:scale-105 transition-all text-center uppercase font-bold tracking-wider shadow-[0_5px_15px_rgba(212,175,55,0.2)]">
                       {c['btn_book_now'] || 'Бронювати'}
-                      <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
                     </Link>
-                    <Link href={`/cars/${car.id}`} className="px-8 py-4 rounded-xl border border-white/20 hover:bg-white/5 transition-all font-button text-[14px] flex items-center justify-center gap-2 text-center uppercase font-bold tracking-widest backdrop-blur-sm">
+                    <Link href={`/cars/${car.id}`} className="px-2 py-3.5 rounded-xl border border-white/20 hover:bg-white/5 transition-all font-button text-[12px] flex items-center justify-center text-center uppercase font-bold tracking-wider backdrop-blur-sm">
                       {c['btn_view_fleet'] || 'Детальніше'}
                     </Link>
                   </div>
