@@ -1,11 +1,11 @@
 #!/bin/sh
 set -e
 
-echo "Running Prisma migrations..."
-npx prisma migrate deploy
+echo "Pushing Prisma schema to database..."
+npx prisma db push --accept-data-loss --skip-generate
 
 echo "Seeding the database..."
-npx tsx prisma/seed.ts
+npx prisma db seed
 
 echo "Starting Next.js..."
 exec "$@"
