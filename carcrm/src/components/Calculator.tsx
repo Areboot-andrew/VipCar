@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useJsApiLoader, Autocomplete } from '@react-google-maps/api';
+import { useJsApiLoader, Autocomplete, GoogleMap, DirectionsRenderer } from '@react-google-maps/api';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 
@@ -23,6 +23,7 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
   const [distanceCity, setDistanceCity] = useState(50);
   const [distanceHighway, setDistanceHighway] = useState(50);
   const [durationMins, setDurationMins] = useState(0); 
+  const [directionsResponse, setDirectionsResponse] = useState<any>(null);
   const [selectedCarId, setSelectedCarId] = useState<string>(cars[0]?.id || '');
   const [crossBorder, setCrossBorder] = useState(false);
   const [isWeekend, setIsWeekend] = useState(false);
@@ -114,6 +115,7 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
         // eslint-disable-next-line no-undef
         travelMode: google.maps.TravelMode.DRIVING,
       });
+      setDirectionsResponse(results);
       const route = results.routes[0].legs[0];
       const distMeters = route.distance?.value || 0;
       const durationSeconds = route.duration?.value || 0;
@@ -178,18 +180,7 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
     setPrice(Math.round(currentPrice));
   }, [distanceCity, distanceHighway, distance, selectedCarId, crossBorder, isWeekend, arrivalDate, withDriver, discountPercent, cars, fuelPriceUah, eurToUahRate, weekendCoeff, children, luggage, animals, meetAndGreet, childSeatFee, animalFee, meetAndGreetFee, luggageMedFee, luggageLargeFee]);
 
-  const handleManualDistanceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newDist = Number(e.target.value);
-    if (distance > 0) {
-      const ratio = newDist / distance;
-      setDistanceCity(distanceCity * ratio);
-      setDistanceHighway(distanceHighway * ratio);
-    } else {
-      setDistanceCity(newDist * 0.5);
-      setDistanceHighway(newDist * 0.5);
-    }
-    setDistance(newDist);
-  };
+  // manual distance change removed because the map auto-calculates it
 
   // Calculate pickup time and double-check availability on backend
   useEffect(() => {
@@ -307,22 +298,53 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
           </div>
           
           <div className="flex flex-col h-full justify-end mt-4 md:mt-0">
-            <div className="bg-[#e9c349]/5 border border-[#e9c349]/20 rounded-2xl p-6 md:p-8 space-y-6 relative overflow-hidden flex flex-col justify-center h-full">
-              <div className="absolute top-0 right-0 p-3">
-                <span className="material-symbols-outlined text-[#e9c349]/20 text-5xl">auto_mode</span>
-              </div>
-              <div className="flex justify-between items-end relative z-10">
-                <div>
-                  <span className="block font-label-caps text-[10px] text-[#e9c349] uppercase tracking-widest mb-2">Відстань (км)</span>
-                  <input type="range" min="1" max="2000" value={distance} onChange={handleManualDistanceChange} className="w-full mb-2" />
-                </div>
-                <div className="text-right">
-                  <span className="text-4xl font-display-lg text-[#e9c349]" id="distance-display">{distance} км</span>
-                  {durationMins > 0 && (
-                    <div className="text-sm text-[#c7c6ca] mt-2">В дорозі: ~{Math.floor(durationMins/60)}г {durationMins%60}хв</div>
+            <div className="bg-[#353536]/30 border border-white/10 rounded-2xl relative overflow-hidden flex flex-col h-full min-h-[300px]">
+              {isLoaded ? (
+                <GoogleMap
+                  mapContainerStyle={{ width: '100%', height: '100%', minHeight: '300px' }}
+                  center={{ lat: 48.3794, lng: 31.1656 }} // Ukraine center
+                  zoom={5}
+                  options={{
+                    disableDefaultUI: true,
+                    zoomControl: true,
+                    styles: [
+                      { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
+                      { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
+                      { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
+                      { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
+                      { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
+                      { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#263c3f" }] },
+                      { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#6b9a76" }] },
+                      { featureType: "road", elementType: "geometry", stylers: [{ color: "#38414e" }] },
+                      { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#212a37" }] },
+                      { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#9ca5b3" }] },
+                      { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#746855" }] },
+                      { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#1f2835" }] },
+                      { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#f3d19c" }] },
+                      { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] },
+                      { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#515c6d" }] },
+                      { featureType: "water", elementType: "labels.text.stroke", stylers: [{ color: "#17263c" }] },
+                    ]
+                  }}
+                >
+                  {directionsResponse && (
+                    <DirectionsRenderer directions={directionsResponse} options={{ suppressMarkers: false, polylineOptions: { strokeColor: "#e9c349", strokeWeight: 4 } }} />
                   )}
+                </GoogleMap>
+              ) : (
+                <div className="flex-1 flex items-center justify-center text-[#c7c6ca]">Завантаження карти...</div>
+              )}
+              
+              {distance > 0 && (
+                <div className="absolute top-4 right-4 bg-[#080818]/90 backdrop-blur-md border border-[#e9c349]/30 rounded-xl p-4 shadow-xl">
+                  <div className="text-right">
+                    <span className="text-3xl font-display-lg text-[#e9c349]">{distance} км</span>
+                    {durationMins > 0 && (
+                      <div className="text-sm text-[#c7c6ca] mt-1">~{Math.floor(durationMins/60)}г {durationMins%60}хв</div>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
