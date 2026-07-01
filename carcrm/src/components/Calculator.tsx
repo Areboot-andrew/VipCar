@@ -252,8 +252,8 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
         <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-[#e9c349]/5 rounded-full blur-3xl pointer-events-none"></div>
         
         {/* Route Selection and Distance Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 relative z-10">
-          <div className="space-y-6 md:space-y-8">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 md:gap-10 relative z-10">
+          <div className="lg:col-span-2 space-y-6 md:space-y-8">
             <h3 className="font-headline-md text-2xl text-[#e4e2e3] flex items-center gap-3">
               <span className="material-symbols-outlined text-[#e9c349]">route</span> Маршрут поїздки
             </h3>
@@ -321,8 +321,8 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
             </div>
           </div>
           
-          <div className="flex flex-col h-full justify-end mt-4 md:mt-0">
-            <div className="bg-[#353536]/30 border border-white/10 rounded-2xl relative flex flex-col h-full min-h-[300px]">
+          <div className="lg:col-span-3 flex flex-col h-full justify-end mt-4 lg:mt-0">
+            <div className="bg-[#353536]/30 border border-white/10 rounded-2xl relative flex flex-col h-full min-h-[350px]">
               <MapDisplay routeGeometry={routeGeometry} origin={originObj} destination={destObj} />
               
               {distance > 0 && (
