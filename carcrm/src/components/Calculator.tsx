@@ -13,7 +13,6 @@ type Car = {
   fuelType: string;
   fuelConsumptionCity: number;
   fuelConsumptionHighway: number;
-  selfDriveAllowed: boolean;
 };
 
 const libraries: "places"[] = ["places"];
