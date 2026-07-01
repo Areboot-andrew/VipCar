@@ -264,8 +264,8 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
                   <span className="material-symbols-outlined absolute left-4 text-[#e9c349]/60">my_location</span>
                   <input 
                     type="text" 
-                    className="w-full bg-[#353536]/30 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-[#e4e2e3] focus:border-[#e9c349] outline-none" 
-                    placeholder="Введіть адресу або місто" 
+                    className="w-full bg-[#353536]/30 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-[#e4e2e3] focus:border-[#e9c349] outline-none" 
+                    placeholder="Місто, вулиця, буд."
                     value={originSearch}
                     onChange={e => {
                       setOriginSearch(e.target.value);
@@ -294,8 +294,8 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
                   <span className="material-symbols-outlined absolute left-4 text-[#e9c349]/60">location_on</span>
                   <input 
                     type="text" 
-                    className="w-full bg-[#353536]/30 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-[#e4e2e3] focus:border-[#e9c349] outline-none" 
-                    placeholder="Введіть адресу або місто" 
+                    className="w-full bg-[#353536]/30 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-[#e4e2e3] focus:border-[#e9c349] outline-none" 
+                    placeholder="Місто, вулиця, буд."
                     value={destSearch}
                     onChange={e => {
                       setDestSearch(e.target.value);
