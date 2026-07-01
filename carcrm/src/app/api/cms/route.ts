@@ -7,7 +7,12 @@ export async function GET() {
   try {
     const content = await prisma.siteContent.findMany();
     // Повертаємо як об'єкт {key: value}
-    const result: Record<string, string> = {};
+    const result: Record<string, string> = {
+      fuel_price_uah: '60',
+      eur_to_uah_rate: '42.5',
+      weekend_coefficient: '1.2',
+      driver_daily_fee: '50'
+    };
     content.forEach(item => { result[item.key] = item.value; });
     return NextResponse.json(result);
   } catch (error) {

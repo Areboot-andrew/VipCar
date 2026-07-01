@@ -64,14 +64,17 @@ model Driver {
 }
 
 model Car {
-  id              String   @id @default(uuid())
-  make            String
-  model           String
-  year            Int
-  capacity        Int
-  baseRate        Float
-  fuelConsumption Float    // L/100km
-  status          String   @default("AVAILABLE") // AVAILABLE, MAINTENANCE, IN_USE
+  id                     String   @id @default(uuid())
+  make                   String
+  model                  String
+  year                   Int
+  capacity               Int
+  baseRate               Float
+  fuelType               String   @default("Бензин")
+  fuelConsumptionCity    Float    @default(10.0) // L/100km
+  fuelConsumptionHighway Float    @default(7.0)  // L/100km
+  selfDriveAllowed       Boolean  @default(false)
+  status                 String   @default("AVAILABLE") // AVAILABLE, MAINTENANCE, IN_USE
   images          String[] // URLs of images
   videos          String[] // URLs of videos
   createdAt       DateTime @default(now())

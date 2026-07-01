@@ -5,17 +5,36 @@ import { useJsApiLoader, Autocomplete } from '@react-google-maps/api';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 
-type Car = { id: string; make: string; model: string; baseRate: number; };
+type Car = { 
+  id: string; 
+  make: string; 
+  model: string; 
+  baseRate: number;
+  fuelType: string;
+  fuelConsumptionCity: number;
+  fuelConsumptionHighway: number;
+  selfDriveAllowed: boolean;
+};
 
 const libraries: "places"[] = ["places"];
 
-export default function Calculator({ cars }: { cars: Car[] }) {
+export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSettings?: Record<string, string> }) {
   const [distance, setDistance] = useState(100);
+  const [distanceCity, setDistanceCity] = useState(50);
+  const [distanceHighway, setDistanceHighway] = useState(50);
   const [durationMins, setDurationMins] = useState(0); 
   const [selectedCarId, setSelectedCarId] = useState<string>(cars[0]?.id || '');
   const [crossBorder, setCrossBorder] = useState(false);
   const [isWeekend, setIsWeekend] = useState(false);
+  const [withDriver, setWithDriver] = useState(true);
+  const [discountPercent, setDiscountPercent] = useState(0);
+  const [discountCode, setDiscountCode] = useState('');
   const [price, setPrice] = useState(0);
+
+  const fuelPriceUah = parseFloat(cmsSettings?.['fuel_price_uah'] || '60');
+  const eurToUahRate = parseFloat(cmsSettings?.['eur_to_uah_rate'] || '42.5');
+  const weekendCoeff = parseFloat(cmsSettings?.['weekend_coefficient'] || '1.2');
+  const driverDailyFeeEur = parseFloat(cmsSettings?.['driver_daily_fee'] || '50');
 
   const [origin, setOrigin] = useState<string>('');
   const [destination, setDestination] = useState<string>('');
@@ -74,8 +93,25 @@ export default function Calculator({ cars }: { cars: Car[] }) {
         // eslint-disable-next-line no-undef
         travelMode: google.maps.TravelMode.DRIVING,
       });
-      const distMeters = results.routes[0].legs[0].distance?.value || 0;
-      const durationSeconds = results.routes[0].legs[0].duration?.value || 0;
+      const route = results.routes[0].legs[0];
+      const distMeters = route.distance?.value || 0;
+      const durationSeconds = route.duration?.value || 0;
+      
+      let dCity = 0;
+      let dHighway = 0;
+      route.steps.forEach((step: any) => {
+        const stepDist = step.distance?.value || 0; // meters
+        const stepDur = step.duration?.value || 1; // seconds
+        const speedKmh = (stepDist / 1000) / (stepDur / 3600);
+        if (speedKmh > 70) {
+          dHighway += stepDist;
+        } else {
+          dCity += stepDist;
+        }
+      });
+
+      setDistanceCity(Math.ceil(dCity / 1000));
+      setDistanceHighway(Math.ceil(dHighway / 1000));
       setDistance(Math.ceil(distMeters / 1000));
       setDurationMins(Math.ceil(durationSeconds / 60));
     } catch (error) {
@@ -87,12 +123,51 @@ export default function Calculator({ cars }: { cars: Car[] }) {
     const selectedCar = cars.find(c => c.id === selectedCarId);
     if (!selectedCar) return;
 
-    let currentPrice = distance * selectedCar.baseRate;
+    const litersCity = (distanceCity / 100) * selectedCar.fuelConsumptionCity;
+    const litersHighway = (distanceHighway / 100) * selectedCar.fuelConsumptionHighway;
+    const totalLiters = litersCity + litersHighway;
+    const fuelCostUah = totalLiters * fuelPriceUah;
+    const fuelCostEur = fuelCostUah / eurToUahRate;
+
+    const baseCostEur = distance * selectedCar.baseRate;
+
+    let driverFee = 0;
+    if (withDriver || !selectedCar.selfDriveAllowed) {
+      const days = Math.ceil(durationMins / (8 * 60)) || 1;
+      driverFee = days * driverDailyFeeEur;
+    }
+
+    let currentPrice = fuelCostEur + baseCostEur + driverFee;
     if (crossBorder) currentPrice += 150;
-    if (isWeekend) currentPrice *= 1.10;
+    
+    let isWeekendReal = false;
+    if (arrivalDate) {
+      const day = arrivalDate.getDay();
+      if (day === 0 || day === 6) isWeekendReal = true;
+    }
+    if (isWeekendReal || isWeekend) {
+      currentPrice *= weekendCoeff;
+    }
+
+    if (discountPercent > 0) {
+      currentPrice *= (1 - discountPercent / 100);
+    }
     
     setPrice(Math.round(currentPrice));
-  }, [distance, selectedCarId, crossBorder, isWeekend, cars]);
+  }, [distanceCity, distanceHighway, distance, selectedCarId, crossBorder, isWeekend, arrivalDate, withDriver, discountPercent, cars, fuelPriceUah, eurToUahRate, driverDailyFeeEur, weekendCoeff]);
+
+  const handleManualDistanceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newDist = Number(e.target.value);
+    if (distance > 0) {
+      const ratio = newDist / distance;
+      setDistanceCity(distanceCity * ratio);
+      setDistanceHighway(distanceHighway * ratio);
+    } else {
+      setDistanceCity(newDist * 0.5);
+      setDistanceHighway(newDist * 0.5);
+    }
+    setDistance(newDist);
+  };
 
   // Calculate pickup time and double-check availability on backend
   useEffect(() => {
@@ -217,7 +292,7 @@ export default function Calculator({ cars }: { cars: Car[] }) {
               <div className="flex justify-between items-end relative z-10">
                 <div>
                   <span className="block font-label-caps text-[10px] text-[#e9c349] uppercase tracking-widest mb-2">Відстань (км)</span>
-                  <input type="range" min="1" max="2000" value={distance} onChange={(e) => setDistance(Number(e.target.value))} className="w-full mb-2" />
+                  <input type="range" min="1" max="2000" value={distance} onChange={handleManualDistanceChange} className="w-full mb-2" />
                 </div>
                 <div className="text-right">
                   <span className="text-4xl font-display-lg text-[#e9c349]" id="distance-display">{distance} км</span>
@@ -239,8 +314,22 @@ export default function Calculator({ cars }: { cars: Car[] }) {
             </label>
             <label className="flex items-center gap-3 cursor-pointer">
               <input type="checkbox" checked={isWeekend} onChange={(e) => setIsWeekend(e.target.checked)} className="w-5 h-5 rounded border-gray-300 text-[#e9c349] focus:ring-[#e9c349]" />
-              <span className="text-[#e4e2e3] font-body-md">Поїздка у вихідний день (+10%)</span>
+              <span className="text-[#e4e2e3] font-body-md">Поїздка у вихідний день (+{Math.round((weekendCoeff - 1) * 100)}%)</span>
             </label>
+          </div>
+          <div className="space-y-4">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input type="checkbox" checked={withDriver} onChange={(e) => setWithDriver(e.target.checked)} className="w-5 h-5 rounded border-gray-300 text-[#e9c349] focus:ring-[#e9c349]" />
+              <span className="text-[#e4e2e3] font-body-md">Оренда з водієм (+{driverDailyFeeEur}€/день)</span>
+            </label>
+            <div className="flex items-center gap-3">
+              <input type="text" placeholder="Промокод" value={discountCode} onChange={(e) => {
+                setDiscountCode(e.target.value);
+                if (e.target.value.toLowerCase() === 'vip10') setDiscountPercent(10);
+                else setDiscountPercent(0);
+              }} className="bg-[#353536]/30 border border-white/10 rounded-xl px-4 py-2 text-[#e4e2e3] focus:border-[#e9c349] outline-none w-full max-w-[200px]" />
+              {discountPercent > 0 && <span className="text-[#e9c349] text-sm">-{discountPercent}% Активовано!</span>}
+            </div>
           </div>
         </div>
 

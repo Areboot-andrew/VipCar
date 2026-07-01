@@ -199,7 +199,7 @@ export default async function Home() {
         </section>
 
         {/* Calculator Section */}
-        <Calculator cars={cars} />
+        <Calculator cars={cars} cmsSettings={c} />
 
         <ContactForm />
       </main>

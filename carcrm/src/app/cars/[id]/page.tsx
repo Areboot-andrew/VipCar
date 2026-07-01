@@ -85,7 +85,7 @@ export default async function CarDetailsPage({ params }: { params: { id: string 
               </div>
               <div className="flex justify-between items-center p-4 bg-white/5 rounded-lg">
                 <span className="text-[#c7c6ca]">Витрата пального</span>
-                <span className="font-bold text-white">{car.fuelConsumption} л/100км</span>
+                <span className="font-bold text-white">{car.fuelType} • {car.fuelConsumptionCity}/{car.fuelConsumptionHighway} л/100км</span>
               </div>
               <div className="flex justify-between items-center p-4 bg-white/5 rounded-lg">
                 <span className="text-[#c7c6ca]">Статус</span>
