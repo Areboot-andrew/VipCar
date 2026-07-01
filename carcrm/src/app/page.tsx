@@ -100,41 +100,52 @@ export default async function Home() {
             )})}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-[32px]">
-            <div className="glass-panel p-8 rounded-2xl border border-white/10">
-              <h3 className="font-headline-md text-2xl text-[#e4e2e3] mb-6 flex items-center gap-3">
-                <span className="material-symbols-outlined text-[#e9c349]">local_cafe</span>
-                <span dangerouslySetInnerHTML={{ __html: parseAccent(c['comforts_title'], 'Для комфортної поїздки наші авто забезпечені:') }}></span>
-              </h3>
-              <ul className="space-y-3">
-                {(c['comforts_list'] ? JSON.parse(c['comforts_list']) : [
-                  'водою', 'пледами', 'подушками', 'вологими та сухими серветками',
-                  'зарядними пристроями та кабелями для різних типів телефонів'
-                ]).map((item: string, idx: number) => (
-                  <li key={idx} className="flex items-start gap-3 text-[#c7c6ca]">
-                    <span className="material-symbols-outlined text-[#e9c349] text-xl shrink-0 mt-0.5">check_circle</span>
-                    <span className="leading-relaxed" dangerouslySetInnerHTML={{ __html: parseAccent(item, '') }}></span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="glass-panel p-8 rounded-2xl border border-white/10 bg-gradient-to-br from-white/5 to-[#e9c349]/5">
-              <h3 className="font-headline-md text-2xl text-[#e4e2e3] mb-6 flex items-center gap-3">
-                <span className="material-symbols-outlined text-[#e9c349]">star</span>
-                <span dangerouslySetInnerHTML={{ __html: parseAccent(c['advantages_title'], 'Наші переваги:') }}></span>
-              </h3>
-              <ul className="space-y-3">
-                {(c['advantages_list'] ? JSON.parse(c['advantages_list']) : [
-                  'завжди чисті та доглянуті авто', 'уважні та досвідчені водії', 'знижка 10% на першу поїздку'
-                ]).map((item: string, idx: number) => (
-                  <li key={idx} className="flex items-start gap-3 text-[#c7c6ca]">
-                    <span className="material-symbols-outlined text-[#e9c349] text-xl shrink-0 mt-0.5">done</span>
-                    <span className="leading-relaxed" dangerouslySetInnerHTML={{ __html: parseAccent(item, '') }}></span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+          <div className="mt-32 mb-16 text-center">
+            <h2 className="font-headline-lg text-[32px] md:text-[48px] text-[#e4e2e3] mb-4">Стандарти обслуговування</h2>
+            <p className="text-[#c7c6ca] max-w-2xl mx-auto">Все продумано до дрібниць для вашого ідеального комфорту. Прозорий і зрозумілий сервіс преміум-класу.</p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12 relative mb-[64px]">
+            {/* З'єднувальна лінія для десктопів */}
+            <div className="hidden lg:block absolute top-12 left-[12%] right-[12%] h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+            
+            {[
+              {
+                id: '1',
+                title: 'Бездоганний комфорт',
+                desc: 'Вода, пледи, подушки, вологі серветки та зарядки для всіх типів телефонів.',
+                icon: 'event_seat'
+              },
+              {
+                id: '2',
+                title: 'Прозорі умови',
+                desc: 'Фіксована ціна та зрозумілі умови бронювання без прихованих платежів.',
+                icon: 'payments'
+              },
+              {
+                id: '3',
+                title: 'Абсолютна чистота',
+                desc: 'Завжди ідеально чисті та доглянуті авто. Однаковий високий рівень для кожного клієнта.',
+                icon: 'cleaning_services'
+              },
+              {
+                id: '4',
+                title: 'Підтримка 24/7',
+                desc: 'Повний супровід клієнтів до, під час та після поїздки. Уважні водії.',
+                icon: 'support_agent'
+              }
+            ].map((step, idx) => (
+              <div key={idx} className="flex flex-col items-center text-center relative z-10 group mt-8 lg:mt-0">
+                <div className="w-24 h-24 rounded-3xl bg-[#1b1b1c] border border-white/10 flex items-center justify-center mb-6 relative group-hover:border-[#e9c349]/50 group-hover:bg-[#e9c349]/5 transition-all duration-300">
+                  <div className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-[#e9c349] text-black font-bold flex items-center justify-center text-sm shadow-[0_0_15px_rgba(233,195,73,0.4)]">
+                    {step.id}
+                  </div>
+                  <span className="material-symbols-outlined text-4xl text-[#e9c349] group-hover:scale-110 transition-transform">{step.icon}</span>
+                </div>
+                <h3 className="font-headline-md text-xl text-white mb-3">{step.title}</h3>
+                <p className="text-sm text-[#c7c6ca] leading-relaxed max-w-[250px]">{step.desc}</p>
+              </div>
+            ))}
           </div>
         </section>
 
