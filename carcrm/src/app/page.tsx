@@ -60,7 +60,6 @@ export default async function Home() {
           {/* CENTER MENU */}
           <div className="hidden md:flex flex-none gap-[32px] items-center justify-center">
             <Link href="#services" className="text-[#c7c6ca] hover:text-[#e4e2e3] font-label-caps text-[12px] uppercase transition-colors">{c['menu_services'] || 'Послуги'}</Link>
-            <Link href="#fleet" className="text-[#c7c6ca] hover:text-[#e4e2e3] font-label-caps text-[12px] uppercase transition-colors">{c['menu_fleet'] || 'Автопарк'}</Link>
             <Link href="#gallery" className="text-[#c7c6ca] hover:text-[#e4e2e3] font-label-caps text-[12px] uppercase transition-colors">{c['menu_gallery'] || 'Галерея'}</Link>
             <Link href="#contact" className="text-[#c7c6ca] hover:text-[#e4e2e3] font-label-caps text-[12px] uppercase transition-colors">{c['menu_contact'] || 'Контакти'}</Link>
             <NavAuth loginText={c['menu_login'] || 'Увійти'} />
@@ -179,54 +178,6 @@ export default async function Home() {
           ]} />
         </section>
 
-        {/* Fleet Section */}
-        <section className="max-w-[1280px] mx-auto px-[24px] md:px-[64px] mb-[100px]" id="fleet">
-          <h2 className="font-headline-lg text-[40px] md:text-[56px] text-[#e4e2e3] mb-[64px] text-center" dangerouslySetInnerHTML={{ __html: parseAccent(c['fleet_title'], 'Оберіть свій клас') }}></h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[40px]">
-            {cars.slice(0, 6).map(car => (
-              <div key={car.id} className="glass-panel rounded-3xl overflow-hidden hover-gold-border transition-all duration-300 group flex flex-col relative border border-white/10">
-                <Link href={`/cars/${car.id}`} className="block h-72 relative overflow-hidden bg-[#1b1b1c]">
-                  {car.images[0] ? (
-                    <img src={car.images[0]} alt={car.model} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center"><span className="material-symbols-outlined text-[#46474a] text-6xl">directions_car</span></div>
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#080818] to-transparent opacity-90"></div>
-                  <div className="absolute bottom-4 left-6 right-6 flex justify-between items-end">
-                    <div>
-                      <h3 className="font-headline-md text-3xl text-white mb-1">{car.make}</h3>
-                      <p className="text-[#c7c6ca] font-bold">{car.model}</p>
-                    </div>
-                  </div>
-                </Link>
-                <div className="p-6 flex-1 flex flex-col">
-                  <div className="flex justify-between items-center mb-6 py-4 border-y border-white/10">
-                    <div className="text-center">
-                      <div className="text-[#e9c349] font-bold text-xl">{car.year}</div>
-                      <div className="text-[11px] text-[#c7c6ca] uppercase tracking-widest mt-1">Рік</div>
-                    </div>
-                    <div className="text-center border-l border-white/10 pl-6">
-                      <div className="text-white font-bold text-xl flex items-center justify-center gap-1"><span className="material-symbols-outlined text-[18px]">person</span> {car.capacity}</div>
-                      <div className="text-[11px] text-[#c7c6ca] uppercase tracking-widest mt-1">Місць</div>
-                    </div>
-                    <div className="text-center border-l border-white/10 pl-6">
-                      <div className="text-white font-bold text-xl">€{car.baseRate}</div>
-                      <div className="text-[11px] text-[#c7c6ca] uppercase tracking-widest mt-1">За км</div>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Link href={`/?carId=${car.id}#calculator`} className="gold-button font-button text-[12px] px-2 py-3.5 rounded-xl flex items-center justify-center gap-1 hover:scale-105 transition-all text-center uppercase font-bold tracking-wider shadow-[0_5px_15px_rgba(212,175,55,0.2)]">
-                      {c['btn_book_now'] || 'Бронювати'}
-                    </Link>
-                    <Link href={`/cars/${car.id}`} className="px-2 py-3.5 rounded-xl border border-white/20 hover:bg-white/5 transition-all font-button text-[12px] flex items-center justify-center text-center uppercase font-bold tracking-wider backdrop-blur-sm">
-                      {c['btn_view_fleet'] || 'Детальніше'}
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
 
         {/* Calculator Section */}
         <Calculator cars={cars} cmsSettings={c} />
