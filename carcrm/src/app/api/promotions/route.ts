@@ -6,6 +6,7 @@ const prisma = new PrismaClient();
 export async function GET() {
   try {
     const promos = await prisma.promotion.findMany({
+      include: { car: true },
       orderBy: { createdAt: 'desc' }
     });
     return NextResponse.json(promos);
@@ -17,15 +18,16 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { title, description, discount, routeFrom, routeTo } = body;
+    const { title, discount, routeFrom, routeTo, carId, dateStart } = body;
 
     const promo = await prisma.promotion.create({
       data: {
         title,
-        description,
         discount: Number(discount),
         routeFrom,
         routeTo,
+        carId: carId || null,
+        dateStart: dateStart ? new Date(dateStart) : null,
         active: true
       }
     });

@@ -1,3 +1,4 @@
+import React from 'react';
 import { PrismaClient } from '@prisma/client';
 import Link from 'next/link';
 import Calculator from '../components/Calculator';
@@ -5,6 +6,8 @@ import ContactForm from '../components/ContactForm';
 import MarqueeGallery from '../components/MarqueeGallery';
 import NavAuth from '../components/NavAuth';
 import MobileMenu from '../components/MobileMenu';
+
+import EmptyLegsBanner from '../components/EmptyLegsBanner';
 
 const prisma = new PrismaClient();
 
@@ -100,6 +103,9 @@ export default async function Home() {
           </div>
         </section>
 
+        {/* Empty Legs Section */}
+        <EmptyLegsBanner />
+
         {/* Services Section */}
         <section className="max-w-[1280px] mx-auto px-[24px] md:px-[64px] mb-[100px]" id="services">
           <h2 className="font-headline-lg text-[40px] md:text-[56px] text-[#e4e2e3] mb-[64px] text-center" dangerouslySetInnerHTML={{ __html: parseAccent(c['services_title'], 'Чому обирають нас?') }}></h2>
@@ -182,7 +188,9 @@ export default async function Home() {
 
 
         {/* Calculator Section */}
-        <Calculator cars={cars} cmsSettings={c} />
+        <React.Suspense fallback={<div className="text-center text-[#e9c349] py-12">Завантаження калькулятора...</div>}>
+          <Calculator cars={cars} cmsSettings={c} />
+        </React.Suspense>
 
         <ContactForm />
       </main>

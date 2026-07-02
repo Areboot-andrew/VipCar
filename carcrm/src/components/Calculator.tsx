@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import DatePicker from 'react-datepicker';
+import { useSearchParams } from 'next/navigation';
 
 const MapDisplay = dynamic(() => import('./MapDisplay'), { ssr: false });
 import 'react-datepicker/dist/react-datepicker.css';
@@ -22,16 +23,20 @@ type Car = {
 
 
 export default function Calculator({ cars, cmsSettings, siteSettings }: { cars: any[], cmsSettings?: Record<string, string>, siteSettings?: any }) {
+  const searchParams = useSearchParams();
+  const initCarId = searchParams.get('carId') || (cars[0]?.id || '');
+  const initPromo = searchParams.get('promo') ? parseFloat(searchParams.get('promo')!) : 0;
+
   const [distance, setDistance] = useState(100);
   const [distanceCity, setDistanceCity] = useState(50);
   const [distanceHighway, setDistanceHighway] = useState(50);
   const [durationMins, setDurationMins] = useState(0); 
   const [directionsResponse, setDirectionsResponse] = useState<any>(null);
-  const [selectedCarId, setSelectedCarId] = useState<string>(cars[0]?.id || '');
+  const [selectedCarId, setSelectedCarId] = useState<string>(initCarId);
   const [crossBorder, setCrossBorder] = useState(false);
   const [isWeekend, setIsWeekend] = useState(false);
   const [withDriver, setWithDriver] = useState(true);
-  const [discountPercent, setDiscountPercent] = useState(0);
+  const [discountPercent, setDiscountPercent] = useState(initPromo);
   const [discountCode, setDiscountCode] = useState('');
   const [price, setPrice] = useState(0);
   const [expenseSnapshot, setExpenseSnapshot] = useState({

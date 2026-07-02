@@ -42,10 +42,7 @@ export default function AdminLayout({
             <Users size={20} className="text-[#e9c349]" />
             <span className="font-semibold text-sm">Клієнти / Водії</span>
           </Link>
-          <Link href="/admin/pricing" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-[#c7c6ca] hover:text-white transition-colors">
-            <TicketPercent size={20} className="text-[#e9c349]" />
-            <span className="font-semibold text-sm">Смарт-Прайсинг</span>
-          </Link>
+
           <Link href="/admin/promotions" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-[#c7c6ca] hover:text-white transition-colors">
             <TicketPercent size={20} className="text-[#e9c349]" />
             <span className="font-semibold text-sm">Знижки (Empty Legs)</span>
