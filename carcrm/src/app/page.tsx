@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { PrismaClient } from '@prisma/client';
 import Link from 'next/link';
 import Calculator from '../components/Calculator';
@@ -6,27 +6,21 @@ import ContactForm from '../components/ContactForm';
 import MarqueeGallery from '../components/MarqueeGallery';
 import NavAuth from '../components/NavAuth';
 import MobileMenu from '../components/MobileMenu';
-
 import EmptyLegsBanner from '../components/EmptyLegsBanner';
 
 const prisma = new PrismaClient();
-
 export const dynamic = 'force-dynamic';
 
-const parseAccent = (text: string | undefined, defaultText: string) => {
+const parseAccent = (text: string | undefined, defaultText: string = '') => {
   const t = text || defaultText;
   if (!t) return '';
   return t.replace(/\*(.*?)\*/g, '<span class="text-[#e9c349] font-bold">$1</span>');
 };
 
 export default async function Home() {
-  const cars = await prisma.car.findMany({
-    where: { status: 'AVAILABLE' }
-  });
+  const cars = await prisma.car.findMany({ where: { status: 'AVAILABLE' } });
   
-  const siteSettings = await prisma.siteSettings.findUnique({
-    where: { id: 'global' }
-  });
+  const siteSettings = await prisma.siteSettings.findUnique({ where: { id: 'global' } });
   
   const contentRows = await prisma.siteContent.findMany();
   const c = contentRows.reduce((acc, row) => {
@@ -34,20 +28,16 @@ export default async function Home() {
     return acc;
   }, {} as Record<string, string>);
 
-  // Zbirayemo media z usih avto dlya golovnoi galerei
-  const allMedia: { type: 'image' | 'video', url: string, carId?: string }[] = [];
-  
-  // Додаємо standalone media з адмінки
-  if (c.standalone_gallery_media) {
-    try {
-      const standalone = JSON.parse(c.standalone_gallery_media);
-      allMedia.push(...standalone);
-    } catch (e) {
-      console.error('Failed to parse standalone_gallery_media', e);
-    }
-  }
+  const blocks = await prisma.pageBlock.findMany({
+    where: { active: true },
+    orderBy: { order: 'asc' }
+  });
 
-  // Додаємо media з автопарку
+  // Fallback Media for Gallery if no blocks exist
+  const allMedia: { type: 'image' | 'video', url: string, carId?: string }[] = [];
+  if (c.standalone_gallery_media) {
+    try { allMedia.push(...JSON.parse(c.standalone_gallery_media)); } catch (e) {}
+  }
   cars.forEach(car => {
     car.images.forEach(img => allMedia.push({ type: 'image', url: img, carId: car.id }));
     car.videos.forEach(vid => allMedia.push({ type: 'video', url: vid, carId: car.id }));
@@ -58,21 +48,15 @@ export default async function Home() {
       {/* Top Header */}
       <header className="fixed top-0 left-0 w-full z-50 bg-[#080818]/90 backdrop-blur-md border-b border-white/10">
         <nav className="flex justify-between items-center px-[24px] md:px-[64px] py-[12px] max-w-[1280px] mx-auto w-full">
-          
-          {/* LOGO SLOT */}
           <Link href="/" className="flex items-center gap-3 cursor-pointer flex-1">
-            <img src="/logo.png" alt={c['brand_name'] || 'First Line Transfer'} className="h-[40px] md:h-[50px] object-contain" />
+            <img src={c['logo_url'] || '/logo.png'} alt={c['brand_name'] || 'First Line Transfer'} className="h-[40px] md:h-[50px] object-contain" />
           </Link>
-
-          {/* CENTER MENU */}
           <div className="hidden md:flex flex-none gap-[32px] items-center justify-center">
             <Link href="#services" className="text-[#c7c6ca] hover:text-[#e4e2e3] font-label-caps text-[12px] uppercase transition-colors">{c['menu_services'] || 'Послуги'}</Link>
-            <Link href="#gallery" className="text-[#c7c6ca] hover:text-[#e4e2e3] font-label-caps text-[12px] uppercase transition-colors">{c['menu_gallery'] || 'Галерея'}</Link>
+            <Link href="/gallery" className="text-[#c7c6ca] hover:text-[#e4e2e3] font-label-caps text-[12px] uppercase transition-colors">{c['menu_gallery'] || 'Галерея'}</Link>
             <Link href="#contact" className="text-[#c7c6ca] hover:text-[#e4e2e3] font-label-caps text-[12px] uppercase transition-colors">{c['menu_contact'] || 'Контакти'}</Link>
             <NavAuth loginText={c['menu_login'] || 'Увійти'} />
           </div>
-
-          {/* RIGHT BUTTON */}
           <div className="flex items-center gap-4 flex-1 justify-end">
             <Link href="#calculator" className="hidden md:block gold-button text-[12px] uppercase px-6 py-2.5 rounded-xl font-bold tracking-wider">
               {c['btn_book_now'] || 'Бронювати'}
@@ -82,117 +66,142 @@ export default async function Home() {
         </nav>
       </header>
 
-      <main className="flex-grow">
-        {/* Hero Section */}
-        <section className="relative w-full h-[100vh] min-h-[700px] flex items-center justify-center px-[24px] md:px-[64px] mb-[80px]">
-          <div className="absolute inset-0 w-full h-full z-0 overflow-hidden">
-            {c['hero_bg_video'] ? (
-              <video src={c['hero_bg_video']} autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover scale-105" />
-            ) : (
-              <div className="absolute inset-0 w-full h-full bg-cover bg-center scale-105" style={{ backgroundImage: `url(${c['hero_bg_image'] || 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80'})` }}></div>
-            )}
-            <div className="absolute inset-0 bg-gradient-to-b from-[#080818]/80 via-[#080818]/60 to-[#080818] z-10"></div>
-          </div>
-          
-          <div className="relative z-20 max-w-4xl text-center flex flex-col items-center pt-20 px-4">
-            <h1 className="font-display-lg text-[36px] md:text-[80px] text-white mb-6 drop-shadow-2xl leading-[1.2] md:leading-[1.1]" dangerouslySetInnerHTML={{__html: c['hero_title'] || 'ПРЕМІУМ ТРАНСФЕР<br/><span style="color: #e9c349">БЕЗ КОМПРОМІСІВ</span>'}}></h1>
-            <p className="font-body-lg text-[16px] md:text-[22px] text-[#c7c6ca] mb-10 max-w-2xl drop-shadow-md" dangerouslySetInnerHTML={{ __html: parseAccent(c['hero_subtitle'], 'Ваш час. Ваші правила. Ідеальний сервіс від дверей до дверей з гарантованою пунктуальністю.') }}></p>
-            <Link href="#calculator" className="gold-button font-button text-[14px] md:text-[16px] uppercase px-6 py-4 md:px-10 md:py-5 rounded-xl font-bold tracking-widest shadow-[0_10px_30px_rgba(212,175,55,0.2)] hover:scale-105 transition-all w-full md:w-auto">
-              {c['btn_hero_cta'] || 'Розрахувати вартість'}
-            </Link>
-          </div>
-        </section>
+      <main className="flex-grow pt-16">
+        
+        {blocks.length > 0 ? (
+          // DYNAMIC BLOCKS RENDERING
+          <div className="flex flex-col gap-16">
+            {blocks.map(block => {
+              let parsed = {} as any;
+              try { parsed = JSON.parse(block.content); } catch (e) {}
 
-        {/* Empty Legs Section */}
+              if (block.type === 'HERO') {
+                return (
+                  <section key={block.id} className="relative w-full h-[100vh] min-h-[700px] flex items-center justify-center px-[24px] md:px-[64px] -mt-16 mb-16">
+                    <div className="absolute inset-0 w-full h-full z-0 overflow-hidden">
+                      {parsed.bgImage && parsed.bgImage.includes('.mp4') ? (
+                        <video src={parsed.bgImage} autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover scale-105" />
+                      ) : (
+                        <div className="absolute inset-0 w-full h-full bg-cover bg-center scale-105" style={{ backgroundImage: `url(${parsed.bgImage || c['hero_bg_image'] || 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80'})` }}></div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-b from-[#080818]/80 via-[#080818]/60 to-[#080818] z-10"></div>
+                    </div>
+                    <div className="relative z-20 max-w-4xl text-center flex flex-col items-center pt-20 px-4">
+                      <h1 className="font-display-lg text-[36px] md:text-[80px] text-white mb-6 drop-shadow-2xl leading-[1.2] md:leading-[1.1]" dangerouslySetInnerHTML={{__html: parseAccent(parsed.title || c['hero_title'])}}></h1>
+                      <p className="font-body-lg text-[16px] md:text-[22px] text-[#c7c6ca] mb-10 max-w-2xl drop-shadow-md" dangerouslySetInnerHTML={{ __html: parseAccent(parsed.subtitle || c['hero_subtitle']) }}></p>
+                      <Link href="#calculator" className="gold-button font-button text-[14px] md:text-[16px] uppercase px-6 py-4 md:px-10 md:py-5 rounded-xl font-bold tracking-widest shadow-[0_10px_30px_rgba(212,175,55,0.2)] hover:scale-105 transition-all w-full md:w-auto">
+                        Розрахувати вартість
+                      </Link>
+                    </div>
+                  </section>
+                );
+              }
+
+              if (block.type === 'TEXT_IMAGE') {
+                return (
+                  <section key={block.id} className="max-w-[1280px] mx-auto px-[24px] md:px-[64px] my-16">
+                    <div className={`flex flex-col gap-12 items-center ${parsed.imagePosition === 'right' ? 'md:flex-row' : 'md:flex-row-reverse'}`}>
+                      <div className="flex-1 space-y-6">
+                        {parsed.title && <h2 className="font-headline-lg text-4xl text-[#e4e2e3]" dangerouslySetInnerHTML={{__html: parseAccent(parsed.title)}}></h2>}
+                        <div className="prose prose-invert prose-lg text-[#c7c6ca]" dangerouslySetInnerHTML={{__html: parsed.text || ''}}></div>
+                      </div>
+                      {parsed.image && (
+                        <div className="flex-1">
+                          <img src={parsed.image} alt={parsed.title} className="w-full rounded-2xl shadow-2xl border border-white/5" />
+                        </div>
+                      )}
+                    </div>
+                  </section>
+                );
+              }
+
+              if (block.type === 'GALLERY') {
+                const galleryMedia = (parsed.items || []).map((url: string) => ({ type: url.includes('.mp4') ? 'video' : 'image', url }));
+                return (
+                  <div key={block.id}>
+                    <MarqueeGallery media={galleryMedia.length > 0 ? galleryMedia : allMedia} title={parsed.title} />
+                  </div>
+                );
+              }
+
+              if (block.type === 'FEATURES') {
+                return (
+                  <section key={block.id} className="max-w-[1280px] mx-auto px-[24px] md:px-[64px] my-16" id="services">
+                    <h2 className="font-headline-lg text-4xl text-center text-[#e4e2e3] mb-12" dangerouslySetInnerHTML={{__html: parseAccent(parsed.title)}}></h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                      {(parsed.items || []).map((feat: any, idx: number) => (
+                        <div key={idx} className="glass-panel p-8 rounded-2xl hover-gold-border transition-all flex flex-col items-start group">
+                           <span className="material-symbols-outlined text-[#e9c349] text-5xl mb-6 group-hover:scale-110 transition-transform">{feat.icon || 'star'}</span>
+                           <h3 className="font-headline-md text-2xl text-white mb-4" dangerouslySetInnerHTML={{__html: parseAccent(feat.title)}}></h3>
+                           <p className="text-[#c7c6ca] leading-relaxed">{feat.desc}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                );
+              }
+
+              return null;
+            })}
+          </div>
+        ) : (
+          // FALLBACK FOR OLD CONFIGURATION
+          <>
+            <section className="relative w-full h-[100vh] min-h-[700px] flex items-center justify-center px-[24px] md:px-[64px] mb-[80px]">
+              <div className="absolute inset-0 w-full h-full z-0 overflow-hidden">
+                {c['hero_bg_video'] ? (
+                  <video src={c['hero_bg_video']} autoPlay loop muted playsInline className="absolute inset-0 w-full h-full object-cover scale-105" />
+                ) : (
+                  <div className="absolute inset-0 w-full h-full bg-cover bg-center scale-105" style={{ backgroundImage: `url(${c['hero_bg_image'] || 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80'})` }}></div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-b from-[#080818]/80 via-[#080818]/60 to-[#080818] z-10"></div>
+              </div>
+              <div className="relative z-20 max-w-4xl text-center flex flex-col items-center pt-20 px-4">
+                <h1 className="font-display-lg text-[36px] md:text-[80px] text-white mb-6 drop-shadow-2xl leading-[1.2] md:leading-[1.1]" dangerouslySetInnerHTML={{__html: c['hero_title'] || 'ПРЕМІУМ ТРАНСФЕР<br/><span style="color: #e9c349">БЕЗ КОМПРОМІСІВ</span>'}}></h1>
+                <p className="font-body-lg text-[16px] md:text-[22px] text-[#c7c6ca] mb-10 max-w-2xl drop-shadow-md" dangerouslySetInnerHTML={{ __html: parseAccent(c['hero_subtitle'], 'Ваш час. Ваші правила. Ідеальний сервіс від дверей до дверей з гарантованою пунктуальністю.') }}></p>
+                <Link href="#calculator" className="gold-button font-button text-[14px] md:text-[16px] uppercase px-6 py-4 md:px-10 md:py-5 rounded-xl font-bold tracking-widest shadow-[0_10px_30px_rgba(212,175,55,0.2)] hover:scale-105 transition-all w-full md:w-auto">
+                  {c['btn_hero_cta'] || 'Розрахувати вартість'}
+                </Link>
+              </div>
+            </section>
+
+            <section className="max-w-[1280px] mx-auto px-[24px] md:px-[64px] mb-[100px]" id="services">
+              <h2 className="font-headline-lg text-[40px] md:text-[56px] text-[#e4e2e3] mb-[64px] text-center" dangerouslySetInnerHTML={{ __html: parseAccent(c['services_title'], 'Чому обирають нас?') }}></h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-[32px] mb-[64px]">
+                {[1, 2, 3, 4].map((i) => {
+                  const defaults = [
+                    { t: 'Пунктуальність', d: 'Ми завжди прибуваємо за 15 хвилин до вказаного часу.', i: 'schedule' },
+                    { t: 'Преміум Автопарк', d: 'Тільки нові автомобілі в ідеальному технічному стані.', i: 'directions_car' },
+                    { t: 'Конфіденційність', d: 'Повна гарантія анонімності та безпеки ваших поїздок.', i: 'verified_user' },
+                    { t: 'Професійні Водії', d: 'Англомовні водії з багаторічним досвідом VIP-обслуговування.', i: 'workspace_premium' }
+                  ];
+                  return (
+                  <div key={i} className="glass-panel p-8 rounded-2xl hover-gold-border transition-all duration-300 flex flex-col items-start group">
+                    <span className="material-symbols-outlined text-[#e9c349] text-5xl mb-6 group-hover:scale-110 transition-transform">{c[`feature_${i}_icon`] || defaults[i-1].i}</span>
+                    <h3 className="font-headline-md text-2xl text-[#e4e2e3] mb-4" dangerouslySetInnerHTML={{ __html: parseAccent(c[`feature_${i}_title`], defaults[i-1].t) }}></h3>
+                    <p className="font-body-md text-[#c7c6ca] leading-relaxed" dangerouslySetInnerHTML={{ __html: parseAccent(c[`feature_${i}_desc`], defaults[i-1].d) }}></p>
+                  </div>
+                )})}
+              </div>
+            </section>
+            
+            <MarqueeGallery media={allMedia.length > 0 ? allMedia : [
+              { type: 'image', url: 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80' }
+            ]} title={parseAccent(c['gallery_title'], 'Галерея')} />
+          </>
+        )}
+
         <EmptyLegsBanner />
 
-        {/* Services Section */}
-        <section className="max-w-[1280px] mx-auto px-[24px] md:px-[64px] mb-[100px]" id="services">
-          <h2 className="font-headline-lg text-[40px] md:text-[56px] text-[#e4e2e3] mb-[64px] text-center" dangerouslySetInnerHTML={{ __html: parseAccent(c['services_title'], 'Чому обирають нас?') }}></h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-[32px] mb-[64px]">
-            {[1, 2, 3, 4].map((i) => {
-              const defaults = [
-                { t: 'Пунктуальність', d: 'Ми завжди прибуваємо за 15 хвилин до вказаного часу.', i: 'schedule' },
-                { t: 'Преміум Автопарк', d: 'Тільки нові автомобілі в ідеальному технічному стані.', i: 'directions_car' },
-                { t: 'Конфіденційність', d: 'Повна гарантія анонімності та безпеки ваших поїздок.', i: 'verified_user' },
-                { t: 'Професійні Водії', d: 'Англомовні водії з багаторічним досвідом VIP-обслуговування.', i: 'workspace_premium' }
-              ];
-              return (
-              <div key={i} className="glass-panel p-8 rounded-2xl hover-gold-border transition-all duration-300 flex flex-col items-start group">
-                <span className="material-symbols-outlined text-[#e9c349] text-5xl mb-6 group-hover:scale-110 transition-transform">{c[`feature_${i}_icon`] || defaults[i-1].i}</span>
-                <h3 className="font-headline-md text-2xl text-[#e4e2e3] mb-4" dangerouslySetInnerHTML={{ __html: parseAccent(c[`feature_${i}_title`], defaults[i-1].t) }}></h3>
-                <p className="font-body-md text-[#c7c6ca] leading-relaxed" dangerouslySetInnerHTML={{ __html: parseAccent(c[`feature_${i}_desc`], defaults[i-1].d) }}></p>
-              </div>
-            )})}
-          </div>
+        <div id="calculator" className="scroll-mt-24">
+          <Suspense fallback={<div className="text-center text-[#e9c349] py-12">Завантаження калькулятора...</div>}>
+            <Calculator cars={cars} cmsSettings={c} />
+          </Suspense>
+        </div>
 
-          <div className="mt-32 mb-16 text-center">
-            <h2 className="font-headline-lg text-[32px] md:text-[48px] text-[#e4e2e3] mb-4">Стандарти обслуговування</h2>
-            <p className="text-[#c7c6ca] max-w-2xl mx-auto">Все продумано до дрібниць для вашого ідеального комфорту. Прозорий і зрозумілий сервіс преміум-класу.</p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12 relative mb-[64px]">
-            {/* З'єднувальна лінія для десктопів */}
-            <div className="hidden lg:block absolute top-12 left-[12%] right-[12%] h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
-            
-            {[
-              {
-                id: '1',
-                title: 'Бездоганний комфорт',
-                desc: 'Вода, пледи, подушки, вологі серветки та зарядки для всіх типів телефонів.',
-                icon: 'event_seat'
-              },
-              {
-                id: '2',
-                title: 'Прозорі умови',
-                desc: 'Фіксована ціна та зрозумілі умови бронювання без прихованих платежів.',
-                icon: 'payments'
-              },
-              {
-                id: '3',
-                title: 'Абсолютна чистота',
-                desc: 'Завжди ідеально чисті та доглянуті авто. Однаковий високий рівень для кожного клієнта.',
-                icon: 'cleaning_services'
-              },
-              {
-                id: '4',
-                title: 'Підтримка 24/7',
-                desc: 'Повний супровід клієнтів до, під час та після поїздки. Уважні водії.',
-                icon: 'support_agent'
-              }
-            ].map((step, idx) => (
-              <div key={idx} className="flex flex-col items-center text-center relative z-10 group mt-8 lg:mt-0">
-                <div className="w-24 h-24 rounded-3xl bg-[#1b1b1c] border border-white/10 flex items-center justify-center mb-6 relative group-hover:border-[#e9c349]/50 group-hover:bg-[#e9c349]/5 transition-all duration-300">
-                  <div className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-[#e9c349] text-black font-bold flex items-center justify-center text-sm shadow-[0_0_15px_rgba(233,195,73,0.4)]">
-                    {step.id}
-                  </div>
-                  <span className="material-symbols-outlined text-4xl text-[#e9c349] group-hover:scale-110 transition-transform">{step.icon}</span>
-                </div>
-                <h3 className="font-headline-md text-xl text-white mb-3">{step.title}</h3>
-                <p className="text-sm text-[#c7c6ca] leading-relaxed max-w-[250px]">{step.desc}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Global Gallery Section (Animated Marquee) */}
-        <MarqueeGallery 
-          media={allMedia.length > 0 ? allMedia : [
-            { type: 'image', url: 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80' },
-            { type: 'image', url: 'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?auto=format&fit=crop&q=80' },
-            { type: 'image', url: 'https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&q=80' }
-          ]} 
-          title={parseAccent(c['gallery_title'], 'Галерея')}
-          subtitle={parseAccent(c['gallery_subtitle'], 'Наш автопарк в реальному житті. Відео та фото преміум-якості.')}
-        />
-
-
-        {/* Calculator Section */}
-        <React.Suspense fallback={<div className="text-center text-[#e9c349] py-12">Завантаження калькулятора...</div>}>
-          <Calculator cars={cars} cmsSettings={c} />
-        </React.Suspense>
-
-        <ContactForm />
+        <div id="contact" className="scroll-mt-24">
+           <ContactForm />
+        </div>
       </main>
 
       <footer className="w-full py-[64px] px-[24px] md:px-[64px] bg-[#0a0a0a] border-t border-white/5 mt-auto">
@@ -212,7 +221,7 @@ export default async function Home() {
             <h4 className="text-white font-bold mb-6 uppercase tracking-widest text-sm">Меню</h4>
             <div className="flex flex-col gap-3 text-[#c7c6ca]/70 text-sm">
               <Link href="#services" className="hover:text-[#e9c349] transition-colors">{c['menu_services'] || 'Послуги'}</Link>
-              <Link href="#fleet" className="hover:text-[#e9c349] transition-colors">{c['menu_fleet'] || 'Автопарк'}</Link>
+              <Link href="/gallery" className="hover:text-[#e9c349] transition-colors">{c['menu_gallery'] || 'Галерея'}</Link>
               <Link href="#calculator" className="hover:text-[#e9c349] transition-colors">{c['menu_calculator'] || 'Бронювання'}</Link>
             </div>
           </div>
