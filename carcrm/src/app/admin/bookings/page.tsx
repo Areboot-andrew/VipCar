@@ -92,10 +92,15 @@ export default function AdminBookingsPage() {
                 <p>{booking.client.email}</p>
               </div>
               <div>
-                <p style={{ color: 'var(--accent-gold)', marginBottom: '4px', fontWeight: 'bold' }}>Рейс</p>
+                <p style={{ color: 'var(--accent-gold)', marginBottom: '4px', fontWeight: 'bold' }}>Рейс клієнта</p>
                 <p>Авто: {booking.car.make} {booking.car.model}</p>
-                <p>Відстань: {booking.distance} км</p>
-                <p>Вартість: €{booking.price}</p>
+                <p>Клієнтський Маршрут: {booking.distance} км</p>
+                <p>Вартість для клієнта: €{booking.price}</p>
+                
+                <p style={{ color: 'var(--accent-gold)', marginTop: '12px', marginBottom: '4px', fontWeight: 'bold' }}>Реальний маршрут авто</p>
+                <p style={{ color: '#aaa', fontSize: '12px' }}>Старт авто: <span style={{ color: '#fff' }}>{booking.carStartLocation || booking.car.baseCity || 'База'}</span></p>
+                <p style={{ color: '#aaa', fontSize: '12px' }}>Доїзд до клієнта: <span style={{ color: '#fff' }}>{booking.expenseDeliveryDistance || 0} км</span></p>
+                <p style={{ color: '#aaa', fontSize: '12px' }}>Повний пробіг водія: <span style={{ color: '#fff' }}>{booking.totalExpenseDistance || booking.distance} км</span></p>
               </div>
               <div>
                 <p style={{ color: 'var(--accent-gold)', marginBottom: '4px', fontWeight: 'bold' }}>Деталі поїздки</p>

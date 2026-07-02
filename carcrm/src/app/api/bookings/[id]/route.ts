@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { NextResponse } from 'next/server';
+import { recalculateChain } from '@/lib/chaining';
 
 const prisma = new PrismaClient();
 
@@ -24,6 +25,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         driver: { include: { user: true } }
       }
     });
+
+    // Recalculate chain for this car
+    if (updateData.status !== undefined || updateData.driverId !== undefined || updateData.carId !== undefined) {
+      // Async recalculation so it doesn't block response
+      recalculateChain(booking.carId).catch(err => console.error('Chain calc error:', err));
+    }
 
     return NextResponse.json(booking);
   } catch (error) {

@@ -160,6 +160,11 @@ model Booking {
   notes       String?
   driverNotes String?       // вказівки для водія від адміна
 
+  // Chaining fields
+  carStartLocation         String?
+  expenseDeliveryDistance  Float?
+  totalExpenseDistance     Float?
+
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 

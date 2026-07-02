@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { recalculateChain } from '@/lib/chaining';
 
 const prisma = new PrismaClient();
 
@@ -62,6 +63,9 @@ export async function POST(request: Request) {
         status: 'UNPAID'
       }
     });
+
+    // Trigger async calculation for the car chain
+    recalculateChain(carId).catch(err => console.error("Chain calc error on create:", err));
 
     return NextResponse.json(booking);
   } catch (error) {
