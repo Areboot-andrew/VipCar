@@ -21,7 +21,7 @@ type Car = {
 };
 
 
-export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSettings?: Record<string, string> }) {
+export default function Calculator({ cars, cmsSettings, siteSettings }: { cars: any[], cmsSettings?: Record<string, string>, siteSettings?: any }) {
   const [distance, setDistance] = useState(100);
   const [distanceCity, setDistanceCity] = useState(50);
   const [distanceHighway, setDistanceHighway] = useState(50);
@@ -42,21 +42,17 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
     netProfit: 0
   });
 
-  const fuelPriceUah = parseFloat(cmsSettings?.['fuel_price'] || '60');
-  const driverSalaryRate = parseFloat(cmsSettings?.['driver_salary_rate'] || '0.1');
+  const fuelPricePetrol = siteSettings?.fuelPricePetrol || 1.6;
+  const fuelPriceDiesel = siteSettings?.fuelPriceDiesel || 1.5;
+  const eurToUahRate = siteSettings?.exchangeRate || 42.5;
+
+  // Fallbacks for older things that aren't per-car yet
   const amortizationRate = parseFloat(cmsSettings?.['amortization_rate'] || '0.05');
   const marginRate = parseFloat(cmsSettings?.['margin_rate'] || '0.2');
   const deliveryRate = parseFloat(cmsSettings?.['delivery_rate'] || '15');
   const baseLocationLat = parseFloat(cmsSettings?.['base_location_lat'] || '49.8397');
   const baseLocationLng = parseFloat(cmsSettings?.['base_location_lng'] || '24.0297');
-  const eurToUahRate = parseFloat(cmsSettings?.['eur_to_uah_rate'] || '42.5');
   const weekendCoeff = parseFloat(cmsSettings?.['weekend_coefficient'] || '1.2');
-  
-  const childSeatFee = parseFloat(cmsSettings?.['child_seat_fee'] || '15');
-  const animalFee = parseFloat(cmsSettings?.['animal_fee'] || '20');
-  const meetAndGreetFee = parseFloat(cmsSettings?.['meet_and_greet_fee'] || '15');
-  const luggageMedFee = parseFloat(cmsSettings?.['luggage_medium_fee'] || '10');
-  const luggageLargeFee = parseFloat(cmsSettings?.['luggage_large_fee'] || '20');
 
   const [passengers, setPassengers] = useState('1');
   const [children, setChildren] = useState('0');
@@ -153,9 +149,11 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
     const litersCity = (distanceCity / 100) * car.fuelConsumptionCity;
     const litersHighway = (distanceHighway / 100) * car.fuelConsumptionHighway;
     const totalLiters = litersCity + litersHighway;
-    const fuelCostEur = (totalLiters * fuelPriceUah) / eurToUahRate;
+    const fuelPrice = car.fuelType === 'Дизель' ? fuelPriceDiesel : fuelPricePetrol;
+    const fuelCostEur = totalLiters * fuelPrice;
 
-    const costDriver = distance * driverSalaryRate;
+    // Use a standard baseline for frontend driver salary, actual is calculated in admin when driver assigned
+    const costDriver = distance * 0.15; 
     const costAmortization = distance * amortizationRate;
     
     let calcDeliveryDist = 0;
@@ -170,22 +168,20 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
       calcDeliveryDist = R * c;
     }
     const costDelivery = calcDeliveryDist * deliveryRate;
-    
     const netProfit = distance * marginRate;
 
     let currentPrice = fuelCostEur + costDriver + costAmortization + costDelivery + netProfit;
-    if (crossBorder) currentPrice += parseFloat(cmsSettings?.['cross_border_fee'] || '50');
     
-    if (meetAndGreet) currentPrice += meetAndGreetFee;
-    currentPrice += parseInt(children) * childSeatFee;
-    if (animals === 'Так') currentPrice += animalFee;
+    // Per-car coefficients
+    if (crossBorder) currentPrice += (car.crossBorderFee || 150);
+    if (meetAndGreet) currentPrice += (car.meetAndGreetFee || 20);
+    currentPrice += parseInt(children) * (car.childSeatFee || 15);
+    if (animals === 'Так') currentPrice += (car.animalFee || 30);
     
-    if (luggage === 'Середній (1-2 валізи)') currentPrice += luggageMedFee;
-    else if (luggage === 'Великий (3+ валіз)') currentPrice += luggageLargeFee;
+    // For baggage / extra persons: calculate how many extra people above 1 there are.
+    const extraPassengers = Math.max(0, parseInt(passengers) - 1);
+    currentPrice += extraPassengers * (car.pricePerPerson || 10);
 
-    const extraPassengers = Math.max(0, parseInt(passengers) - 2);
-    if (extraPassengers > 0) currentPrice += extraPassengers * parseFloat(cmsSettings?.['price_per_person'] || '10');
-    
     let isWeekendReal = false;
     if (arrivalDate) {
       const day = arrivalDate.getDay();
@@ -195,6 +191,7 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
       currentPrice *= weekendCoeff;
     }
 
+    if (!withDriver) currentPrice *= 0.6; // 40% off if no driver
     if (discountPercent > 0) {
       currentPrice *= (1 - discountPercent / 100);
     }
@@ -209,16 +206,16 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
     const litersCity = (distanceCity / 100) * selectedCar.fuelConsumptionCity;
     const litersHighway = (distanceHighway / 100) * selectedCar.fuelConsumptionHighway;
     const totalLiters = litersCity + litersHighway;
-    const fuelCostUah = totalLiters * fuelPriceUah;
-    const fuelCostEur = fuelCostUah / eurToUahRate;
+    const fuelPrice = selectedCar.fuelType === 'Дизель' ? fuelPriceDiesel : fuelPricePetrol;
+    const fuelCostEur = totalLiters * fuelPrice;
 
-    const costDriver = distance * driverSalaryRate;
+    const costDriver = distance * 0.15;
     const costAmortization = distance * amortizationRate;
     
     // Calculate straight-line distance for Delivery Cost
     let calcDeliveryDist = 0;
     if (originObj) {
-      const R = 6371; // km
+      const R = 6371;
       const dLat = (originObj.lat - baseLocationLat) * Math.PI / 180;
       const dLon = (originObj.lng - baseLocationLng) * Math.PI / 180;
       const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
@@ -228,22 +225,18 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
       calcDeliveryDist = R * c;
     }
     const costDelivery = calcDeliveryDist * deliveryRate;
-    
     const netProfit = distance * marginRate;
 
     // Total final price based on actual profitability formula
     let currentPrice = fuelCostEur + costDriver + costAmortization + costDelivery + netProfit;
-    if (crossBorder) currentPrice += parseFloat(cmsSettings?.['cross_border_fee'] || '50');
     
-    if (meetAndGreet) currentPrice += meetAndGreetFee;
-    currentPrice += parseInt(children) * childSeatFee;
-    if (animals === 'Так') currentPrice += animalFee;
+    if (crossBorder) currentPrice += (selectedCar.crossBorderFee || 150);
+    if (meetAndGreet) currentPrice += (selectedCar.meetAndGreetFee || 20);
+    currentPrice += parseInt(children) * (selectedCar.childSeatFee || 15);
+    if (animals === 'Так') currentPrice += (selectedCar.animalFee || 30);
     
-    if (luggage === 'Середній (1-2 валізи)') currentPrice += luggageMedFee;
-    else if (luggage === 'Великий (3+ валіз)') currentPrice += luggageLargeFee;
-
-    const extraPassengers = Math.max(0, parseInt(passengers) - 2);
-    if (extraPassengers > 0) currentPrice += extraPassengers * parseFloat(cmsSettings?.['price_per_person'] || '10');
+    const extraPassengers = Math.max(0, parseInt(passengers) - 1);
+    currentPrice += extraPassengers * (selectedCar.pricePerPerson || 10);
     
     let isWeekendReal = false;
     if (arrivalDate) {
@@ -253,6 +246,7 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
     if (isWeekendReal || isWeekend) {
       currentPrice *= weekendCoeff;
     }
+    if (!withDriver) currentPrice *= 0.6; // 40% off if no driver
 
     if (discountPercent > 0) {
       currentPrice *= (1 - discountPercent / 100);
@@ -267,7 +261,7 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
       deliveryCost: costDelivery,
       netProfit: netProfit
     });
-  }, [distanceCity, distanceHighway, distance, selectedCarId, crossBorder, isWeekend, arrivalDate, withDriver, discountPercent, cars, fuelPriceUah, eurToUahRate, weekendCoeff, children, luggage, animals, meetAndGreet, childSeatFee, animalFee, meetAndGreetFee, luggageMedFee, luggageLargeFee, originObj, baseLocationLat, baseLocationLng, driverSalaryRate, amortizationRate, deliveryRate, marginRate]);
+  }, [distanceCity, distanceHighway, distance, selectedCarId, crossBorder, isWeekend, arrivalDate, withDriver, discountPercent, cars, fuelPricePetrol, fuelPriceDiesel, eurToUahRate, weekendCoeff, children, luggage, animals, meetAndGreet, passengers, originObj, baseLocationLat, baseLocationLng, amortizationRate, deliveryRate, marginRate]);
 
   // manual distance change removed because the map auto-calculates it
 

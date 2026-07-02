@@ -19,7 +19,12 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { make, model, year, capacity, baseRate, fuelType, fuelConsumptionCity, fuelConsumptionHighway, status, images, videos, description, features } = body;
+    const { 
+      make, model, year, capacity, baseRate, fuelType, 
+      fuelConsumptionCity, fuelConsumptionHighway, status, 
+      images, videos, description, features,
+      pricePerPerson, crossBorderFee, meetAndGreetFee, animalFee, childSeatFee
+    } = body;
 
     const car = await prisma.car.create({
       data: {
@@ -31,6 +36,13 @@ export async function POST(request: Request) {
         fuelType,
         fuelConsumptionCity: parseFloat(fuelConsumptionCity),
         fuelConsumptionHighway: parseFloat(fuelConsumptionHighway),
+        
+        pricePerPerson: pricePerPerson ? parseFloat(pricePerPerson) : 10.0,
+        crossBorderFee: crossBorderFee ? parseFloat(crossBorderFee) : 150.0,
+        meetAndGreetFee: meetAndGreetFee ? parseFloat(meetAndGreetFee) : 20.0,
+        animalFee: animalFee ? parseFloat(animalFee) : 30.0,
+        childSeatFee: childSeatFee ? parseFloat(childSeatFee) : 15.0,
+        
         status: status || 'AVAILABLE',
         images: images || [],
         videos: videos || [],

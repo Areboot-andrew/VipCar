@@ -31,6 +31,12 @@ type Car = {
   description?: string | null;
   features?: string | null;
   reviews?: CarReview[];
+  
+  pricePerPerson?: number;
+  crossBorderFee?: number;
+  meetAndGreetFee?: number;
+  animalFee?: number;
+  childSeatFee?: number;
 };
 
 export default function AdminFleetPage() {
@@ -42,7 +48,8 @@ export default function AdminFleetPage() {
   const [formData, setFormData] = useState({
     make: '', model: '', year: new Date().getFullYear().toString(),
     capacity: '4', baseRate: '0', fuelType: 'Бензин', fuelConsumptionCity: '0', fuelConsumptionHighway: '0',
-    description: '', features: '[]'
+    description: '', features: '[]',
+    pricePerPerson: '10', crossBorderFee: '150', meetAndGreetFee: '20', animalFee: '30', childSeatFee: '15'
   });
   const [featuresList, setFeaturesList] = useState<{icon: string, text: string}[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -80,7 +87,7 @@ export default function AdminFleetPage() {
       });
       if (res.ok) {
         setIsModalOpen(false);
-        setFormData({ make: '', model: '', year: new Date().getFullYear().toString(), capacity: '4', baseRate: '0', fuelType: 'Бензин', fuelConsumptionCity: '0', fuelConsumptionHighway: '0', description: '', features: '[]' });
+        setFormData({ make: '', model: '', year: new Date().getFullYear().toString(), capacity: '4', baseRate: '0', fuelType: 'Бензин', fuelConsumptionCity: '0', fuelConsumptionHighway: '0', description: '', features: '[]', pricePerPerson: '10', crossBorderFee: '150', meetAndGreetFee: '20', animalFee: '30', childSeatFee: '15' });
         setFeaturesList([]);
         fetchCars();
       }
@@ -389,6 +396,9 @@ export default function AdminFleetPage() {
           <form onSubmit={handleSubmit} style={{ backgroundColor: 'var(--bg-surface)', padding: '32px', width: '480px', border: '1px solid var(--border-color)', borderRadius: '16px' }}>
             <h2 style={{ marginBottom: '24px', color: 'var(--accent-gold)' }}>Нове авто</h2>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div className="col-span-2 border-b border-white/10 pb-2 mb-2">
+                <h3 className="text-[#e9c349] font-bold text-sm uppercase">Основні дані</h3>
+              </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Марка</label>
                 <input required value={formData.make} onChange={e => setFormData({...formData, make: e.target.value})} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '6px' }} />
@@ -417,6 +427,30 @@ export default function AdminFleetPage() {
                   <option value="Газ">Газ</option>
                   <option value="Електро">Електро</option>
                 </select>
+              </div>
+              
+              <div className="col-span-2 border-b border-white/10 pb-2 mt-4 mb-2">
+                <h3 className="text-[#e9c349] font-bold text-sm uppercase">Коефіцієнти (€)</h3>
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Багаж / Дод. особа</label>
+                <input type="number" step="0.01" required value={formData.pricePerPerson} onChange={e => setFormData({...formData, pricePerPerson: e.target.value})} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '6px' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Перетин кордону</label>
+                <input type="number" step="0.01" required value={formData.crossBorderFee} onChange={e => setFormData({...formData, crossBorderFee: e.target.value})} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '6px' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Зустріч з табличкою</label>
+                <input type="number" step="0.01" required value={formData.meetAndGreetFee} onChange={e => setFormData({...formData, meetAndGreetFee: e.target.value})} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '6px' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Тварини</label>
+                <input type="number" step="0.01" required value={formData.animalFee} onChange={e => setFormData({...formData, animalFee: e.target.value})} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '6px' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Дитяче крісло</label>
+                <input type="number" step="0.01" required value={formData.childSeatFee} onChange={e => setFormData({...formData, childSeatFee: e.target.value})} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '6px' }} />
               </div>
             </div>
             <div style={{ display: 'flex', gap: '16px', marginTop: '32px' }}>

@@ -21,6 +21,10 @@ export default async function Home() {
     where: { status: 'AVAILABLE' }
   });
   
+  const siteSettings = await prisma.siteSettings.findUnique({
+    where: { id: 'global' }
+  });
+  
   const contentRows = await prisma.siteContent.findMany();
   const c = contentRows.reduce((acc, row) => {
     acc[row.key] = row.value;
