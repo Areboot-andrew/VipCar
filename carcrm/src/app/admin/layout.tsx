@@ -52,6 +52,10 @@ export default function AdminLayout({
             <Settings size={20} />
             <span>CMS Сайту</span>
           </Link>
+          <Link href="/admin/gallery" className="admin-nav-link">
+            <Settings size={20} />
+            <span>Галерея медіа</span>
+          </Link>
           <Link href="/admin/chat" className="admin-nav-link">
             <MessageSquare size={20} />
             <span>Месенджер (Чат)</span>

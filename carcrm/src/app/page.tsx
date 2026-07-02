@@ -29,6 +29,18 @@ export default async function Home() {
 
   // Zbirayemo media z usih avto dlya golovnoi galerei
   const allMedia: { type: 'image' | 'video', url: string }[] = [];
+  
+  // Додаємо standalone media з адмінки
+  if (c.standalone_gallery_media) {
+    try {
+      const standalone = JSON.parse(c.standalone_gallery_media);
+      allMedia.push(...standalone);
+    } catch (e) {
+      console.error('Failed to parse standalone_gallery_media', e);
+    }
+  }
+
+  // Додаємо media з автопарку
   cars.forEach(car => {
     car.images.forEach(img => allMedia.push({ type: 'image', url: img }));
     car.videos.forEach(vid => allMedia.push({ type: 'video', url: vid }));
