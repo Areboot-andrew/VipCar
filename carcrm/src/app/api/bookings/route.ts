@@ -11,7 +11,7 @@ export async function POST(request: Request) {
     const { 
       name, phone, email, password, routeFrom, routeTo, distance, price, dateStart, dateEnd, carId,
       passengers, children, luggage, animals,
-      fuelCost, driverSalary, deliveryCost, amortization, netProfit
+      fuelCost, driverSalary, deliveryCost, deliveryDistance, amortization, netProfit
     } = body;
 
     const rawPassword = password || Math.random().toString(36).slice(-8);
@@ -47,6 +47,7 @@ export async function POST(request: Request) {
         fuelCost: Number(fuelCost || 0),
         driverSalary: Number(driverSalary || 0),
         deliveryCost: Number(deliveryCost || 0),
+        deliveryDistance: Number(deliveryDistance || 0),
         amortization: Number(amortization || 0),
         netProfit: Number(netProfit || 0),
         status: 'PENDING'

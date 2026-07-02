@@ -44,6 +44,7 @@ export default function Calculator({ cars, cmsSettings, siteSettings }: { cars: 
     driverSalary: 0,
     amortization: 0,
     deliveryCost: 0,
+    deliveryDistance: 0,
     netProfit: 0
   });
 
@@ -157,10 +158,6 @@ export default function Calculator({ cars, cmsSettings, siteSettings }: { cars: 
     const totalLiters = litersCity + litersHighway;
     const fuelPrice = car.fuelType === 'Дизель' ? fuelPriceDiesel : fuelPricePetrol;
     const fuelCostEur = totalLiters * fuelPrice;
-
-    // Use a standard baseline for frontend driver salary, actual is calculated in admin when driver assigned
-    const costDriver = distance * 0.15; 
-    const costAmortization = distance * amortizationRate;
     
     let calcDeliveryDist = 0;
     if (originObj) {
@@ -171,8 +168,13 @@ export default function Calculator({ cars, cmsSettings, siteSettings }: { cars: 
                 Math.cos(baseLocationLat * Math.PI / 180) * Math.cos(originObj.lat * Math.PI / 180) *
                 Math.sin(dLon/2) * Math.sin(dLon/2);
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      calcDeliveryDist = R * c;
+      calcDeliveryDist = Math.ceil(R * c * 1.3); // * 1.3 to approximate road distance
     }
+
+    // Driver salary should include delivery distance (pure km)
+    const costDriver = (distance + calcDeliveryDist) * 0.15; 
+    const costAmortization = distance * amortizationRate;
+    
     const costDelivery = calcDeliveryDist * deliveryRate;
     const netProfit = distance * marginRate;
 
@@ -215,10 +217,7 @@ export default function Calculator({ cars, cmsSettings, siteSettings }: { cars: 
     const fuelPrice = selectedCar.fuelType === 'Дизель' ? fuelPriceDiesel : fuelPricePetrol;
     const fuelCostEur = totalLiters * fuelPrice;
 
-    const costDriver = distance * 0.15;
-    const costAmortization = distance * amortizationRate;
-    
-    // Calculate straight-line distance for Delivery Cost
+    // Calculate delivery distance
     let calcDeliveryDist = 0;
     if (originObj) {
       const R = 6371;
@@ -228,8 +227,11 @@ export default function Calculator({ cars, cmsSettings, siteSettings }: { cars: 
                 Math.cos(baseLocationLat * Math.PI / 180) * Math.cos(originObj.lat * Math.PI / 180) *
                 Math.sin(dLon/2) * Math.sin(dLon/2);
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      calcDeliveryDist = R * c;
+      calcDeliveryDist = Math.ceil(R * c * 1.3);
     }
+
+    const costDriver = (distance + calcDeliveryDist) * 0.15;
+    const costAmortization = distance * amortizationRate;
     const costDelivery = calcDeliveryDist * deliveryRate;
     const netProfit = distance * marginRate;
 
@@ -265,6 +267,7 @@ export default function Calculator({ cars, cmsSettings, siteSettings }: { cars: 
       driverSalary: costDriver,
       amortization: costAmortization,
       deliveryCost: costDelivery,
+      deliveryDistance: calcDeliveryDist,
       netProfit: netProfit
     });
   }, [distanceCity, distanceHighway, distance, selectedCarId, crossBorder, isWeekend, arrivalDate, withDriver, discountPercent, cars, fuelPricePetrol, fuelPriceDiesel, eurToUahRate, weekendCoeff, children, luggage, animals, meetAndGreet, passengers, originObj, baseLocationLat, baseLocationLng, amortizationRate, deliveryRate, marginRate]);
@@ -332,6 +335,7 @@ export default function Calculator({ cars, cmsSettings, siteSettings }: { cars: 
           fuelCost: expenseSnapshot.fuelCost,
           driverSalary: expenseSnapshot.driverSalary,
           deliveryCost: expenseSnapshot.deliveryCost,
+          deliveryDistance: expenseSnapshot.deliveryDistance,
           amortization: expenseSnapshot.amortization,
           netProfit: expenseSnapshot.netProfit
         })

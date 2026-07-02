@@ -29,10 +29,15 @@ export async function GET() {
       orderBy: { dateStart: "asc" }
     });
 
+    const totalEarned = bookings
+      .filter(b => b.status === "COMPLETED")
+      .reduce((acc, b) => acc + (b.distance + (b.deliveryDistance || 0)) * user.driver!.salaryPerKm, 0);
+
     const stats = {
       total: bookings.length,
       completed: bookings.filter(b => b.status === "COMPLETED").length,
-      salaryPerKm: user.driver.salaryPerKm
+      salaryPerKm: user.driver.salaryPerKm,
+      totalEarned
     };
 
     return NextResponse.json({ bookings, stats, user });

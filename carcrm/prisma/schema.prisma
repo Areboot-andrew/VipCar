@@ -141,6 +141,7 @@ model Booking {
   fuelCost     Float?
   driverSalary Float?
   deliveryCost Float?
+  deliveryDistance Float @default(0) // km to deliver car to client
   amortization Float?
   netProfit    Float?
   

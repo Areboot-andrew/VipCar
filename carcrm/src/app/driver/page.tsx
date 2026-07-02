@@ -15,6 +15,8 @@ type Booking = {
   dateStart: string;
   price: number;
   status: string;
+  distance: number;
+  deliveryDistance: number;
   driverNotes?: string;
   client: { name: string; phone: string };
   car: { make: string; model: string };
@@ -79,7 +81,7 @@ export default function DriverPortal() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
           <div className="bg-white/5 p-6 rounded-2xl border border-white/10 backdrop-blur-sm">
             <h3 className="text-xs text-gray-400 uppercase tracking-widest mb-2 font-bold">Всього поїздок</h3>
             <div className="text-4xl font-light text-white">{data.stats.total}</div>
@@ -91,6 +93,10 @@ export default function DriverPortal() {
           <div className="bg-white/5 p-6 rounded-2xl border border-white/10 backdrop-blur-sm">
             <div className="text-xs text-[#c7c6ca] mb-1 font-label-caps uppercase tracking-widest">Ставка за км</div>
             <div className="text-4xl font-light text-[#e9c349]">€{data.stats.salaryPerKm}</div>
+          </div>
+          <div className="bg-white/5 p-6 rounded-2xl border border-white/10 backdrop-blur-sm bg-gradient-to-br from-green-500/10 to-transparent border-green-500/20">
+            <div className="text-xs text-green-400 mb-1 font-label-caps uppercase tracking-widest font-bold">Зароблено</div>
+            <div className="text-4xl font-light text-green-400">€{data.stats.totalEarned.toFixed(2)}</div>
           </div>
         </div>
 
@@ -118,6 +124,13 @@ export default function DriverPortal() {
                   <div>
                     <span className="text-gray-500 block mb-1">Авто:</span>
                     <span className="font-medium text-white">{b.car.make} {b.car.model}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500 block mb-1">Кілометраж:</span>
+                    <span className="font-medium text-white">
+                      {b.distance} км <span className="text-gray-400 text-xs">+{b.deliveryDistance || 0} км доїзд</span>
+                      <span className="text-[#e9c349] ml-2 font-bold">={b.distance + (b.deliveryDistance || 0)} км</span>
+                    </span>
                   </div>
                 </div>
                 
