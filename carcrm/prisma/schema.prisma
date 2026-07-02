@@ -271,3 +271,11 @@ model Message {
   imageUrl   String?
   createdAt  DateTime @default(now())
 }
+
+model PageBlock {
+  id        String   @id @default(uuid())
+  order     Int      @default(0)
+  type      String   // 'HERO', 'GALLERY', 'TEXT_IMAGE', 'FEATURES', 'CTA'
+  content   String   @db.Text // JSON string containing block settings
+  active    Boolean  @default(true)
+}

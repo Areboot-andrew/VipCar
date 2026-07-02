@@ -91,6 +91,7 @@ export default function Calculator({ cars, cmsSettings, siteSettings }: { cars: 
   const [excludeIntervals, setExcludeIntervals] = useState<{start: Date, end: Date}[]>([]);
 
   const requiredCapacity = Number(passengers) + Number(children) * 1.5;
+  const selectedCar = cars.find(c => c.id === selectedCarId);
 
   useEffect(() => {
     const currentCar = cars.find(c => c.id === selectedCarId);
@@ -451,7 +452,7 @@ export default function Calculator({ cars, cmsSettings, siteSettings }: { cars: 
             </select>
           </div>
           <div className="bg-[#353536]/30 border border-white/10 rounded-xl p-4">
-            <label className="block text-xs text-[#c7c6ca] mb-1 font-label-caps uppercase">Діти (+{childSeatFee}€)</label>
+            <label className="block text-xs text-[#c7c6ca] mb-1 font-label-caps uppercase">Діти (+{selectedCar?.childSeatFee || 15}€)</label>
             <select className="w-full bg-transparent text-white outline-none" value={children} onChange={e => setChildren(e.target.value)}>
               {[0,1,2,3,4].map(n => <option key={n} value={n} className="bg-[#1a1a1b]">{n}</option>)}
             </select>
@@ -463,7 +464,7 @@ export default function Calculator({ cars, cmsSettings, siteSettings }: { cars: 
             </select>
           </div>
           <div className="bg-[#353536]/30 border border-white/10 rounded-xl p-4">
-            <label className="block text-xs text-[#c7c6ca] mb-1 font-label-caps uppercase">Тварини (+{animalFee}€)</label>
+            <label className="block text-xs text-[#c7c6ca] mb-1 font-label-caps uppercase">Тварини (+{selectedCar?.animalFee || 30}€)</label>
             <select className="w-full bg-transparent text-white outline-none" value={animals} onChange={e => setAnimals(e.target.value)}>
               {['Ні', 'Так'].map(o => <option key={o} value={o} className="bg-[#1a1a1b]">{o}</option>)}
             </select>
@@ -483,7 +484,7 @@ export default function Calculator({ cars, cmsSettings, siteSettings }: { cars: 
             </label>
             <label className="flex items-center gap-3 cursor-pointer">
               <input type="checkbox" checked={meetAndGreet} onChange={(e) => setMeetAndGreet(e.target.checked)} className="w-5 h-5 rounded border-gray-300 text-[#e9c349] focus:ring-[#e9c349]" />
-              <span className="text-[#e4e2e3] font-body-md">Зустріч з табличкою (+{meetAndGreetFee}€)</span>
+              <span className="text-[#e4e2e3] font-body-md">Зустріч з табличкою (+{selectedCar?.meetAndGreetFee || 20}€)</span>
             </label>
           </div>
           <div className="space-y-4">

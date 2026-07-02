@@ -32,7 +32,7 @@ export async function GET() {
     const stats = {
       total: bookings.length,
       completed: bookings.filter(b => b.status === "COMPLETED").length,
-      salaryRate: user.driver.salaryRate
+      salaryPerKm: user.driver.salaryPerKm
     };
 
     return NextResponse.json({ bookings, stats, user });

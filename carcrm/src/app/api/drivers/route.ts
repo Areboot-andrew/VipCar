@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 export async function GET() {
   try {
     const drivers = await prisma.driver.findMany({
-      where: { active: true },
+      where: { status: 'ACTIVE' },
       include: {
         user: true
       }

@@ -19,7 +19,7 @@ export default async function DriverSettlementsPage() {
     include: { user: true }
   });
 
-  if (!driver || !driver.active) return <div className="admin-page-container"><h1>Профіль водія неактивний</h1></div>;
+  if (!driver || driver.status !== 'ACTIVE') return <div className="admin-page-container"><h1>Профіль деактивовано</h1></div>;
 
   const settlements = await prisma.settlement.findMany({
     where: { driverId: driver.id },

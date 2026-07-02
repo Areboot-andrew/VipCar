@@ -199,9 +199,9 @@ async function seed() {
     update: {},
     create: {
       userId: driverUser.id,
-      licenseNumber: 'BXR123456',
-      salaryRate: 50.0,
-      active: true,
+      licenseNum: 'BXR123456',
+      salaryPerKm: 0.15,
+      status: 'ACTIVE',
     },
   });
   console.log('✅ Тестовий водій створений:', driverUser.name);

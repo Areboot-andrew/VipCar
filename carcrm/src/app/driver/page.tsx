@@ -89,8 +89,8 @@ export default function DriverPortal() {
             <div className="text-4xl font-light text-green-400">{data.stats.completed}</div>
           </div>
           <div className="bg-white/5 p-6 rounded-2xl border border-white/10 backdrop-blur-sm">
-            <h3 className="text-xs text-gray-400 uppercase tracking-widest mb-2 font-bold">Зарплатна ставка</h3>
-            <div className="text-4xl font-light text-[#e9c349]">€{data.stats.salaryRate}</div>
+            <div className="text-xs text-[#c7c6ca] mb-1 font-label-caps uppercase tracking-widest">Ставка за км</div>
+            <div className="text-4xl font-light text-[#e9c349]">€{data.stats.salaryPerKm}</div>
           </div>
         </div>
 

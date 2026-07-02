@@ -10,7 +10,8 @@ type User = {
   role: string;
   createdAt: string;
   driver?: {
-    salaryRate: number;
+    licenseNum: string;
+    salaryPerKm: number;
   };
 };
 
@@ -84,7 +85,7 @@ export default function UsersAdminPage() {
                 </td>
                 <td className="p-4 text-xs">
                   {u.role === "DRIVER" && u.driver ? (
-                    <div className="text-green-400">Ставка: €{u.driver.salaryRate}/день</div>
+                    <div className="text-green-400">Ставка: €{u.driver.salaryPerKm}/км</div>
                   ) : (
                     "—"
                   )}

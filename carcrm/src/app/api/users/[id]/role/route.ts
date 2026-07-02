@@ -24,7 +24,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       
       if (!existingDriver) {
         await prisma.driver.create({
-          data: { userId: id, salaryRate: 50.0 } // default rate
+          data: { userId: id, salaryPerKm: 0.15, licenseNum: 'NEW_DRIVER' } // default
         });
       }
     }
