@@ -126,6 +126,11 @@ export default function AdminPricingPage() {
                 <input value={settings.base_location_lng} onChange={e => setSettings({...settings, base_location_lng: e.target.value})} style={{ width: '100%', padding: '12px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '8px' }} />
               </div>
             </div>
+
+            <div style={{ marginTop: '16px' }}>
+              <label style={{ display: 'block', fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '8px' }}>Telegram Bot Token (Для чату)</label>
+              <input value={settings.telegram_bot_token || ''} onChange={e => setSettings({...settings, telegram_bot_token: e.target.value})} placeholder="123456789:ABCdefGHIjklMNOpqrSTUvwxYZ" style={{ width: '100%', padding: '12px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '8px' }} />
+            </div>
           </div>
 
           <button type="submit" disabled={saving} style={{ width: '100%', marginTop: '32px', padding: '16px', backgroundColor: 'var(--accent-gold)', border: 'none', color: '#000', cursor: 'pointer', fontWeight: 'bold', borderRadius: '8px', fontSize: '16px' }}>
