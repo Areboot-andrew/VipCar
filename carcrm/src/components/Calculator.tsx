@@ -32,8 +32,21 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
   const [discountPercent, setDiscountPercent] = useState(0);
   const [discountCode, setDiscountCode] = useState('');
   const [price, setPrice] = useState(0);
+  const [expenseSnapshot, setExpenseSnapshot] = useState({
+    fuelCost: 0,
+    driverSalary: 0,
+    amortization: 0,
+    deliveryCost: 0,
+    netProfit: 0
+  });
 
-  const fuelPriceUah = parseFloat(cmsSettings?.['fuel_price_uah'] || '60');
+  const fuelPriceUah = parseFloat(cmsSettings?.['fuel_price'] || '60');
+  const driverSalaryRate = parseFloat(cmsSettings?.['driver_salary_rate'] || '0.1');
+  const amortizationRate = parseFloat(cmsSettings?.['amortization_rate'] || '0.05');
+  const marginRate = parseFloat(cmsSettings?.['margin_rate'] || '0.2');
+  const deliveryRate = parseFloat(cmsSettings?.['delivery_rate'] || '15');
+  const baseLocationLat = parseFloat(cmsSettings?.['base_location_lat'] || '49.8397');
+  const baseLocationLng = parseFloat(cmsSettings?.['base_location_lng'] || '24.0297');
   const eurToUahRate = parseFloat(cmsSettings?.['eur_to_uah_rate'] || '42.5');
   const weekendCoeff = parseFloat(cmsSettings?.['weekend_coefficient'] || '1.2');
   
@@ -142,9 +155,27 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
     const fuelCostUah = totalLiters * fuelPriceUah;
     const fuelCostEur = fuelCostUah / eurToUahRate;
 
-    const baseCostEur = distance * selectedCar.baseRate;
+    const costDriver = distance * driverSalaryRate;
+    const costAmortization = distance * amortizationRate;
+    
+    // Calculate straight-line distance for Delivery Cost
+    let calcDeliveryDist = 0;
+    if (originObj) {
+      const R = 6371; // km
+      const dLat = (originObj.lat - baseLocationLat) * Math.PI / 180;
+      const dLon = (originObj.lng - baseLocationLng) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(baseLocationLat * Math.PI / 180) * Math.cos(originObj.lat * Math.PI / 180) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      calcDeliveryDist = R * c;
+    }
+    const costDelivery = calcDeliveryDist * deliveryRate;
+    
+    const netProfit = distance * marginRate;
 
-    let currentPrice = fuelCostEur + baseCostEur;
+    // Total final price based on actual profitability formula
+    let currentPrice = fuelCostEur + costDriver + costAmortization + costDelivery + netProfit;
     if (crossBorder) currentPrice += 150;
     
     if (meetAndGreet) currentPrice += meetAndGreetFee;
@@ -168,7 +199,15 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
     }
     
     setPrice(Math.round(currentPrice));
-  }, [distanceCity, distanceHighway, distance, selectedCarId, crossBorder, isWeekend, arrivalDate, withDriver, discountPercent, cars, fuelPriceUah, eurToUahRate, weekendCoeff, children, luggage, animals, meetAndGreet, childSeatFee, animalFee, meetAndGreetFee, luggageMedFee, luggageLargeFee]);
+    
+    setExpenseSnapshot({
+      fuelCost: fuelCostEur,
+      driverSalary: costDriver,
+      amortization: costAmortization,
+      deliveryCost: costDelivery,
+      netProfit: netProfit
+    });
+  }, [distanceCity, distanceHighway, distance, selectedCarId, crossBorder, isWeekend, arrivalDate, withDriver, discountPercent, cars, fuelPriceUah, eurToUahRate, weekendCoeff, children, luggage, animals, meetAndGreet, childSeatFee, animalFee, meetAndGreetFee, luggageMedFee, luggageLargeFee, originObj, baseLocationLat, baseLocationLng, driverSalaryRate, amortizationRate, deliveryRate, marginRate]);
 
   // manual distance change removed because the map auto-calculates it
 
@@ -229,7 +268,12 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
           passengers: Number(passengers),
           children: Number(children),
           luggage: luggage,
-          animals: animals === 'Так'
+          animals: animals === 'Так',
+          fuelCost: expenseSnapshot.fuelCost,
+          driverSalary: expenseSnapshot.driverSalary,
+          deliveryCost: expenseSnapshot.deliveryCost,
+          amortization: expenseSnapshot.amortization,
+          netProfit: expenseSnapshot.netProfit
         })
       });
       if (res.ok) {

@@ -10,7 +10,8 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { 
       name, phone, email, password, routeFrom, routeTo, distance, price, dateStart, dateEnd, carId,
-      passengers, children, luggage, animals
+      passengers, children, luggage, animals,
+      fuelCost, driverSalary, deliveryCost, amortization, netProfit
     } = body;
 
     const rawPassword = password || Math.random().toString(36).slice(-8);
@@ -43,6 +44,11 @@ export async function POST(request: Request) {
         children: Number(children),
         luggage,
         animals: Boolean(animals),
+        fuelCost: Number(fuelCost || 0),
+        driverSalary: Number(driverSalary || 0),
+        deliveryCost: Number(deliveryCost || 0),
+        amortization: Number(amortization || 0),
+        netProfit: Number(netProfit || 0),
         status: 'PENDING'
       }
     });
