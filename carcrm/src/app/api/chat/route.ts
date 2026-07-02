@@ -46,25 +46,18 @@ export async function POST(req: Request) {
       data: { updatedAt: new Date() }
     });
 
-    // If it's a Telegram chat, forward to Telegram
+    // If it's a Telegram chat, forward via MTProto
     if (chatRoom.platform === 'TELEGRAM' && chatRoom.externalId) {
-      const tokenSetting = await prisma.siteContent.findUnique({ where: { key: 'telegram_bot_token' } });
-      const botToken = tokenSetting?.value;
-
-      if (botToken) {
-        await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            chat_id: chatRoom.externalId,
-            text: content
-          })
-        });
+      const { getTelegramClient } = await import('@/lib/telegramClient');
+      const client = await getTelegramClient();
+      if (client) {
+        await client.sendMessage(chatRoom.externalId, { message: content });
       }
     }
 
     return NextResponse.json(message);
   } catch (error) {
+    console.error('Chat POST Error:', error);
     return NextResponse.json({ error: 'Failed to send message' }, { status: 500 });
   }
 }

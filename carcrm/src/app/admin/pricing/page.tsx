@@ -125,18 +125,49 @@ export default function AdminPricingPage() {
                 <label style={{ display: 'block', fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '8px' }}>База LNG (Львів)</label>
                 <input value={settings.base_location_lng} onChange={e => setSettings({...settings, base_location_lng: e.target.value})} style={{ width: '100%', padding: '12px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '8px' }} />
               </div>
-            </div>
-
-            <div style={{ marginTop: '16px' }}>
-              <label style={{ display: 'block', fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '8px' }}>Telegram Bot Token (Для чату)</label>
-              <input value={settings.telegram_bot_token || ''} onChange={e => setSettings({...settings, telegram_bot_token: e.target.value})} placeholder="123456789:ABCdefGHIjklMNOpqrSTUvwxYZ" style={{ width: '100%', padding: '12px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '8px' }} />
-            </div>
           </div>
 
           <button type="submit" disabled={saving} style={{ width: '100%', marginTop: '32px', padding: '16px', backgroundColor: 'var(--accent-gold)', border: 'none', color: '#000', cursor: 'pointer', fontWeight: 'bold', borderRadius: '8px', fontSize: '16px' }}>
             {saving ? 'Збереження...' : 'Зберегти Налаштування'}
           </button>
         </form>
+
+        {/* TELEGRAM MTPROTO LOGIN */}
+        <div style={{ backgroundColor: '#080818', padding: '32px', borderRadius: '16px', border: '1px solid rgba(233, 195, 73, 0.3)', marginTop: '24px' }}>
+          <h2 style={{ color: 'white', marginBottom: '8px', fontSize: '20px' }}>Особистий Telegram (MTProto)</h2>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '24px', fontSize: '14px' }}>Підключіть свій особистий акаунт Telegram, щоб відповідати клієнтам прямо з CRM.</p>
+          
+          <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+            <input id="tg-phone" placeholder="Номер телефону (+380...)" style={{ flex: 1, padding: '12px', backgroundColor: '#13131a', border: '1px solid rgba(255,255,255,0.1)', color: 'white', borderRadius: '8px' }} />
+            <button onClick={async () => {
+              const phone = (document.getElementById('tg-phone') as HTMLInputElement).value;
+              const res = await fetch('/api/telegram/auth/sendCode', { method: 'POST', body: JSON.stringify({ phoneNumber: phone }) });
+              const data = await res.json();
+              if (data.phoneCodeHash) {
+                (window as any).tgHash = data.phoneCodeHash;
+                alert('Код надіслано в Telegram!');
+              } else alert(data.error);
+            }} style={{ padding: '12px 24px', backgroundColor: '#13131a', color: 'white', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '8px', cursor: 'pointer' }}>Отримати Код</button>
+          </div>
+
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <input id="tg-code" placeholder="Код підтвердження" style={{ flex: 1, padding: '12px', backgroundColor: '#13131a', border: '1px solid rgba(255,255,255,0.1)', color: 'white', borderRadius: '8px' }} />
+            <input id="tg-pwd" type="password" placeholder="2FA Пароль (якщо є)" style={{ flex: 1, padding: '12px', backgroundColor: '#13131a', border: '1px solid rgba(255,255,255,0.1)', color: 'white', borderRadius: '8px' }} />
+          </div>
+
+          <button onClick={async () => {
+              const phone = (document.getElementById('tg-phone') as HTMLInputElement).value;
+              const code = (document.getElementById('tg-code') as HTMLInputElement).value;
+              const pwd = (document.getElementById('tg-pwd') as HTMLInputElement).value;
+              const hash = (window as any).tgHash;
+              const res = await fetch('/api/telegram/auth/verifyCode', { method: 'POST', body: JSON.stringify({ phoneNumber: phone, phoneCodeHash: hash, code, password: pwd }) });
+              const data = await res.json();
+              if (data.success) alert('Особистий Telegram успішно підключено!');
+              else alert(data.error);
+          }} style={{ width: '100%', marginTop: '16px', padding: '16px', backgroundColor: 'var(--accent-gold)', border: 'none', color: '#000', cursor: 'pointer', fontWeight: 'bold', borderRadius: '8px' }}>
+            Підключити Telegram
+          </button>
+        </div>
 
         {/* SANDBOX CALCULATOR */}
         <div style={{ backgroundColor: '#080818', padding: '32px', borderRadius: '16px', border: '1px solid rgba(233, 195, 73, 0.3)', boxShadow: '0 20px 40px rgba(0,0,0,0.4)' }}>
