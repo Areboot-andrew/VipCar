@@ -2,9 +2,10 @@
 
 import { motion } from "framer-motion";
 import { useState } from "react";
+import Link from 'next/link';
 
 interface MarqueeGalleryProps {
-  media: { type: 'image' | 'video', url: string }[];
+  media: { type: 'image' | 'video', url: string, carId?: string }[];
   title?: string;
   subtitle?: string;
 }
@@ -49,39 +50,52 @@ export default function MarqueeGallery({ media, title, subtitle }: MarqueeGaller
             repeat: Infinity,
           }}
         >
-          {marqueeItems.map((item, index) => (
-            <div
-              key={index}
-              className="group relative w-[280px] md:w-[450px] aspect-[4/3] rounded-2xl overflow-hidden flex-shrink-0 border border-white/5 bg-[#1b1b1c] cursor-pointer"
-              onMouseEnter={() => setIsHovered(true)}
-              onMouseLeave={() => setIsHovered(false)}
-            >
-              {item.type === 'video' ? (
-                <>
-                  <video
+          {marqueeItems.map((item, index) => {
+            const innerContent = (
+              <div
+                className="group relative w-[280px] md:w-[450px] aspect-[4/3] rounded-2xl overflow-hidden flex-shrink-0 border border-white/5 bg-[#1b1b1c] cursor-pointer"
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
+              >
+                {item.type === 'video' ? (
+                  <>
+                    <video
+                      src={item.url}
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                      muted
+                      loop
+                      autoPlay
+                      playsInline
+                    />
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span className="material-symbols-outlined text-white text-6xl drop-shadow-lg">play_circle</span>
+                    </div>
+                  </>
+                ) : (
+                  <img
                     src={item.url}
+                    alt="Gallery Item"
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    muted
-                    loop
-                    autoPlay
-                    playsInline
+                    loading="lazy"
                   />
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span className="material-symbols-outlined text-white text-6xl drop-shadow-lg">play_circle</span>
-                  </div>
-                </>
-              ) : (
-                <img
-                  src={item.url}
-                  alt="Gallery Item"
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                  loading="lazy"
-                />
-              )}
-              {/* Optional Glassmorphism overlay on hover */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
-            </div>
-          ))}
+                )}
+                {/* Optional Glassmorphism overlay on hover */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none flex items-end justify-center pb-6">
+                  {item.carId && (
+                    <span className="text-white font-bold tracking-widest uppercase text-sm border border-white/20 px-4 py-2 rounded-full backdrop-blur-md bg-black/30">Детальніше про авто</span>
+                  )}
+                </div>
+              </div>
+            );
+            
+            return item.carId ? (
+              <Link href={`/cars/${item.carId}`} key={index} className="block">
+                {innerContent}
+              </Link>
+            ) : (
+              <div key={index}>{innerContent}</div>
+            );
+          })}
         </motion.div>
       </div>
     </section>

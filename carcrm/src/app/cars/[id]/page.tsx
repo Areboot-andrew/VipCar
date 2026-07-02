@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Pagination, Autoplay, EffectFade } from 'swiper/modules';
 import 'swiper/css';
@@ -11,21 +11,24 @@ import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 import 'swiper/css/effect-fade';
 import { useSession } from 'next-auth/react';
+import { ArrowLeft, Check, Users, Fuel, Calendar, Star, X } from 'lucide-react';
 
 export default function CarDetailsPage() {
   const params = useParams();
+  const router = useRouter();
   const { data: session } = useSession();
   const [car, setCar] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [reviews, setReviews] = useState<any[]>([]);
   const [canReview, setCanReview] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
   
   // Review form state
   const [reviewForm, setReviewForm] = useState({ author: '', rating: 5, text: '' });
   const [submittingReview, setSubmittingReview] = useState(false);
 
   useEffect(() => {
-    // 1. Fetch car data
     fetch(`/api/cars/${params.id}`)
       .then(res => res.json())
       .then(data => {
@@ -38,7 +41,6 @@ export default function CarDetailsPage() {
   useEffect(() => {
     if (session?.user) {
       setReviewForm(prev => ({ ...prev, author: session.user.name || '' }));
-      // 2. Fetch if user can review
       fetch(`/api/cars/${params.id}/can-review`)
         .then(res => res.json())
         .then(data => {
@@ -68,8 +70,13 @@ export default function CarDetailsPage() {
     setSubmittingReview(false);
   };
 
+  const openLightbox = (index: number) => {
+    setLightboxIndex(index);
+    setLightboxOpen(true);
+  };
+
   if (loading) {
-    return <div className="min-h-screen bg-[#080818] flex items-center justify-center text-[#e9c349]">Завантаження...</div>;
+    return <div className="min-h-screen bg-[#080818] flex items-center justify-center text-[#e9c349]"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#e9c349]"></div></div>;
   }
 
   if (!car) {
@@ -78,223 +85,220 @@ export default function CarDetailsPage() {
 
   const allMedia = [...(car.images || []), ...(car.videos || [])];
   const features = car.features && car.features !== '[]' ? JSON.parse(car.features) : [];
+  
+  // Calculate average rating
+  const avgRating = reviews.length > 0 ? (reviews.reduce((acc, curr) => acc + curr.rating, 0) / reviews.length).toFixed(1) : '5.0';
 
   return (
-    <div className="bg-[#080818] text-white min-h-screen font-body-md selection:bg-[#e9c349] selection:text-black">
+    <div className="bg-[#080818] text-[#e4e2e3] min-h-screen font-body-md selection:bg-[#e9c349] selection:text-black">
+      
       {/* NavBar */}
       <nav className="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-6 md:px-16 py-4 bg-[#080818]/80 backdrop-blur-md border-b border-white/10">
         <Link href="/" className="relative z-50 block">
           <img src="/logo.png" alt="First Line Transfer" className="h-[40px] md:h-[50px] object-contain" />
         </Link>
-        <Link href="/" className="text-[#c7c6ca] hover:text-white flex items-center gap-2 font-label-caps uppercase text-xs tracking-widest transition-colors">
-          <span className="material-symbols-outlined text-[18px]">arrow_back</span> На головну
-        </Link>
+        <button onClick={() => router.back()} className="text-[#c7c6ca] hover:text-white flex items-center gap-2 font-label-caps uppercase text-xs tracking-widest transition-colors">
+          <ArrowLeft size={16} /> Назад
+        </button>
       </nav>
 
-      {/* Hero Gallery Section */}
-      <section className="relative w-full h-[60vh] md:h-[80vh] pt-20">
-        {allMedia.length > 0 ? (
-          <Swiper
-            modules={[Navigation, Pagination, Autoplay, EffectFade]}
-            effect="fade"
-            navigation
-            pagination={{ clickable: true }}
-            autoplay={{ delay: 5000 }}
-            className="w-full h-full"
-          >
-            {allMedia.map((mediaUrl: string, idx: number) => {
-              const isVideo = mediaUrl.endsWith('.mp4') || mediaUrl.endsWith('.webm');
-              return (
-                <SwiperSlide key={idx}>
-                  <div className="w-full h-full relative">
-                    {isVideo ? (
-                      <video src={mediaUrl} autoPlay loop muted playsInline className="w-full h-full object-cover" />
-                    ) : (
-                      <img src={mediaUrl} alt={`${car.make} ${car.model}`} className="w-full h-full object-cover" />
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#080818] via-[#080818]/40 to-transparent"></div>
-                  </div>
-                </SwiperSlide>
-              );
-            })}
-          </Swiper>
-        ) : (
-          <div className="w-full h-full bg-[#1b1b1c] flex items-center justify-center">
-            <span className="material-symbols-outlined text-white/20 text-8xl">directions_car</span>
-          </div>
-        )}
-
-        {/* Hero Title Overlay */}
-        <div className="absolute bottom-0 left-0 w-full z-10 px-6 md:px-16 pb-12">
-          <motion.div 
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="max-w-[1280px] mx-auto flex flex-col md:flex-row justify-between items-end gap-6"
-          >
-            <div>
-              <span className="text-[#e9c349] font-label-caps tracking-widest uppercase mb-2 block">{car.year} Рік • Преміум Клас</span>
-              <h1 className="font-headline-xl text-5xl md:text-7xl text-white font-bold drop-shadow-lg">{car.make} <span className="font-light">{car.model}</span></h1>
+      {/* Hero Section */}
+      <section className="relative w-full h-[60vh] md:h-[80vh] flex flex-col justify-end">
+        <div className="absolute inset-0 z-0">
+          {car.images && car.images.length > 0 ? (
+            <img src={car.images[0]} alt={car.model} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full bg-[#13131a]"></div>
+          )}
+          <div className="absolute inset-0 bg-gradient-to-b from-[#080818]/80 via-transparent to-[#080818]"></div>
+        </div>
+        
+        <div className="relative z-10 max-w-[1280px] w-full mx-auto px-[24px] md:px-[64px] pb-12">
+          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+            <div className="inline-flex items-center gap-2 bg-black/50 backdrop-blur-md border border-[#e9c349]/30 rounded-full px-4 py-1.5 mb-4">
+              <Star className="text-[#e9c349]" size={16} fill="#e9c349" />
+              <span className="text-[#e9c349] font-bold text-sm">{avgRating} ({reviews.length} відгуків)</span>
             </div>
-            <div className="text-left md:text-right">
-              <div className="text-[#e9c349] font-bold text-4xl mb-4 drop-shadow-md">
-                €{car.baseRate} <span className="text-sm text-[#c7c6ca] font-normal tracking-widest uppercase">/ км</span>
-              </div>
-              <Link href={`/?carId=${car.id}#calculator`} className="inline-block bg-[#e9c349] text-black font-label-caps uppercase tracking-widest font-bold px-12 py-4 rounded-lg hover:scale-105 hover:shadow-[0_0_30px_rgba(233,195,73,0.4)] transition-all">
-                Бронювати
-              </Link>
-            </div>
+            <h1 className="font-display-lg text-[40px] md:text-[80px] text-white leading-none mb-2">{car.make}</h1>
+            <h2 className="font-headline-lg text-[24px] md:text-[40px] text-[#e9c349]">{car.model}</h2>
           </motion.div>
         </div>
       </section>
 
-      {/* Main Content */}
-      <main className="max-w-[1280px] mx-auto px-6 md:px-16 py-16 md:py-24 grid grid-cols-1 lg:grid-cols-3 gap-16">
+      {/* Content Layout */}
+      <section className="max-w-[1280px] mx-auto px-[24px] md:px-[64px] py-12 md:py-24 grid grid-cols-1 lg:grid-cols-3 gap-12">
         
-        {/* Left Column (Description & Features) */}
+        {/* Left Column: Details & Gallery */}
         <div className="lg:col-span-2 space-y-16">
           
+          {/* Main Info Blocks */}
+          <div className="grid grid-cols-3 gap-4 border-y border-white/10 py-8">
+            <div className="flex flex-col items-center justify-center text-center gap-2 border-r border-white/10 last:border-0">
+              <Users className="text-[#e9c349]" size={28} />
+              <span className="text-[#c7c6ca] text-xs uppercase tracking-widest font-bold">Місць</span>
+              <span className="text-white font-display-md text-2xl">{car.capacity}</span>
+            </div>
+            <div className="flex flex-col items-center justify-center text-center gap-2 border-r border-white/10 last:border-0">
+              <Calendar className="text-[#e9c349]" size={28} />
+              <span className="text-[#c7c6ca] text-xs uppercase tracking-widest font-bold">Рік</span>
+              <span className="text-white font-display-md text-2xl">{car.year}</span>
+            </div>
+            <div className="flex flex-col items-center justify-center text-center gap-2">
+              <Fuel className="text-[#e9c349]" size={28} />
+              <span className="text-[#c7c6ca] text-xs uppercase tracking-widest font-bold">Двигун</span>
+              <span className="text-white font-display-md text-xl">{car.fuelType}</span>
+            </div>
+          </div>
+
           {/* Description */}
           {car.description && (
-            <motion.section 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-            >
-              <h2 className="text-3xl font-bold mb-6 text-white border-b border-white/10 pb-4">Огляд Автомобіля</h2>
-              <div className="prose prose-invert prose-lg text-[#c7c6ca] max-w-none prose-a:text-[#e9c349]" dangerouslySetInnerHTML={{ __html: car.description }} />
-            </motion.section>
+            <div className="prose prose-invert prose-lg max-w-none prose-p:text-[#c7c6ca] prose-headings:text-white prose-a:text-[#e9c349]" dangerouslySetInnerHTML={{ __html: car.description }}></div>
           )}
 
           {/* Features */}
           {features.length > 0 && (
-            <motion.section
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-            >
-              <h2 className="text-3xl font-bold mb-8 text-white border-b border-white/10 pb-4">Особливості (Features)</h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                {features.map((f: any, idx: number) => (
-                  <div key={idx} className="bg-white/5 border border-white/10 p-6 rounded-2xl flex flex-col items-center justify-center text-center hover:bg-white/10 hover:border-[#e9c349]/50 transition-colors">
-                    <span className="material-symbols-outlined text-[#e9c349] text-4xl mb-4">{f.icon || 'star'}</span>
-                    <span className="text-white font-medium">{f.text}</span>
+            <div>
+              <h3 className="font-headline-md text-2xl text-white mb-6">Особливості та Комплектація</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {features.map((f: any, i: number) => (
+                  <div key={i} className="flex items-center gap-3 bg-[#13131a] p-4 rounded-xl border border-white/5">
+                    <span className="material-symbols-outlined text-[#e9c349]">{f.icon || 'check_circle'}</span>
+                    <span className="text-[#e4e2e3]">{f.text}</span>
                   </div>
                 ))}
               </div>
-            </motion.section>
+            </div>
+          )}
+
+          {/* Complete Gallery */}
+          {allMedia.length > 0 && (
+            <div>
+              <h3 className="font-headline-md text-2xl text-white mb-6">Галерея</h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {allMedia.map((url, i) => (
+                  <div key={i} className="aspect-square rounded-xl overflow-hidden cursor-pointer group relative" onClick={() => openLightbox(i)}>
+                    {url.includes('.mp4') ? (
+                       <video src={url} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" muted loop playsInline />
+                    ) : (
+                       <img src={url} alt={`Gallery ${i}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                    )}
+                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <span className="material-symbols-outlined text-white text-3xl">zoom_in</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
 
         </div>
 
-        {/* Right Column (Specs & Reviews) */}
-        <div className="space-y-16">
+        {/* Right Column: CTA & Reviews */}
+        <div className="space-y-8">
           
-          {/* Specs Card */}
-          <motion.div 
-            initial={{ opacity: 0, x: 20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            className="bg-[#111122] border border-white/10 p-8 rounded-3xl shadow-2xl"
-          >
-            <h3 className="text-xl font-bold text-white mb-6 uppercase tracking-widest text-[#e9c349]">Характеристики</h3>
-            <ul className="space-y-4">
-              <li className="flex justify-between items-center py-3 border-b border-white/5">
-                <span className="text-[#c7c6ca]">Пасажири</span>
-                <span className="text-white font-bold flex items-center gap-2"><span className="material-symbols-outlined text-[18px]">person</span> {car.capacity}</span>
-              </li>
-              <li className="flex justify-between items-center py-3 border-b border-white/5">
-                <span className="text-[#c7c6ca]">Тип палива</span>
-                <span className="text-white font-bold">{car.fuelType}</span>
-              </li>
-              <li className="flex justify-between items-center py-3 border-b border-white/5">
-                <span className="text-[#c7c6ca]">Витрата (Місто)</span>
-                <span className="text-white font-bold">{car.fuelConsumptionCity} л/100км</span>
-              </li>
-              <li className="flex justify-between items-center py-3 border-b border-white/5">
-                <span className="text-[#c7c6ca]">Витрата (Траса)</span>
-                <span className="text-white font-bold">{car.fuelConsumptionHighway} л/100км</span>
-              </li>
-            </ul>
-          </motion.div>
+          {/* Booking Card */}
+          <div className="bg-[#13131a] rounded-3xl p-8 border border-[#e9c349]/30 shadow-[0_0_40px_rgba(233,195,73,0.1)] sticky top-28">
+            <h3 className="font-headline-md text-2xl text-white mb-4">Бронювання</h3>
+            <p className="text-[#c7c6ca] mb-8 text-sm">Забронюйте цей {car.make} прямо зараз. Ми гарантуємо ідеальну чистоту та пунктуальність.</p>
+            <Link href={`/#calculator?carId=${car.id}`} className="block w-full text-center bg-[#D4AF37] hover:bg-[#e9c349] text-black font-bold py-4 rounded-xl transition-all uppercase tracking-wider text-sm shadow-[0_4px_15px_rgba(233,195,73,0.4)]">
+              Перейти до калькулятора
+            </Link>
+          </div>
 
-          {/* Reviews Card */}
-          <motion.div 
-            initial={{ opacity: 0, x: 20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-          >
-            <h3 className="text-2xl font-bold text-white mb-6 border-b border-white/10 pb-4">Відгуки клієнтів</h3>
-            {reviews.length > 0 ? (
-              <div className="space-y-6">
-                {reviews.map((r: any) => (
-                  <div key={r.id} className="bg-white/5 p-6 rounded-2xl border border-white/5 relative">
-                    <div className="flex justify-between items-start mb-3">
-                      <span className="font-bold text-white text-lg">{r.author}</span>
-                      <div className="flex text-[#e9c349] text-sm">{Array(r.rating).fill('★').join('')}</div>
+          {/* Reviews */}
+          <div className="bg-[#13131a] rounded-3xl p-8 border border-white/10">
+            <h3 className="font-headline-md text-xl text-white mb-6 flex items-center justify-between">
+              Відгуки <span className="bg-white/10 text-white text-sm px-3 py-1 rounded-full">{reviews.length}</span>
+            </h3>
+            
+            <div className="space-y-6 mb-8 max-h-[500px] overflow-y-auto custom-scrollbar pr-2">
+              {reviews.length === 0 ? (
+                <p className="text-[#8a8a93] text-sm text-center italic">Поки немає відгуків.</p>
+              ) : (
+                reviews.map((r, i) => (
+                  <div key={i} className="border-b border-white/5 pb-6 last:border-0 last:pb-0">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <div className="font-bold text-white text-sm">{r.author}</div>
+                        <div className="text-xs text-[#8a8a93]">{new Date(r.date).toLocaleDateString('uk-UA')}</div>
+                      </div>
+                      <div className="flex gap-1">
+                        {Array.from({ length: 5 }).map((_, j) => (
+                          <Star key={j} size={14} className={j < r.rating ? "text-[#e9c349] fill-[#e9c349]" : "text-white/20"} />
+                        ))}
+                      </div>
                     </div>
-                    <p className="text-[#c7c6ca] italic mb-4">"{r.text}"</p>
-                    <span className="text-xs text-gray-500 uppercase tracking-widest">{new Date(r.date).toLocaleDateString()}</span>
+                    <p className="text-[#c7c6ca] text-sm leading-relaxed">{r.text}</p>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-500 italic mb-6">Відгуків для цього автомобіля поки що немає. Станьте першим!</p>
-            )}
+                ))
+              )}
+            </div>
 
-            {/* Leave a review form (Only for users who completed a booking) */}
             {canReview && (
-              <div className="mt-8 pt-8 border-t border-white/10">
-                <h4 className="font-bold text-white mb-4">Залишити відгук</h4>
-                <form onSubmit={handleSubmitReview} className="space-y-4">
-                  <div className="flex gap-4">
-                    <div className="flex-1">
-                      <input 
-                        required 
-                        placeholder="Ваше ім'я" 
-                        value={reviewForm.author} 
-                        onChange={e => setReviewForm({...reviewForm, author: e.target.value})}
-                        className="w-full bg-[#1b1b1c] border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-[#e9c349]"
-                      />
-                    </div>
-                    <div className="w-24">
-                      <select 
-                        required 
-                        value={reviewForm.rating} 
-                        onChange={e => setReviewForm({...reviewForm, rating: parseInt(e.target.value)})}
-                        className="w-full bg-[#1b1b1c] border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-[#e9c349] appearance-none"
-                      >
-                        <option value="5">5 ★</option>
-                        <option value="4">4 ★</option>
-                        <option value="3">3 ★</option>
-                        <option value="2">2 ★</option>
-                        <option value="1">1 ★</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div>
-                    <textarea 
-                      required 
-                      placeholder="Поділіться враженнями від поїздки..." 
-                      value={reviewForm.text} 
-                      onChange={e => setReviewForm({...reviewForm, text: e.target.value})}
-                      className="w-full bg-[#1b1b1c] border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-[#e9c349] h-24 resize-none"
-                    />
-                  </div>
-                  <button 
-                    type="submit" 
-                    disabled={submittingReview}
-                    className="w-full py-3 bg-white/10 text-white hover:bg-[#e9c349] hover:text-black font-bold rounded-lg transition-colors disabled:opacity-50"
-                  >
-                    {submittingReview ? 'Відправка...' : 'Опублікувати'}
-                  </button>
-                </form>
-              </div>
+              <form onSubmit={handleSubmitReview} className="mt-6 pt-6 border-t border-white/10 flex flex-col gap-4">
+                <h4 className="text-white font-bold text-sm">Ваш відгук</h4>
+                <div className="flex gap-2">
+                  {[1, 2, 3, 4, 5].map(star => (
+                    <button type="button" key={star} onClick={() => setReviewForm({ ...reviewForm, rating: star })}>
+                      <Star size={24} className={star <= reviewForm.rating ? "text-[#e9c349] fill-[#e9c349]" : "text-white/20"} />
+                    </button>
+                  ))}
+                </div>
+                <textarea 
+                  required
+                  rows={3}
+                  className="w-full bg-[#1b1b1c] border border-white/10 rounded-xl p-3 text-white focus:border-[#e9c349] outline-none text-sm resize-none"
+                  placeholder="Розкажіть про ваш досвід поїздки..."
+                  value={reviewForm.text}
+                  onChange={e => setReviewForm({ ...reviewForm, text: e.target.value })}
+                />
+                <button type="submit" disabled={submittingReview} className="gold-button font-bold rounded-xl py-3 text-sm">
+                  {submittingReview ? 'Відправка...' : 'Опублікувати'}
+                </button>
+              </form>
             )}
-          </motion.div>
+          </div>
 
         </div>
-      </main>
+      </section>
+
+      {/* Lightbox */}
+      <AnimatePresence>
+        {lightboxOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex flex-col"
+          >
+            <div className="flex justify-end p-6">
+              <button onClick={() => setLightboxOpen(false)} className="text-white/50 hover:text-white transition-colors bg-white/5 rounded-full p-2">
+                <X size={32} />
+              </button>
+            </div>
+            
+            <div className="flex-1 flex items-center justify-center p-4">
+              <Swiper
+                initialSlide={lightboxIndex}
+                modules={[Navigation, Pagination]}
+                navigation
+                pagination={{ clickable: true, type: 'fraction' }}
+                className="w-full max-w-[1200px] h-[80vh] lightbox-swiper"
+              >
+                {allMedia.map((url, i) => (
+                  <SwiperSlide key={i} className="flex items-center justify-center">
+                    {url.includes('.mp4') ? (
+                      <video src={url} className="max-w-full max-h-full object-contain rounded-xl" controls autoPlay />
+                    ) : (
+                      <img src={url} alt={`Gallery ${i}`} className="max-w-full max-h-full object-contain rounded-xl shadow-2xl" />
+                    )}
+                  </SwiperSlide>
+                ))}
+              </Swiper>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

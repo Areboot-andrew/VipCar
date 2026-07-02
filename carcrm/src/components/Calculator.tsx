@@ -174,7 +174,7 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
     const netProfit = distance * marginRate;
 
     let currentPrice = fuelCostEur + costDriver + costAmortization + costDelivery + netProfit;
-    if (crossBorder) currentPrice += 150;
+    if (crossBorder) currentPrice += parseFloat(cmsSettings?.['cross_border_fee'] || '50');
     
     if (meetAndGreet) currentPrice += meetAndGreetFee;
     currentPrice += parseInt(children) * childSeatFee;
@@ -182,6 +182,9 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
     
     if (luggage === 'Середній (1-2 валізи)') currentPrice += luggageMedFee;
     else if (luggage === 'Великий (3+ валіз)') currentPrice += luggageLargeFee;
+
+    const extraPassengers = Math.max(0, parseInt(passengers) - 2);
+    if (extraPassengers > 0) currentPrice += extraPassengers * parseFloat(cmsSettings?.['price_per_person'] || '10');
     
     let isWeekendReal = false;
     if (arrivalDate) {
@@ -230,7 +233,7 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
 
     // Total final price based on actual profitability formula
     let currentPrice = fuelCostEur + costDriver + costAmortization + costDelivery + netProfit;
-    if (crossBorder) currentPrice += 150;
+    if (crossBorder) currentPrice += parseFloat(cmsSettings?.['cross_border_fee'] || '50');
     
     if (meetAndGreet) currentPrice += meetAndGreetFee;
     currentPrice += parseInt(children) * childSeatFee;
@@ -238,6 +241,9 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
     
     if (luggage === 'Середній (1-2 валізи)') currentPrice += luggageMedFee;
     else if (luggage === 'Великий (3+ валіз)') currentPrice += luggageLargeFee;
+
+    const extraPassengers = Math.max(0, parseInt(passengers) - 2);
+    if (extraPassengers > 0) currentPrice += extraPassengers * parseFloat(cmsSettings?.['price_per_person'] || '10');
     
     let isWeekendReal = false;
     if (arrivalDate) {

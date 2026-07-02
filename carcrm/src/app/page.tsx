@@ -28,7 +28,7 @@ export default async function Home() {
   }, {} as Record<string, string>);
 
   // Zbirayemo media z usih avto dlya golovnoi galerei
-  const allMedia: { type: 'image' | 'video', url: string }[] = [];
+  const allMedia: { type: 'image' | 'video', url: string, carId?: string }[] = [];
   
   // Додаємо standalone media з адмінки
   if (c.standalone_gallery_media) {
@@ -42,8 +42,8 @@ export default async function Home() {
 
   // Додаємо media з автопарку
   cars.forEach(car => {
-    car.images.forEach(img => allMedia.push({ type: 'image', url: img }));
-    car.videos.forEach(vid => allMedia.push({ type: 'video', url: vid }));
+    car.images.forEach(img => allMedia.push({ type: 'image', url: img, carId: car.id }));
+    car.videos.forEach(vid => allMedia.push({ type: 'video', url: vid, carId: car.id }));
   });
 
   return (
