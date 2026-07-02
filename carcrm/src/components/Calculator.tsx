@@ -16,6 +16,8 @@ type Car = {
   fuelConsumptionCity: number;
   fuelConsumptionHighway: number;
   capacity: number;
+  year: number;
+  images: string[];
 };
 
 
@@ -144,6 +146,58 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
       fetchRoute();
     }
   }, [originObj, destObj]);
+
+  const calculatePriceForCar = (car: any) => {
+    if (distance === 0) return 0;
+    
+    const litersCity = (distanceCity / 100) * car.fuelConsumptionCity;
+    const litersHighway = (distanceHighway / 100) * car.fuelConsumptionHighway;
+    const totalLiters = litersCity + litersHighway;
+    const fuelCostEur = (totalLiters * fuelPriceUah) / eurToUahRate;
+
+    const costDriver = distance * driverSalaryRate;
+    const costAmortization = distance * amortizationRate;
+    
+    let calcDeliveryDist = 0;
+    if (originObj) {
+      const R = 6371; // km
+      const dLat = (originObj.lat - baseLocationLat) * Math.PI / 180;
+      const dLon = (originObj.lng - baseLocationLng) * Math.PI / 180;
+      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(baseLocationLat * Math.PI / 180) * Math.cos(originObj.lat * Math.PI / 180) *
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      calcDeliveryDist = R * c;
+    }
+    const costDelivery = calcDeliveryDist * deliveryRate;
+    
+    const netProfit = distance * marginRate;
+
+    let currentPrice = fuelCostEur + costDriver + costAmortization + costDelivery + netProfit;
+    if (crossBorder) currentPrice += 150;
+    
+    if (meetAndGreet) currentPrice += meetAndGreetFee;
+    currentPrice += parseInt(children) * childSeatFee;
+    if (animals === 'Так') currentPrice += animalFee;
+    
+    if (luggage === 'Середній (1-2 валізи)') currentPrice += luggageMedFee;
+    else if (luggage === 'Великий (3+ валіз)') currentPrice += luggageLargeFee;
+    
+    let isWeekendReal = false;
+    if (arrivalDate) {
+      const day = arrivalDate.getDay();
+      if (day === 0 || day === 6) isWeekendReal = true;
+    }
+    if (isWeekendReal || isWeekend) {
+      currentPrice *= weekendCoeff;
+    }
+
+    if (discountPercent > 0) {
+      currentPrice *= (1 - discountPercent / 100);
+    }
+    
+    return Math.round(currentPrice);
+  };
 
   useEffect(() => {
     const selectedCar = cars.find(c => c.id === selectedCarId);
@@ -440,32 +494,72 @@ export default function Calculator({ cars, cmsSettings }: { cars: Car[], cmsSett
         </div>
 
         {/* Vehicle Selection Row */}
-        <div className="space-y-6 relative z-10 border-t border-white/10 pt-6 md:pt-8">
-          <h3 className="font-headline-md text-2xl text-[#e4e2e3] flex items-center gap-3">
-            <span className="material-symbols-outlined text-[#e9c349]">diamond</span> Клас обслуговування (Авто)
-          </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
-            {cars.map(car => {
-              const doesFit = car.capacity >= requiredCapacity;
-              return (
-              <label key={car.id} className={`cursor-pointer ${!doesFit ? 'opacity-50 grayscale cursor-not-allowed' : ''}`}>
-                <input type="radio" name="service_class" value={car.id} checked={selectedCarId === car.id} onChange={() => { if(doesFit) setSelectedCarId(car.id) }} disabled={!doesFit} className="peer sr-only" />
-                <div className="glass-panel px-6 py-6 rounded-xl border border-white/10 peer-checked:border-[#e9c349] peer-checked:bg-[#e9c349]/10 transition-all flex items-center justify-between h-full relative">
-                  <div className="text-left">
-                    <span className="block font-headline-md text-xl mb-1 text-white">{car.make}</span>
-                    <span className="text-sm text-[#c7c6ca]">{car.model} • до {car.capacity} місць</span>
+        {distance > 0 && arrivalDate && (
+          <div className="space-y-6 relative z-10 border-t border-white/10 pt-6 md:pt-8 animate-fade-in">
+            <h3 className="font-headline-md text-2xl text-[#e4e2e3] flex items-center gap-3">
+              <span className="material-symbols-outlined text-[#e9c349]">diamond</span> Доступні Автомобілі
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+              {cars.map(car => {
+                const doesFit = car.capacity >= requiredCapacity;
+                const priceForCar = calculatePriceForCar(car);
+                return (
+                <label key={car.id} className={`cursor-pointer group ${!doesFit ? 'opacity-40 grayscale cursor-not-allowed' : ''}`}>
+                  <input type="radio" name="service_class" value={car.id} checked={selectedCarId === car.id} onChange={() => { if(doesFit) setSelectedCarId(car.id) }} disabled={!doesFit} className="peer sr-only" />
+                  <div className="glass-panel p-4 md:p-6 rounded-2xl border border-white/10 peer-checked:border-[#e9c349] peer-checked:bg-[#e9c349]/5 transition-all flex flex-col sm:flex-row items-center gap-4 md:gap-6 h-full relative overflow-hidden group-hover:border-white/30 peer-checked:shadow-[0_0_20px_rgba(233,195,73,0.15)]">
+                    
+                    <div className="w-full sm:w-40 h-32 rounded-xl overflow-hidden bg-[#1b1b1c] shrink-0 relative">
+                      {car.images && car.images[0] ? (
+                        <img src={car.images[0]} alt={car.model} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <span className="material-symbols-outlined text-[#46474a] text-4xl">directions_car</span>
+                        </div>
+                      )}
+                      {!doesFit && (
+                        <div className="absolute inset-0 bg-red-900/60 flex items-center justify-center backdrop-blur-sm">
+                          <span className="text-white text-xs font-bold uppercase tracking-wider">Не вмістить</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex-1 flex flex-col h-full w-full">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <span className="block font-headline-md text-xl md:text-2xl mb-1 text-white">{car.make}</span>
+                          <span className="text-sm font-bold text-[#e9c349]">{car.model}</span>
+                        </div>
+                        {selectedCarId === car.id && (
+                          <span className="material-symbols-outlined text-3xl text-[#e9c349] drop-shadow-[0_0_8px_rgba(233,195,73,0.5)]">check_circle</span>
+                        )}
+                      </div>
+                      
+                      <div className="mt-auto pt-4 flex items-end justify-between border-t border-white/10">
+                        <div className="flex items-center gap-4 text-xs text-[#c7c6ca] uppercase tracking-widest font-bold">
+                          <div className="flex items-center gap-1" title="Пасажирських місць">
+                            <span className="material-symbols-outlined text-lg">person</span> {car.capacity}
+                          </div>
+                          <div className="flex items-center gap-1" title="Рік випуску">
+                            <span className="material-symbols-outlined text-lg">calendar_month</span> {car.year}
+                          </div>
+                        </div>
+                        
+                        <div className="text-right">
+                          <span className="text-[10px] text-[#c7c6ca] uppercase tracking-widest block mb-1">Орієнтовно</span>
+                          <span className={`text-2xl font-display-lg ${selectedCarId === car.id ? 'text-[#e9c349]' : 'text-white'}`}>
+                            € {priceForCar}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
                   </div>
-                  {!doesFit ? (
-                    <span className="text-[10px] uppercase bg-red-500/20 border border-red-500/30 text-red-400 px-2 py-1 rounded absolute top-2 right-2">Не вмістить</span>
-                  ) : (
-                    <span className={`material-symbols-outlined text-3xl ${selectedCarId === car.id ? 'text-[#e9c349]' : 'text-[#c7c6ca]'}`}>check_circle</span>
-                  )}
-                </div>
-              </label>
-              );
-            })}
+                </label>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Bottom Row */}
         <div className="pt-6 md:pt-8 border-t border-white/10 relative z-10">
