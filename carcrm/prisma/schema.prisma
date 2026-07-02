@@ -65,7 +65,7 @@ model Driver {
   id          String    @id @default(uuid())
   user        User      @relation(fields: [userId], references: [id])
   userId      String    @unique
-  licenseNum  String
+  licenseNum  String    @default("000000")
   status      String    @default("ACTIVE")
   
   // Salary and Perks
@@ -73,7 +73,7 @@ model Driver {
   bonuses     String?   @db.Text // JSON of additional perks
 
   createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  updatedAt   DateTime  @default(now()) @updatedAt
 
   bookings    Booking[] @relation("DriverBookings")
   settlements Settlement[]
@@ -98,10 +98,16 @@ model Car {
   animalFee              Float    @default(30.0)  // Animal fee
   childSeatFee           Float    @default(15.0)  // Child seat fee
 
+  // Зображення та опис
   images          String[] // URLs of images
   videos          String[] // URLs of videos
   description     String?  @db.Text
   features        String?  @db.Text // JSON string of features
+
+  // Базова локація авто
+  baseCity        String?
+  baseLat         Float?
+  baseLng         Float?
 
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
