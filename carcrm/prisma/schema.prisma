@@ -208,21 +208,26 @@ model VerificationToken {
 }
 
 model ChatRoom {
-  id        String    @id @default(uuid())
-  bookingId String    @unique
-  booking   Booking   @relation(fields: [bookingId], references: [id])
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id           String    @id @default(uuid())
+  bookingId    String?   @unique
+  booking      Booking?  @relation(fields: [bookingId], references: [id])
+  platform     String    @default("WEB") // WEB, TELEGRAM, WHATSAPP
+  externalId   String?   // Telegram Chat ID or WhatsApp Phone
+  clientName   String?   // For anonymous users from messengers
+  clientPhone  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  messages  Message[]
+  messages     Message[]
 }
 
 model Message {
   id         String   @id @default(uuid())
   chatRoomId String
   chatRoom   ChatRoom @relation(fields: [chatRoomId], references: [id], onDelete: Cascade)
-  senderId   String
-  sender     User     @relation(fields: [senderId], references: [id])
+  senderId   String?  // Null if from external messenger
+  sender     User?    @relation(fields: [senderId], references: [id])
+  isFromAdmin Boolean  @default(false)
   content    String?
   imageUrl   String?
   createdAt  DateTime @default(now())

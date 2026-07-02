@@ -52,9 +52,9 @@ export default function AdminLayout({
             <Settings size={20} />
             <span>CMS Сайту</span>
           </Link>
-          <Link href="/admin/feedback" className="admin-nav-link">
+          <Link href="/admin/chat" className="admin-nav-link">
             <MessageSquare size={20} />
-            <span>Повідомлення</span>
+            <span>Месенджер (Чат)</span>
           </Link>
           <hr style={{ borderColor: 'rgba(255,255,255,0.1)', margin: '16px 0' }} />
           <Link href="/" className="admin-nav-link" target="_blank">
