@@ -23,8 +23,8 @@ export default function AdminFleetPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCar, setEditingCar] = useState<Car | null>(null);
   const [formData, setFormData] = useState({
-    make: '', model: '', year: new Date().getFullYear(),
-    capacity: 4, baseRate: 0, fuelType: 'Бензин', fuelConsumptionCity: 0, fuelConsumptionHighway: 0
+    make: '', model: '', year: new Date().getFullYear().toString(),
+    capacity: '4', baseRate: '0', fuelType: 'Бензин', fuelConsumptionCity: '0', fuelConsumptionHighway: '0'
   });
   const [uploading, setUploading] = useState(false);
 
@@ -48,7 +48,7 @@ export default function AdminFleetPage() {
       });
       if (res.ok) {
         setIsModalOpen(false);
-        setFormData({ make: '', model: '', year: new Date().getFullYear(), capacity: 4, baseRate: 0, fuelType: 'Бензин', fuelConsumptionCity: 0, fuelConsumptionHighway: 0 });
+        setFormData({ make: '', model: '', year: new Date().getFullYear().toString(), capacity: '4', baseRate: '0', fuelType: 'Бензин', fuelConsumptionCity: '0', fuelConsumptionHighway: '0' });
         fetchCars();
       }
     } catch (err) { console.error(err); }
@@ -189,15 +189,15 @@ export default function AdminFleetPage() {
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Рік</label>
-                <input type="number" required value={formData.year} onChange={e => setFormData({...formData, year: parseInt(e.target.value)})} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '6px' }} />
+                <input type="number" required value={formData.year} onChange={e => setFormData({...formData, year: e.target.value})} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '6px' }} />
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Місць</label>
-                <input type="number" required value={formData.capacity} onChange={e => setFormData({...formData, capacity: parseInt(e.target.value)})} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '6px' }} />
+                <input type="number" required value={formData.capacity} onChange={e => setFormData({...formData, capacity: e.target.value})} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '6px' }} />
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Базова ставка (€/км)</label>
-                <input type="number" step="0.01" required value={formData.baseRate} onChange={e => setFormData({...formData, baseRate: parseFloat(e.target.value)})} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '6px' }} />
+                <input type="number" step="0.01" required value={formData.baseRate} onChange={e => setFormData({...formData, baseRate: e.target.value})} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '6px' }} />
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Витрата (л/100км)</label>
@@ -215,11 +215,11 @@ export default function AdminFleetPage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 <div>
                   <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)' }}>Витрата: Місто (л/100км)</label>
-                  <input type="number" step="0.1" required value={formData.fuelConsumptionCity} onChange={e => setFormData({...formData, fuelConsumptionCity: parseFloat(e.target.value)})} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '6px' }} />
+                  <input type="number" step="0.1" required value={formData.fuelConsumptionCity} onChange={e => setFormData({...formData, fuelConsumptionCity: e.target.value})} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '6px' }} />
                 </div>
                 <div>
                   <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)' }}>Витрата: Траса (л/100км)</label>
-                  <input type="number" step="0.1" required value={formData.fuelConsumptionHighway} onChange={e => setFormData({...formData, fuelConsumptionHighway: parseFloat(e.target.value)})} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '6px' }} />
+                  <input type="number" step="0.1" required value={formData.fuelConsumptionHighway} onChange={e => setFormData({...formData, fuelConsumptionHighway: e.target.value})} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '6px' }} />
                 </div>
               </div>
               </div>
