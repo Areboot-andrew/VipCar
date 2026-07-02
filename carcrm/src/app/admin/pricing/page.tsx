@@ -11,16 +11,29 @@ type Car = {
 };
 
 export default function AdminPricingPage() {
-  const [settings, setSettings] = useState({
+  const [settings, setSettings] = useState<{
+    fuel_price: string;
+    driver_salary_rate: string;
+    amortization_rate: string;
+    margin_rate: string;
+    delivery_rate: string;
+    base_location_lat: string;
+    base_location_lng: string;
+    facebook_page_token?: string;
+    facebook_verify_token?: string;
+    telegram_bot_token?: string;
+  }>({
     fuel_price: '60',
     driver_salary_rate: '0.1',
     amortization_rate: '0.05',
     margin_rate: '0.2',
     delivery_rate: '15',
     base_location_lat: '49.8397',
-    base_location_lng: '24.0297'
+    base_location_lng: '24.0297',
+    facebook_page_token: '',
+    facebook_verify_token: '',
+    telegram_bot_token: ''
   });
-  
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [cars, setCars] = useState<Car[]>([]);
