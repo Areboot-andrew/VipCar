@@ -185,6 +185,11 @@ export default function AdminFleetPage() {
     setEditingCarId(car.id);
     setEditFormData({
       description: car.description || '',
+      pricePerPerson: car.pricePerPerson || 10,
+      crossBorderFee: car.crossBorderFee || 150,
+      meetAndGreetFee: car.meetAndGreetFee || 20,
+      animalFee: car.animalFee || 30,
+      childSeatFee: car.childSeatFee || 15
     });
     try {
       setEditFeaturesList(car.features ? JSON.parse(car.features) : []);
@@ -247,6 +252,28 @@ export default function AdminFleetPage() {
 
                 {editingCarId === car.id ? (
                   <div className="space-y-6">
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 bg-white/5 p-4 rounded-xl border border-white/10">
+                      <div>
+                        <label className="block text-xs uppercase text-gray-400 mb-1">Багаж / Особа (€)</label>
+                        <input type="number" step="0.01" value={editFormData.pricePerPerson} onChange={e => setEditFormData({...editFormData, pricePerPerson: parseFloat(e.target.value)})} className="w-full bg-black/50 border border-white/20 rounded p-2 text-white text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-xs uppercase text-gray-400 mb-1">Кордон (€)</label>
+                        <input type="number" step="0.01" value={editFormData.crossBorderFee} onChange={e => setEditFormData({...editFormData, crossBorderFee: parseFloat(e.target.value)})} className="w-full bg-black/50 border border-white/20 rounded p-2 text-white text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-xs uppercase text-gray-400 mb-1">Табличка (€)</label>
+                        <input type="number" step="0.01" value={editFormData.meetAndGreetFee} onChange={e => setEditFormData({...editFormData, meetAndGreetFee: parseFloat(e.target.value)})} className="w-full bg-black/50 border border-white/20 rounded p-2 text-white text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-xs uppercase text-gray-400 mb-1">Тварини (€)</label>
+                        <input type="number" step="0.01" value={editFormData.animalFee} onChange={e => setEditFormData({...editFormData, animalFee: parseFloat(e.target.value)})} className="w-full bg-black/50 border border-white/20 rounded p-2 text-white text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-xs uppercase text-gray-400 mb-1">Крісло (€)</label>
+                        <input type="number" step="0.01" value={editFormData.childSeatFee} onChange={e => setEditFormData({...editFormData, childSeatFee: parseFloat(e.target.value)})} className="w-full bg-black/50 border border-white/20 rounded p-2 text-white text-sm" />
+                      </div>
+                    </div>
                     <div>
                       <label className="block text-xs uppercase text-gray-400 mb-2">Детальний опис авто (HTML)</label>
                       <div className="bg-white text-black rounded-lg">
