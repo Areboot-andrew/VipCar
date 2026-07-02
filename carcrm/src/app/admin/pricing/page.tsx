@@ -125,6 +125,20 @@ export default function AdminPricingPage() {
                 <label style={{ display: 'block', fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '8px' }}>База LNG (Львів)</label>
                 <input value={settings.base_location_lng} onChange={e => setSettings({...settings, base_location_lng: e.target.value})} style={{ width: '100%', padding: '12px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '8px' }} />
               </div>
+
+            <div style={{ marginTop: '16px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '16px' }}>
+              <h3 style={{ color: 'var(--accent-gold)', marginBottom: '16px', fontSize: '16px' }}>Facebook Messenger</h3>
+              <div style={{ display: 'grid', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '8px' }}>Page Access Token</label>
+                  <input value={settings.facebook_page_token || ''} onChange={e => setSettings({...settings, facebook_page_token: e.target.value})} placeholder="EAAB..." style={{ width: '100%', padding: '12px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '8px' }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '8px' }}>Webhook Verify Token (Вигадайте свій)</label>
+                  <input value={settings.facebook_verify_token || ''} onChange={e => setSettings({...settings, facebook_verify_token: e.target.value})} placeholder="my_secret_verify_token" style={{ width: '100%', padding: '12px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '8px' }} />
+                </div>
+              </div>
+            </div>
           </div>
 
           <button type="submit" disabled={saving} style={{ width: '100%', marginTop: '32px', padding: '16px', backgroundColor: 'var(--accent-gold)', border: 'none', color: '#000', cursor: 'pointer', fontWeight: 'bold', borderRadius: '8px', fontSize: '16px' }}>

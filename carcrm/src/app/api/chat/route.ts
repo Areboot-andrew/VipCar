@@ -53,6 +53,20 @@ export async function POST(req: Request) {
       if (client) {
         await client.sendMessage(chatRoom.externalId, { message: content });
       }
+    } else if (chatRoom.platform === 'MESSENGER' && chatRoom.externalId) {
+      // Forward to Facebook Messenger via Graph API
+      const tokenSetting = await prisma.siteContent.findUnique({ where: { key: 'facebook_page_token' } });
+      if (tokenSetting?.value) {
+        await fetch(`https://graph.facebook.com/v20.0/me/messages?access_token=${tokenSetting.value}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            recipient: { id: chatRoom.externalId },
+            message: { text: content },
+            messaging_type: 'RESPONSE'
+          })
+        });
+      }
     }
 
     return NextResponse.json(message);
