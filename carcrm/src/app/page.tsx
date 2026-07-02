@@ -2,7 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import Link from 'next/link';
 import Calculator from '../components/Calculator';
 import ContactForm from '../components/ContactForm';
-import GlobalGallery from '../components/GlobalGallery';
+import MarqueeGallery from '../components/MarqueeGallery';
 import NavAuth from '../components/NavAuth';
 import MobileMenu from '../components/MobileMenu';
 
@@ -165,18 +165,16 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* Global Gallery Section */}
-        <section className="w-full mb-[100px] overflow-hidden" id="gallery">
-          <div className="max-w-[1280px] mx-auto px-[24px] md:px-[64px] mb-[48px]">
-            <h2 className="font-headline-lg text-[40px] md:text-[56px] text-[#e4e2e3] text-center" dangerouslySetInnerHTML={{ __html: parseAccent(c['gallery_title'], 'Галерея') }}></h2>
-            <p className="text-center text-[#c7c6ca] mt-4 max-w-2xl mx-auto" dangerouslySetInnerHTML={{ __html: parseAccent(c['gallery_subtitle'], 'Наш автопарк в реальному житті. Відео та фото преміум-якості.') }}></p>
-          </div>
-          <GlobalGallery media={allMedia.length > 0 ? allMedia : [
+        {/* Global Gallery Section (Animated Marquee) */}
+        <MarqueeGallery 
+          media={allMedia.length > 0 ? allMedia : [
             { type: 'image', url: 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80' },
             { type: 'image', url: 'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?auto=format&fit=crop&q=80' },
             { type: 'image', url: 'https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&q=80' }
-          ]} />
-        </section>
+          ]} 
+          title={parseAccent(c['gallery_title'], 'Галерея')}
+          subtitle={parseAccent(c['gallery_subtitle'], 'Наш автопарк в реальному житті. Відео та фото преміум-якості.')}
+        />
 
 
         {/* Calculator Section */}

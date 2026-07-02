@@ -78,10 +78,24 @@ model Car {
   status                 String   @default("AVAILABLE") // AVAILABLE, MAINTENANCE, IN_USE
   images          String[] // URLs of images
   videos          String[] // URLs of videos
+  description     String?  @db.Text
+  features        String?  @db.Text // JSON string of features
+
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
   bookings        Booking[]
+  reviews         CarReview[]
+}
+
+model CarReview {
+  id        String   @id @default(uuid())
+  carId     String
+  car       Car      @relation(fields: [carId], references: [id], onDelete: Cascade)
+  author    String
+  rating    Int      @default(5)
+  text      String   @db.Text
+  date      DateTime @default(now())
 }
 
 model Booking {

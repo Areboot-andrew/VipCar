@@ -6,7 +6,8 @@ const prisma = new PrismaClient();
 export async function GET() {
   try {
     const cars = await prisma.car.findMany({
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      include: { reviews: true }
     });
     return NextResponse.json(cars);
   } catch (error) {
@@ -18,7 +19,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { make, model, year, capacity, baseRate, fuelType, fuelConsumptionCity, fuelConsumptionHighway, status, images, videos } = body;
+    const { make, model, year, capacity, baseRate, fuelType, fuelConsumptionCity, fuelConsumptionHighway, status, images, videos, description, features } = body;
 
     const car = await prisma.car.create({
       data: {
@@ -33,6 +34,8 @@ export async function POST(request: Request) {
         status: status || 'AVAILABLE',
         images: images || [],
         videos: videos || [],
+        description: description || null,
+        features: features || null,
       },
     });
 
