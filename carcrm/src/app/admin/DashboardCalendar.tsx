@@ -65,24 +65,19 @@ export default function DashboardCalendar({ cars, bookings }: { cars: Car[], boo
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginTop: '24px' }}>
+    <div className="flex flex-col gap-6 mt-6">
       
       {/* Car Selector */}
-      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+      <div className="flex gap-3 flex-wrap">
         {cars.map(car => (
           <button
             key={car.id}
             onClick={() => setSelectedCarId(car.id)}
-            style={{
-              padding: '12px 24px',
-              backgroundColor: selectedCarId === car.id ? 'var(--accent-gold)' : 'var(--bg-surface)',
-              color: selectedCarId === car.id ? '#000' : 'white',
-              border: selectedCarId === car.id ? '1px solid var(--accent-gold)' : '1px solid rgba(255,255,255,0.1)',
-              borderRadius: '8px',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
+            className={`px-6 py-3 rounded-xl font-bold transition-all duration-300 ${
+              selectedCarId === car.id 
+                ? 'bg-[#e9c349] text-black shadow-[0_0_15px_rgba(233,195,73,0.3)] scale-105' 
+                : 'glass-panel text-white hover:border-[#e9c349] hover:bg-white/10'
+            }`}
           >
             {car.make} {car.model}
           </button>
@@ -91,24 +86,24 @@ export default function DashboardCalendar({ cars, bookings }: { cars: Car[], boo
 
       {/* Classic Monthly Calendar */}
       {selectedCarId && (
-        <div style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', overflow: 'hidden', padding: '24px' }}>
+        <div className="glass-panel rounded-2xl overflow-hidden p-6 animate-fade-in">
           
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-            <button onClick={prevMonth} style={{ padding: '8px 16px', backgroundColor: '#13131a', border: '1px solid rgba(255,255,255,0.1)', color: 'white', borderRadius: '8px', cursor: 'pointer' }}>&larr; Попередній</button>
-            <h2 style={{ fontSize: '24px', color: 'white', margin: 0 }}>{monthNames[month]} {year}</h2>
-            <button onClick={nextMonth} style={{ padding: '8px 16px', backgroundColor: '#13131a', border: '1px solid rgba(255,255,255,0.1)', color: 'white', borderRadius: '8px', cursor: 'pointer' }}>Наступний &rarr;</button>
+          <div className="flex justify-between items-center mb-6">
+            <button onClick={prevMonth} className="px-4 py-2 bg-[#13131a] border border-white/10 text-white rounded-lg hover:bg-white/10 transition-colors">&larr; Попередній</button>
+            <h2 className="text-2xl font-bold text-white m-0">{monthNames[month]} {year}</h2>
+            <button onClick={nextMonth} className="px-4 py-2 bg-[#13131a] border border-white/10 text-white rounded-lg hover:bg-white/10 transition-colors">Наступний &rarr;</button>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '8px', marginBottom: '8px' }}>
+          <div className="grid grid-cols-7 gap-2 mb-2">
             {['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'].map(d => (
-              <div key={d} style={{ textAlign: 'center', color: '#8a8a93', fontWeight: 'bold', textTransform: 'uppercase', fontSize: '12px', padding: '8px 0' }}>{d}</div>
+              <div key={d} className="text-center text-[#8a8a93] font-bold uppercase text-xs py-2">{d}</div>
             ))}
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '8px' }}>
+          <div className="grid grid-cols-7 gap-2">
             {/* Empty cells for start of month */}
             {Array.from({ length: firstDay }).map((_, i) => (
-              <div key={`empty-${i}`} style={{ minHeight: '100px', backgroundColor: 'transparent' }} />
+              <div key={`empty-${i}`} className="min-h-[100px] bg-transparent" />
             ))}
             
             {/* Days of month */}
@@ -124,32 +119,18 @@ export default function DashboardCalendar({ cars, bookings }: { cars: Car[], boo
                     if (booking) setSelectedBooking(booking);
                     else alert(`Вільна дата: ${dayNum} ${monthNames[month]}. Створення нової броні в розробці.`);
                   }}
-                  style={{
-                    minHeight: '100px',
-                    backgroundColor: booking ? 'rgba(233,195,73,0.1)' : '#13131a',
-                    border: booking ? '1px solid rgba(233,195,73,0.4)' : '1px solid rgba(255,255,255,0.05)',
-                    borderRadius: '8px',
-                    padding: '8px',
-                    cursor: 'pointer',
-                    position: 'relative',
-                    transition: 'all 0.2s'
-                  }}
+                  className={`min-h-[100px] rounded-xl p-2 cursor-pointer relative transition-all duration-300 group ${
+                    booking 
+                      ? 'bg-[#e9c349]/10 border border-[#e9c349]/40 hover:bg-[#e9c349]/20 shadow-[0_0_10px_rgba(233,195,73,0.1)]' 
+                      : 'bg-[#13131a] border border-white/5 hover:border-white/20 hover:bg-white/5'
+                  }`}
                 >
-                  <div style={{ color: booking ? '#e9c349' : 'white', fontWeight: 'bold', fontSize: '16px' }}>{dayNum}</div>
+                  <div className={`font-bold text-lg ${booking ? 'text-[#e9c349]' : 'text-white group-hover:text-[#e9c349] transition-colors'}`}>{dayNum}</div>
                   
                   {booking && (
-                    <div style={{ 
-                      marginTop: '8px', 
-                      backgroundColor: isStartDay ? 'var(--accent-gold)' : 'rgba(233,195,73,0.2)', 
-                      color: isStartDay ? '#000' : '#e9c349',
-                      padding: '4px 8px', 
-                      borderRadius: '4px', 
-                      fontSize: '11px', 
-                      fontWeight: 'bold',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis'
-                    }}>
+                    <div className={`mt-2 px-2 py-1 rounded-md text-[11px] font-bold whitespace-nowrap overflow-hidden text-ellipsis ${
+                      isStartDay ? 'bg-[#e9c349] text-black shadow-md' : 'bg-[#e9c349]/20 text-[#e9c349]'
+                    }`}>
                       {isStartDay ? `${booking.routeFrom.split(',')[0]} ➔ ${booking.routeTo.split(',')[0]}` : 'Рейс триває'}
                     </div>
                   )}
@@ -162,66 +143,88 @@ export default function DashboardCalendar({ cars, bookings }: { cars: Car[], boo
 
       {/* Booking Details Modal */}
       {selectedBooking && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, 
-          backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 1000,
-          display: 'flex', alignItems: 'center', justifyContent: 'center'
-        }}>
-          <div style={{
-            backgroundColor: 'var(--bg-surface)', padding: '32px', borderRadius: '16px', 
-            border: '1px solid var(--accent-gold)', minWidth: '400px', maxWidth: '600px',
-            boxShadow: '0 20px 50px rgba(0,0,0,0.8)'
-          }}>
-            <h2 style={{ color: 'var(--accent-gold)', marginBottom: '8px', fontSize: '24px' }}>Деталі Поїздки</h2>
-            <div style={{ color: 'var(--text-secondary)', marginBottom: '24px', fontSize: '14px' }}>
-              ID: {selectedBooking.id.substring(0,8)}... | Статус: {selectedBooking.status}
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[1000] flex items-center justify-center p-4 animate-fade-in" onClick={(e) => { if (e.target === e.currentTarget) setSelectedBooking(null); }}>
+          <div className="glass-panel rounded-2xl border border-[#e9c349]/50 w-full max-w-2xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] flex flex-col max-h-[90vh]">
+            
+            <div className="p-6 border-b border-white/10">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h2 className="text-[#e9c349] text-2xl font-bold mb-1">Деталі Поїздки</h2>
+                  <p className="text-[#8a8a93] text-sm m-0">ID: {selectedBooking.id.substring(0,8)}... | Статус: {selectedBooking.status}</p>
+                </div>
+                <button onClick={() => setSelectedBooking(null)} className="text-[#8a8a93] hover:text-white transition-colors">
+                  <span className="material-symbols-outlined text-3xl">close</span>
+                </button>
+              </div>
             </div>
             
-            <div style={{ display: 'grid', gap: '16px' }}>
-              <div style={{ backgroundColor: '#13131a', padding: '16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <p style={{ margin: '0 0 8px', color: '#8a8a93', fontSize: '12px', textTransform: 'uppercase' }}>Клієнт</p>
-                <p style={{ margin: 0, color: 'white', fontWeight: 'bold' }}>{selectedBooking.client.name}</p>
-                <p style={{ margin: '4px 0 0', color: 'white' }}>{selectedBooking.client.phone}</p>
+            <div className="p-6 overflow-y-auto flex flex-col gap-4">
+              <div className="bg-[#13131a] p-4 rounded-xl border border-white/5 hover:border-white/10 transition-colors">
+                <p className="m-0 mb-2 text-[#8a8a93] text-xs uppercase tracking-wider font-bold">Клієнт</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-[#e9c349]/20 flex items-center justify-center text-[#e9c349]">
+                    <span className="material-symbols-outlined">person</span>
+                  </div>
+                  <div>
+                    <p className="m-0 text-white font-bold text-lg">{selectedBooking.client.name}</p>
+                    <p className="m-0 text-[#c7c6ca]">{selectedBooking.client.phone}</p>
+                  </div>
+                </div>
               </div>
 
-              <div style={{ backgroundColor: '#13131a', padding: '16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <p style={{ margin: '0 0 8px', color: '#8a8a93', fontSize: '12px', textTransform: 'uppercase' }}>Маршрут та Дати</p>
-                <p style={{ margin: '0 0 8px', color: 'white', fontWeight: 'bold', fontSize: '16px' }}>{selectedBooking.routeFrom} &rarr; {selectedBooking.routeTo}</p>
-                <p style={{ margin: 0, color: 'var(--accent-gold)' }}>
-                  {new Date(selectedBooking.dateStart).toLocaleDateString('uk-UA', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })} 
-                  &nbsp;&mdash;&nbsp; 
-                  {new Date(selectedBooking.dateEnd).toLocaleDateString('uk-UA', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}
-                </p>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div style={{ backgroundColor: '#13131a', padding: '16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                  <p style={{ margin: '0 0 8px', color: '#8a8a93', fontSize: '12px', textTransform: 'uppercase' }}>Призначений Водій</p>
-                  <p style={{ margin: 0, color: selectedBooking.driver ? 'white' : '#ef4444', fontWeight: 'bold' }}>
-                    {selectedBooking.driver ? selectedBooking.driver.user.name : 'Не призначено'}
+              <div className="bg-[#13131a] p-4 rounded-xl border border-white/5 hover:border-white/10 transition-colors">
+                <p className="m-0 mb-2 text-[#8a8a93] text-xs uppercase tracking-wider font-bold">Маршрут та Дати</p>
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="material-symbols-outlined text-[#e9c349]">route</span>
+                  <p className="m-0 text-white font-bold text-lg">{selectedBooking.routeFrom} &rarr; {selectedBooking.routeTo}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-[#e9c349]">calendar_month</span>
+                  <p className="m-0 text-[#e9c349] font-medium">
+                    {new Date(selectedBooking.dateStart).toLocaleDateString('uk-UA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} 
+                    &nbsp;&mdash;&nbsp; 
+                    {new Date(selectedBooking.dateEnd).toLocaleDateString('uk-UA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>
-                
-                <div style={{ backgroundColor: '#13131a', padding: '16px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                  <p style={{ margin: '0 0 8px', color: '#8a8a93', fontSize: '12px', textTransform: 'uppercase' }}>Фінанси</p>
-                  <p style={{ margin: '0 0 4px', color: 'white', display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Сума клієнта:</span> <strong>€{selectedBooking.price}</strong>
-                  </p>
-                  {selectedBooking.netProfit !== undefined && selectedBooking.netProfit !== null && (
-                    <p style={{ margin: 0, color: '#4ade80', display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Чиста маржа:</span> <strong>€{selectedBooking.netProfit}</strong>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-[#13131a] p-4 rounded-xl border border-white/5 hover:border-white/10 transition-colors">
+                  <p className="m-0 mb-2 text-[#8a8a93] text-xs uppercase tracking-wider font-bold">Призначений Водій</p>
+                  <div className="flex items-center gap-3">
+                    <span className="material-symbols-outlined text-[#e9c349]">badge</span>
+                    <p className={`m-0 font-bold text-lg ${selectedBooking.driver ? 'text-white' : 'text-red-400'}`}>
+                      {selectedBooking.driver ? selectedBooking.driver.user.name : 'Не призначено'}
                     </p>
-                  )}
+                  </div>
+                </div>
+                
+                <div className="bg-[#13131a] p-4 rounded-xl border border-white/5 hover:border-white/10 transition-colors">
+                  <p className="m-0 mb-3 text-[#8a8a93] text-xs uppercase tracking-wider font-bold">Фінанси</p>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center text-sm border-b border-white/10 pb-2">
+                      <span className="text-[#c7c6ca]">Сума клієнта:</span> 
+                      <strong className="text-white text-base">€{selectedBooking.price}</strong>
+                    </div>
+                    {selectedBooking.netProfit !== undefined && selectedBooking.netProfit !== null && (
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-[#c7c6ca]">Чиста маржа:</span> 
+                        <strong className="text-green-400 text-base">€{selectedBooking.netProfit}</strong>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
 
-            <button 
-              onClick={() => setSelectedBooking(null)} 
-              style={{ width: '100%', marginTop: '24px', padding: '16px', backgroundColor: 'var(--bg-primary)', color: 'white', border: '1px solid rgba(255,255,255,0.2)', cursor: 'pointer', borderRadius: '8px', fontWeight: 'bold' }}
-            >
-              Закрити
-            </button>
+            <div className="p-6 border-t border-white/10 bg-white/5">
+              <button 
+                onClick={() => setSelectedBooking(null)} 
+                className="w-full py-4 glass-panel hover:bg-white/10 text-white rounded-xl font-bold uppercase tracking-wider transition-colors"
+              >
+                Закрити
+              </button>
+            </div>
           </div>
         </div>
       )}

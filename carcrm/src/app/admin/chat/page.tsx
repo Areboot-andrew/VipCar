@@ -82,45 +82,64 @@ export default function AdminChatPage() {
     fetchChats();
   };
 
-  if (loading) return <div className="admin-page-container">Завантаження чатів...</div>;
+  if (loading) return (
+    <div className="flex h-[calc(100vh-80px)] items-center justify-center">
+      <div className="w-10 h-10 border-4 border-[#e9c349] border-t-transparent rounded-full animate-spin"></div>
+    </div>
+  );
 
   return (
-    <div className="admin-page-container" style={{ padding: 0, height: 'calc(100vh - 80px)', display: 'flex', overflow: 'hidden' }}>
+    <div className="flex h-[calc(100vh-80px)] overflow-hidden bg-[#080818] rounded-3xl border border-white/5 shadow-2xl m-6 mt-0">
       
       {/* Sidebar - Chat List */}
-      <div style={{ width: '350px', borderRight: '1px solid var(--border-color)', backgroundColor: 'var(--bg-surface)', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ padding: '24px', borderBottom: '1px solid var(--border-color)' }}>
-          <h2 style={{ margin: 0, color: 'white', fontSize: '20px' }}>Повідомлення</h2>
+      <div className="w-[350px] border-r border-white/5 bg-[#13131a]/50 flex flex-col backdrop-blur-sm">
+        <div className="p-6 border-b border-white/5 flex items-center justify-between">
+          <h2 className="m-0 text-white text-xl font-bold font-headline-md tracking-wider">Повідомлення</h2>
+          <div className="bg-[#e9c349]/20 text-[#e9c349] text-xs font-bold px-2 py-1 rounded-full">{chats.length}</div>
         </div>
         
-        <div style={{ flex: 1, overflowY: 'auto' }}>
+        <div className="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
           {chats.length === 0 ? (
-            <div style={{ padding: '24px', color: 'var(--text-secondary)', textAlign: 'center' }}>Немає активних чатів</div>
+            <div className="p-6 text-[#8a8a93] text-center mt-10">Немає активних чатів</div>
           ) : (
             chats.map(chat => {
-              const lastMsg = chat.messages[chat.messages.length - 1];
+              const lastMessage = chat.messages[chat.messages.length - 1];
+              const isSelected = activeChatId === chat.id;
+              
               return (
                 <div 
                   key={chat.id} 
                   onClick={() => setActiveChatId(chat.id)}
-                  style={{ 
-                    padding: '16px', 
-                    borderBottom: '1px solid var(--border-color)', 
-                    cursor: 'pointer',
-                    backgroundColor: activeChatId === chat.id ? 'rgba(233, 195, 73, 0.1)' : 'transparent',
-                    borderLeft: activeChatId === chat.id ? '4px solid var(--accent-gold)' : '4px solid transparent',
-                    transition: 'all 0.2s'
-                  }}
+                  className={`p-4 rounded-2xl cursor-pointer transition-all duration-300 border ${
+                    isSelected 
+                      ? 'bg-[#e9c349]/10 border-[#e9c349]/30 shadow-[0_4px_20px_rgba(233,195,73,0.1)]' 
+                      : 'bg-transparent border-transparent hover:bg-white/5 hover:border-white/10'
+                  }`}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <strong style={{ color: 'white' }}>{chat.clientName || chat.clientPhone || 'Невідомий клієнт'}</strong>
-                    <span style={{ fontSize: '10px', color: 'var(--text-secondary)', backgroundColor: '#13131a', padding: '2px 6px', borderRadius: '4px' }}>
-                      {chat.platform}
-                    </span>
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        chat.platform === 'TELEGRAM' ? 'bg-[#2AABEE]/20 text-[#2AABEE]' : 
+                        chat.platform === 'MESSENGER' ? 'bg-[#00B2FF]/20 text-[#00B2FF]' : 'bg-white/10 text-white'
+                      }`}>
+                        <span className="material-symbols-outlined text-lg">
+                          {chat.platform === 'TELEGRAM' ? 'send' : chat.platform === 'MESSENGER' ? 'forum' : 'chat'}
+                        </span>
+                      </div>
+                      <div>
+                        <strong className={`block text-sm ${isSelected ? 'text-[#e9c349]' : 'text-white'}`}>
+                          {chat.clientName || chat.clientPhone || chat.externalId || 'Анонім'}
+                        </strong>
+                        <span className="text-[10px] text-[#8a8a93] uppercase tracking-wider font-bold">
+                          {chat.platform}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  {lastMsg && (
-                    <div style={{ color: 'var(--text-secondary)', fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {lastMsg.isFromAdmin ? 'Ви: ' : ''}{lastMsg.content}
+                  
+                  {lastMessage && (
+                    <div className="text-sm text-[#8a8a93] truncate pl-12 pr-2">
+                      {lastMessage.isFromAdmin ? 'Ви: ' : ''}{lastMessage.content || 'Файл/Зображення'}
                     </div>
                   )}
                 </div>
@@ -131,66 +150,70 @@ export default function AdminChatPage() {
       </div>
 
       {/* Main Chat Area */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: '#080812' }}>
+      <div className="flex-1 flex flex-col bg-gradient-to-b from-[#13131a]/30 to-[#080818] relative">
         {activeChat ? (
           <>
-            <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--bg-surface)' }}>
-              <h3 style={{ margin: 0, color: 'white' }}>{activeChat.clientName || activeChat.clientPhone || 'Клієнт'}</h3>
-              <span style={{ fontSize: '12px', color: 'var(--accent-gold)' }}>Через {activeChat.platform}</span>
+            <div className="p-6 border-b border-white/5 bg-[#13131a]/80 backdrop-blur-md flex items-center gap-4 z-10">
+               <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                  activeChat.platform === 'TELEGRAM' ? 'bg-[#2AABEE]/20 text-[#2AABEE]' : 
+                  activeChat.platform === 'MESSENGER' ? 'bg-[#00B2FF]/20 text-[#00B2FF]' : 'bg-white/10 text-white'
+                }`}>
+                  <span className="material-symbols-outlined text-2xl">
+                    {activeChat.platform === 'TELEGRAM' ? 'send' : activeChat.platform === 'MESSENGER' ? 'forum' : 'chat'}
+                  </span>
+                </div>
+                <div>
+                  <h3 className="m-0 text-white text-lg font-bold">
+                    {activeChat.clientName || activeChat.clientPhone || activeChat.externalId || 'Анонім'}
+                  </h3>
+                  <p className="m-0 text-[#8a8a93] text-xs uppercase tracking-wider mt-1">{activeChat.platform} Чат</p>
+                </div>
             </div>
 
-            {/* Messages container */}
-            <div style={{ flex: 1, padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {activeChat.messages.length === 0 ? (
-                <div style={{ margin: 'auto', color: 'var(--text-secondary)' }}>Немає повідомлень. Напишіть першим!</div>
-              ) : (
-                activeChat.messages.map(msg => (
-                  <div 
-                    key={msg.id} 
-                    style={{ 
-                      alignSelf: msg.isFromAdmin ? 'flex-end' : 'flex-start',
-                      maxWidth: '70%',
-                      backgroundColor: msg.isFromAdmin ? 'var(--accent-gold)' : '#1e1e2d',
-                      color: msg.isFromAdmin ? '#000' : 'white',
-                      padding: '12px 16px',
-                      borderRadius: '12px',
-                      borderBottomRightRadius: msg.isFromAdmin ? '0' : '12px',
-                      borderBottomLeftRadius: msg.isFromAdmin ? '12px' : '0',
-                    }}
-                  >
-                    <div style={{ lineHeight: '1.4' }}>{msg.content}</div>
-                    <div style={{ fontSize: '10px', marginTop: '4px', textAlign: 'right', opacity: 0.7 }}>
-                      {new Date(msg.createdAt).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}
-                    </div>
+            <div className="flex-1 p-6 overflow-y-auto custom-scrollbar flex flex-col gap-4">
+              {activeChat.messages.map(msg => (
+                <div key={msg.id} className={`flex flex-col ${msg.isFromAdmin ? 'items-end' : 'items-start'} max-w-[70%] ${msg.isFromAdmin ? 'ml-auto' : 'mr-auto'}`}>
+                  <div className={`p-4 rounded-2xl relative ${
+                    msg.isFromAdmin 
+                      ? 'bg-gradient-to-br from-[#e9c349] to-[#d4af37] text-black rounded-tr-none shadow-[0_5px_15px_rgba(233,195,73,0.2)]' 
+                      : 'bg-[#1b1b1c] text-white rounded-tl-none border border-white/5'
+                  }`}>
+                    {msg.content}
                   </div>
-                ))
-              )}
+                  <div className="text-[10px] text-[#8a8a93] mt-1 px-1 font-bold">
+                    {new Date(msg.createdAt).toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                </div>
+              ))}
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Input area */}
-            <div style={{ padding: '24px', borderTop: '1px solid var(--border-color)', backgroundColor: 'var(--bg-surface)' }}>
-              <form onSubmit={sendMessage} style={{ display: 'flex', gap: '12px' }}>
+            <div className="p-6 bg-[#13131a]/80 backdrop-blur-md border-t border-white/5 z-10">
+              <form onSubmit={sendMessage} className="flex gap-3">
                 <input 
                   type="text" 
                   value={inputMessage}
                   onChange={e => setInputMessage(e.target.value)}
                   placeholder="Введіть повідомлення..." 
-                  style={{ flex: 1, padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: '#13131a', color: 'white' }}
+                  className="flex-1 bg-[#080818] border border-white/10 text-white px-6 py-4 rounded-full focus:outline-none focus:border-[#e9c349]/50 transition-colors placeholder:text-[#8a8a93]"
                 />
-                <button type="submit" style={{ padding: '0 32px', backgroundColor: 'var(--accent-gold)', color: '#000', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>
-                  Надіслати
+                <button 
+                  type="submit"
+                  disabled={!inputMessage.trim()}
+                  className="w-14 h-14 rounded-full bg-[#e9c349] text-black flex items-center justify-center hover:scale-105 transition-transform disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_5px_15px_rgba(233,195,73,0.3)]"
+                >
+                  <span className="material-symbols-outlined text-xl ml-1">send</span>
                 </button>
               </form>
             </div>
           </>
         ) : (
-          <div style={{ margin: 'auto', color: 'var(--text-secondary)' }}>
-            Оберіть чат зліва, щоб розпочати спілкування
+          <div className="flex-1 flex flex-col items-center justify-center text-[#8a8a93]">
+            <span className="material-symbols-outlined text-6xl mb-4 opacity-50">forum</span>
+            <p className="text-lg">Оберіть чат для початку спілкування</p>
           </div>
         )}
       </div>
-
     </div>
   );
 }
