@@ -15,15 +15,41 @@ export default function CarDetailsPage() {
   const params = useParams();
   const [car, setCar] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [reviews, setReviews] = useState<any[]>([]);
+  
+  // Review form state
+  const [reviewForm, setReviewForm] = useState({ author: '', rating: 5, text: '' });
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   useEffect(() => {
     fetch(`/api/cars/${params.id}`)
       .then(res => res.json())
       .then(data => {
         setCar(data);
+        setReviews(data.reviews || []);
         setLoading(false);
       });
   }, [params.id]);
+
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmittingReview(true);
+    try {
+      const res = await fetch(`/api/cars/${params.id}/reviews`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(reviewForm)
+      });
+      if (res.ok) {
+        const newReview = await res.json();
+        setReviews([newReview, ...reviews]);
+        setReviewForm({ author: '', rating: 5, text: '' });
+      }
+    } catch (err) {
+      console.error(err);
+    }
+    setSubmittingReview(false);
+  };
 
   if (loading) {
     return <div className="min-h-screen bg-[#080818] flex items-center justify-center text-[#e9c349]">Завантаження...</div>;
@@ -35,7 +61,6 @@ export default function CarDetailsPage() {
 
   const allMedia = [...(car.images || []), ...(car.videos || [])];
   const features = car.features && car.features !== '[]' ? JSON.parse(car.features) : [];
-  const reviews = car.reviews || [];
 
   return (
     <div className="bg-[#080818] text-white min-h-screen font-body-md selection:bg-[#e9c349] selection:text-black">
@@ -197,8 +222,56 @@ export default function CarDetailsPage() {
                 ))}
               </div>
             ) : (
-              <p className="text-gray-500 italic">Відгуків для цього автомобіля поки що немає. Станьте першим!</p>
+              <p className="text-gray-500 italic mb-6">Відгуків для цього автомобіля поки що немає. Станьте першим!</p>
             )}
+
+            {/* Leave a review form */}
+            <div className="mt-8 pt-8 border-t border-white/10">
+              <h4 className="font-bold text-white mb-4">Залишити відгук</h4>
+              <form onSubmit={handleSubmitReview} className="space-y-4">
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <input 
+                      required 
+                      placeholder="Ваше ім'я" 
+                      value={reviewForm.author} 
+                      onChange={e => setReviewForm({...reviewForm, author: e.target.value})}
+                      className="w-full bg-[#1b1b1c] border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-[#e9c349]"
+                    />
+                  </div>
+                  <div className="w-24">
+                    <select 
+                      required 
+                      value={reviewForm.rating} 
+                      onChange={e => setReviewForm({...reviewForm, rating: parseInt(e.target.value)})}
+                      className="w-full bg-[#1b1b1c] border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-[#e9c349] appearance-none"
+                    >
+                      <option value="5">5 ★</option>
+                      <option value="4">4 ★</option>
+                      <option value="3">3 ★</option>
+                      <option value="2">2 ★</option>
+                      <option value="1">1 ★</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <textarea 
+                    required 
+                    placeholder="Поділіться враженнями від поїздки..." 
+                    value={reviewForm.text} 
+                    onChange={e => setReviewForm({...reviewForm, text: e.target.value})}
+                    className="w-full bg-[#1b1b1c] border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-[#e9c349] h-24 resize-none"
+                  />
+                </div>
+                <button 
+                  type="submit" 
+                  disabled={submittingReview}
+                  className="w-full py-3 bg-white/10 text-white hover:bg-[#e9c349] hover:text-black font-bold rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {submittingReview ? 'Відправка...' : 'Опублікувати'}
+                </button>
+              </form>
+            </div>
           </motion.div>
 
         </div>
