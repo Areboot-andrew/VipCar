@@ -10,18 +10,22 @@ import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 import 'swiper/css/effect-fade';
+import { useSession } from 'next-auth/react';
 
 export default function CarDetailsPage() {
   const params = useParams();
+  const { data: session } = useSession();
   const [car, setCar] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [reviews, setReviews] = useState<any[]>([]);
+  const [canReview, setCanReview] = useState(false);
   
   // Review form state
   const [reviewForm, setReviewForm] = useState({ author: '', rating: 5, text: '' });
   const [submittingReview, setSubmittingReview] = useState(false);
 
   useEffect(() => {
+    // 1. Fetch car data
     fetch(`/api/cars/${params.id}`)
       .then(res => res.json())
       .then(data => {
@@ -30,6 +34,19 @@ export default function CarDetailsPage() {
         setLoading(false);
       });
   }, [params.id]);
+
+  useEffect(() => {
+    if (session?.user) {
+      setReviewForm(prev => ({ ...prev, author: session.user.name || '' }));
+      // 2. Fetch if user can review
+      fetch(`/api/cars/${params.id}/can-review`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.canReview) setCanReview(true);
+        })
+        .catch(console.error);
+    }
+  }, [session, params.id]);
 
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -225,53 +242,55 @@ export default function CarDetailsPage() {
               <p className="text-gray-500 italic mb-6">Відгуків для цього автомобіля поки що немає. Станьте першим!</p>
             )}
 
-            {/* Leave a review form */}
-            <div className="mt-8 pt-8 border-t border-white/10">
-              <h4 className="font-bold text-white mb-4">Залишити відгук</h4>
-              <form onSubmit={handleSubmitReview} className="space-y-4">
-                <div className="flex gap-4">
-                  <div className="flex-1">
-                    <input 
+            {/* Leave a review form (Only for users who completed a booking) */}
+            {canReview && (
+              <div className="mt-8 pt-8 border-t border-white/10">
+                <h4 className="font-bold text-white mb-4">Залишити відгук</h4>
+                <form onSubmit={handleSubmitReview} className="space-y-4">
+                  <div className="flex gap-4">
+                    <div className="flex-1">
+                      <input 
+                        required 
+                        placeholder="Ваше ім'я" 
+                        value={reviewForm.author} 
+                        onChange={e => setReviewForm({...reviewForm, author: e.target.value})}
+                        className="w-full bg-[#1b1b1c] border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-[#e9c349]"
+                      />
+                    </div>
+                    <div className="w-24">
+                      <select 
+                        required 
+                        value={reviewForm.rating} 
+                        onChange={e => setReviewForm({...reviewForm, rating: parseInt(e.target.value)})}
+                        className="w-full bg-[#1b1b1c] border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-[#e9c349] appearance-none"
+                      >
+                        <option value="5">5 ★</option>
+                        <option value="4">4 ★</option>
+                        <option value="3">3 ★</option>
+                        <option value="2">2 ★</option>
+                        <option value="1">1 ★</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <textarea 
                       required 
-                      placeholder="Ваше ім'я" 
-                      value={reviewForm.author} 
-                      onChange={e => setReviewForm({...reviewForm, author: e.target.value})}
-                      className="w-full bg-[#1b1b1c] border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-[#e9c349]"
+                      placeholder="Поділіться враженнями від поїздки..." 
+                      value={reviewForm.text} 
+                      onChange={e => setReviewForm({...reviewForm, text: e.target.value})}
+                      className="w-full bg-[#1b1b1c] border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-[#e9c349] h-24 resize-none"
                     />
                   </div>
-                  <div className="w-24">
-                    <select 
-                      required 
-                      value={reviewForm.rating} 
-                      onChange={e => setReviewForm({...reviewForm, rating: parseInt(e.target.value)})}
-                      className="w-full bg-[#1b1b1c] border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-[#e9c349] appearance-none"
-                    >
-                      <option value="5">5 ★</option>
-                      <option value="4">4 ★</option>
-                      <option value="3">3 ★</option>
-                      <option value="2">2 ★</option>
-                      <option value="1">1 ★</option>
-                    </select>
-                  </div>
-                </div>
-                <div>
-                  <textarea 
-                    required 
-                    placeholder="Поділіться враженнями від поїздки..." 
-                    value={reviewForm.text} 
-                    onChange={e => setReviewForm({...reviewForm, text: e.target.value})}
-                    className="w-full bg-[#1b1b1c] border border-white/10 rounded-lg p-3 text-white focus:outline-none focus:border-[#e9c349] h-24 resize-none"
-                  />
-                </div>
-                <button 
-                  type="submit" 
-                  disabled={submittingReview}
-                  className="w-full py-3 bg-white/10 text-white hover:bg-[#e9c349] hover:text-black font-bold rounded-lg transition-colors disabled:opacity-50"
-                >
-                  {submittingReview ? 'Відправка...' : 'Опублікувати'}
-                </button>
-              </form>
-            </div>
+                  <button 
+                    type="submit" 
+                    disabled={submittingReview}
+                    className="w-full py-3 bg-white/10 text-white hover:bg-[#e9c349] hover:text-black font-bold rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    {submittingReview ? 'Відправка...' : 'Опублікувати'}
+                  </button>
+                </form>
+              </div>
+            )}
           </motion.div>
 
         </div>
