@@ -38,14 +38,14 @@ export default async function AdminDashboardPage() {
   }));
 
   return (
-    <div className="dashboard-container">
-      <div className="dashboard-header">
-        <h1>Дашборд (90 Днів)</h1>
-        <p>Календар зайнятості автопарку. Усі дані завантажені з бази.</p>
+    <div className="flex flex-col gap-6">
+      <div className="bg-[#13131a] p-6 rounded-2xl border border-white/10 shadow-lg">
+        <h1 className="text-2xl font-bold text-white mb-2">Дашборд (90 Днів)</h1>
+        <p className="text-[#8a8a93] m-0">Календар зайнятості автопарку. Усі дані завантажені з бази.</p>
       </div>
       
       {cars.length === 0 ? (
-        <div style={{ padding: '24px', backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
+        <div className="bg-[#13131a] p-6 rounded-2xl border border-white/10 text-[#c7c6ca]">
           <p>Автопарк порожній. Будь ласка, додайте автомобілі в розділі "Автопарк", щоб вони з'явилися в календарі.</p>
         </div>
       ) : (
