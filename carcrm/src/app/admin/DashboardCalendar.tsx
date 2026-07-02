@@ -19,9 +19,9 @@ type Booking = {
   driver?: { user: { name: string } } | null;
   status: string;
   price: number;
-  fuelCost?: number;
-  driverSalary?: number;
-  netProfit?: number;
+  fuelCost?: number | null;
+  driverSalary?: number | null;
+  netProfit?: number | null;
 };
 
 export default function DashboardCalendar({ cars, bookings }: { cars: Car[], bookings: Booking[] }) {
