@@ -125,6 +125,7 @@ export default function AdminPricingPage() {
                 <label style={{ display: 'block', fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '8px' }}>База LNG (Львів)</label>
                 <input value={settings.base_location_lng} onChange={e => setSettings({...settings, base_location_lng: e.target.value})} style={{ width: '100%', padding: '12px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '8px' }} />
               </div>
+            </div>
 
             <div style={{ marginTop: '16px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '16px' }}>
               <h3 style={{ color: 'var(--accent-gold)', marginBottom: '8px', fontSize: '16px' }}>Facebook Messenger (Бізнес-сторінка)</h3>
