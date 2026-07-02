@@ -127,15 +127,20 @@ export default function AdminPricingPage() {
               </div>
 
             <div style={{ marginTop: '16px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '16px' }}>
-              <h3 style={{ color: 'var(--accent-gold)', marginBottom: '16px', fontSize: '16px' }}>Facebook Messenger</h3>
+              <h3 style={{ color: 'var(--accent-gold)', marginBottom: '8px', fontSize: '16px' }}>Facebook Messenger (Бізнес-сторінка)</h3>
+              <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '16px', lineHeight: '1.4' }}>
+                Щоб підключити Facebook, створіть додаток у <strong>Meta for Developers</strong> (developers.facebook.com). 
+                У налаштуваннях Messenger згенеруйте <em>Page Access Token</em> для вашої сторінки. <br/>
+                Потім у розділі Webhooks вкажіть URL <code>https://ваш-домен/api/webhooks/messenger</code> і впишіть придуманий вами <em>Verify Token</em>.
+              </p>
               <div style={{ display: 'grid', gap: '16px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '8px' }}>Page Access Token</label>
+                  <label style={{ display: 'block', fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '8px' }}>Page Access Token (З кабінету Meta)</label>
                   <input value={settings.facebook_page_token || ''} onChange={e => setSettings({...settings, facebook_page_token: e.target.value})} placeholder="EAAB..." style={{ width: '100%', padding: '12px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '8px' }} />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '8px' }}>Webhook Verify Token (Вигадайте свій)</label>
-                  <input value={settings.facebook_verify_token || ''} onChange={e => setSettings({...settings, facebook_verify_token: e.target.value})} placeholder="my_secret_verify_token" style={{ width: '100%', padding: '12px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '8px' }} />
+                  <label style={{ display: 'block', fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '8px' }}>Webhook Verify Token (Придумайте кодове слово)</label>
+                  <input value={settings.facebook_verify_token || ''} onChange={e => setSettings({...settings, facebook_verify_token: e.target.value})} placeholder="наприклад: vipcar_secret_2026" style={{ width: '100%', padding: '12px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '8px' }} />
                 </div>
               </div>
             </div>
@@ -149,7 +154,12 @@ export default function AdminPricingPage() {
         {/* TELEGRAM MTPROTO LOGIN */}
         <div style={{ backgroundColor: '#080818', padding: '32px', borderRadius: '16px', border: '1px solid rgba(233, 195, 73, 0.3)', marginTop: '24px' }}>
           <h2 style={{ color: 'white', marginBottom: '8px', fontSize: '20px' }}>Особистий Telegram (MTProto)</h2>
-          <p style={{ color: 'var(--text-secondary)', marginBottom: '24px', fontSize: '14px' }}>Підключіть свій особистий акаунт Telegram, щоб відповідати клієнтам прямо з CRM.</p>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '24px', fontSize: '13px', lineHeight: '1.5' }}>
+            Підключіть свій особистий акаунт Telegram, щоб відповідати клієнтам прямо з CRM. <br/>
+            <strong>Інструкція:</strong> Введіть свій номер телефону (з кодом +380) і натисніть "Отримати код". 
+            Вам в офіційний додаток Telegram прийде сервісне повідомлення з кодом. 
+            Впишіть цей код у відповідне поле нижче. Якщо у вас увімкнена двофакторна автентифікація (2FA), також введіть свій хмарний пароль.
+          </p>
           
           <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
             <input id="tg-phone" placeholder="Номер телефону (+380...)" style={{ flex: 1, padding: '12px', backgroundColor: '#13131a', border: '1px solid rgba(255,255,255,0.1)', color: 'white', borderRadius: '8px' }} />
