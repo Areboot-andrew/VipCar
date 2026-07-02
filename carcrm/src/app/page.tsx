@@ -171,7 +171,7 @@ export default async function Home() {
         <section className="max-w-[1280px] mx-auto px-[24px] md:px-[64px] mb-[100px]" id="fleet">
           <h2 className="font-headline-lg text-[40px] md:text-[56px] text-[#e4e2e3] mb-[64px] text-center" dangerouslySetInnerHTML={{ __html: parseAccent(c['fleet_title'], 'Оберіть свій клас') }}></h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[40px]">
-            {cars.map(car => (
+            {cars.slice(0, 6).map(car => (
               <div key={car.id} className="glass-panel rounded-3xl overflow-hidden hover-gold-border transition-all duration-300 group flex flex-col relative border border-white/10">
                 <Link href={`/cars/${car.id}`} className="block h-72 relative overflow-hidden bg-[#1b1b1c]">
                   {car.images[0] ? (
