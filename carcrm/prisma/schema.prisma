@@ -100,6 +100,13 @@ model Booking {
   dateStart   DateTime
   dateEnd     DateTime
   
+  // Financial breakdown
+  fuelCost     Float?
+  driverSalary Float?
+  deliveryCost Float?
+  amortization Float?
+  netProfit    Float?
+  
   passengers  Int           @default(1)
   children    Int           @default(0)
   luggage     String        @default("Немає")

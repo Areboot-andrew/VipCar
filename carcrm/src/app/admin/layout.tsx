@@ -40,6 +40,10 @@ export default function AdminLayout({
             <Users size={20} />
             <span>Клієнти / Водії</span>
           </Link>
+          <Link href="/admin/pricing" className="admin-nav-link">
+            <TicketPercent size={20} />
+            <span>Смарт-Прайсинг</span>
+          </Link>
           <Link href="/admin/promotions" className="admin-nav-link">
             <TicketPercent size={20} />
             <span>Знижки (Empty Legs)</span>
