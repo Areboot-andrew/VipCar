@@ -1,6 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
+import 'react-quill-new/dist/quill.snow.css';
+
+const RichEditor = dynamic(() => import('react-quill-new'), {
+  ssr: false,
+  loading: () => <div className="text-black p-4">Завантаження редактора...</div>
+});
 
 export default function CMSPage() {
   const [content, setContent] = useState<Record<string, string>>({});
@@ -100,11 +107,12 @@ export default function CMSPage() {
                     </div>
                   </>
                 ) : (
-                  <textarea 
-                    value={value} 
-                    onChange={e => handleChange(key, e.target.value)}
-                    className="w-full bg-transparent border border-white/20 rounded-lg p-3 text-white focus:border-[#e9c349] outline-none min-h-[60px]"
-                  />
+                  <div className="bg-white text-black rounded-lg overflow-hidden w-full">
+                    <RichEditor
+                      value={value}
+                      onChange={(val) => handleChange(key, val)}
+                    />
+                  </div>
                 )}
               </div>
               

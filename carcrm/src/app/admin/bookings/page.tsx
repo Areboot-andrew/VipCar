@@ -1,24 +1,28 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Calendar, CheckCircle, XCircle, UserPlus, Car, MessageSquare } from 'lucide-react';
+import { Calendar as CalendarIcon, CheckCircle, XCircle, UserPlus, Car, MessageSquare } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import ChatWidget from '@/components/ChatWidget';
+import DashboardCalendar from '../DashboardCalendar';
 
 export default function AdminBookingsPage() {
   const { data: session } = useSession();
   const [bookings, setBookings] = useState<any[]>([]);
   const [drivers, setDrivers] = useState<any[]>([]);
+  const [cars, setCars] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeChatBookingId, setActiveChatBookingId] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([
       fetch('/api/bookings').then(res => res.json()),
-      fetch('/api/drivers').then(res => res.json())
-    ]).then(([bookingsData, driversData]) => {
+      fetch('/api/drivers').then(res => res.json()),
+      fetch('/api/cars').then(res => res.json())
+    ]).then(([bookingsData, driversData, carsData]) => {
       setBookings(bookingsData);
       setDrivers(driversData);
+      setCars(carsData);
       setLoading(false);
     });
   }, []);
@@ -51,6 +55,8 @@ export default function AdminBookingsPage() {
         <p style={{ color: 'var(--text-secondary)' }}>Переглядайте та обробляйте нові бронювання, призначайте водіїв.</p>
       </div>
 
+      <DashboardCalendar cars={cars} bookings={bookings} />
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '24px' }}>
         {bookings.map(booking => (
           <div key={booking.id} className="glass-panel" style={{ padding: '24px', borderRadius: '12px' }}>
@@ -60,7 +66,7 @@ export default function AdminBookingsPage() {
                   {booking.routeFrom} ➔ {booking.routeTo}
                 </h3>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginTop: '4px' }}>
-                  <Calendar size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
+                  <CalendarIcon size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
                   {new Date(booking.dateStart).toLocaleString('uk-UA')}
                 </p>
               </div>
@@ -117,6 +123,14 @@ export default function AdminBookingsPage() {
                   onChange={(e) => updateBooking(booking.id, { driverNotes: e.target.value })}
                 />
               </div>
+            </div>
+
+            <div style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px', fontSize: '13px', backgroundColor: 'rgba(233,195,73,0.05)', padding: '16px', borderRadius: '8px', border: '1px solid rgba(233,195,73,0.2)' }}>
+              <div><span style={{ color: 'var(--text-secondary)' }}>Вартість:</span> <br/><strong style={{ fontSize: '16px', color: '#fff' }}>€{booking.price?.toFixed(2)}</strong></div>
+              <div><span style={{ color: 'var(--text-secondary)' }}>Пальне:</span> <br/><strong style={{ color: '#ef4444' }}>-€{booking.fuelCost?.toFixed(2) || '0.00'}</strong></div>
+              <div><span style={{ color: 'var(--text-secondary)' }}>ЗП Водія:</span> <br/><strong style={{ color: '#ef4444' }}>-€{booking.driverSalary?.toFixed(2) || '0.00'}</strong></div>
+              <div><span style={{ color: 'var(--text-secondary)' }}>Амортизація:</span> <br/><strong style={{ color: '#ef4444' }}>-€{booking.amortization?.toFixed(2) || '0.00'}</strong></div>
+              <div><span style={{ color: 'var(--text-secondary)' }}>Чистий Прибуток:</span> <br/><strong style={{ fontSize: '16px', color: '#4ade80' }}>€{booking.netProfit?.toFixed(2) || '0.00'}</strong></div>
             </div>
 
             <div style={{ marginTop: '16px', display: 'flex', gap: '12px' }}>
