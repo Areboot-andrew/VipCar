@@ -53,16 +53,30 @@ model User {
   messages      Message[]
 }
 
+model SiteSettings {
+  id              String   @id @default("global")
+  fuelPricePetrol Float    @default(1.6) // Global petrol price (EUR)
+  fuelPriceDiesel Float    @default(1.5) // Global diesel price (EUR)
+  exchangeRate    Float    @default(42.5) // EUR to UAH (will be updated from Minfin)
+  updatedAt       DateTime @updatedAt
+}
+
 model Driver {
-  id            String   @id @default(uuid())
-  userId        String   @unique
-  user          User     @relation(fields: [userId], references: [id])
-  licenseNumber String?
-  salaryRate    Float    @default(50.0) // Daily salary or percentage
-  active        Boolean  @default(true)
+  id          String    @id @default(uuid())
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String    @unique
+  licenseNum  String
+  status      String    @default("ACTIVE")
   
-  bookings      Booking[] @relation("DriverBookings")
-  settlements   Settlement[]
+  // Salary and Perks
+  salaryPerKm Float     @default(0.15) // Driver's salary per km in EUR
+  bonuses     String?   @db.Text // JSON of additional perks
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  bookings    Booking[] @relation("DriverBookings")
+  settlements Settlement[]
 }
 
 model Car {
@@ -76,6 +90,14 @@ model Car {
   fuelConsumptionCity    Float    @default(10.0) // L/100km
   fuelConsumptionHighway Float    @default(7.0)  // L/100km
   status                 String   @default("AVAILABLE") // AVAILABLE, MAINTENANCE, IN_USE
+  
+  // Per-Car Pricing Coefficients
+  pricePerPerson         Float    @default(10.0) // Baggage/extra person
+  crossBorderFee         Float    @default(150.0) // Fee to cross border
+  meetAndGreetFee        Float    @default(20.0)  // Meeting with a sign
+  animalFee              Float    @default(30.0)  // Animal fee
+  childSeatFee           Float    @default(15.0)  // Child seat fee
+
   images          String[] // URLs of images
   videos          String[] // URLs of videos
   description     String?  @db.Text
@@ -86,6 +108,7 @@ model Car {
 
   bookings        Booking[]
   reviews         CarReview[]
+  promotions      Promotion[]
 }
 
 model CarReview {
@@ -165,15 +188,17 @@ model SiteContent {
 }
 
 model Promotion {
-  id          String   @id @default(uuid())
-  title       String
-  description String?
-  discount    Float    // percentage or fixed amount
-  routeFrom   String?
-  routeTo     String?
-  active      Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(uuid())
+  title     String
+  carId     String?  // Optional link to specific car for Empty Legs
+  car       Car?     @relation(fields: [carId], references: [id], onDelete: Cascade)
+  routeFrom String?  // Optional specific route start
+  routeTo   String?  // Optional specific route end
+  dateStart DateTime? // When the empty leg happens
+  discount  Float    // Percentage
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Feedback {
