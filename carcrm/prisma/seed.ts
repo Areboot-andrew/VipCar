@@ -357,6 +357,9 @@ async function ensureUsers() {
       phone: '+380671112233',
       licenseNum: 'BXR123456',
       salaryPerKm: 0.18,
+      salaryPerHour: 14,
+      dailyAllowance: 25,
+      overnightAllowance: 95,
       telegramId: '100100100',
     },
     {
@@ -365,6 +368,9 @@ async function ensureUsers() {
       phone: '+380672224466',
       licenseNum: 'KVL778899',
       salaryPerKm: 0.16,
+      salaryPerHour: 12,
+      dailyAllowance: 20,
+      overnightAllowance: 85,
       telegramId: '200200200',
     },
     {
@@ -373,6 +379,9 @@ async function ensureUsers() {
       phone: '+48501112233',
       licenseNum: 'PL554433',
       salaryPerKm: 0.22,
+      salaryPerHour: 16,
+      dailyAllowance: 30,
+      overnightAllowance: 110,
       telegramId: '300300300',
     },
   ];
@@ -400,6 +409,9 @@ async function ensureUsers() {
       update: {
         licenseNum: item.licenseNum,
         salaryPerKm: item.salaryPerKm,
+        salaryPerHour: item.salaryPerHour,
+        dailyAllowance: item.dailyAllowance,
+        overnightAllowance: item.overnightAllowance,
         telegramId: item.telegramId,
         status: 'ACTIVE',
       },
@@ -407,6 +419,9 @@ async function ensureUsers() {
         userId: driverUser.id,
         licenseNum: item.licenseNum,
         salaryPerKm: item.salaryPerKm,
+        salaryPerHour: item.salaryPerHour,
+        dailyAllowance: item.dailyAllowance,
+        overnightAllowance: item.overnightAllowance,
         telegramId: item.telegramId,
         status: 'ACTIVE',
       },
@@ -497,11 +512,16 @@ async function seedCars(drivers: { id: string }[]) {
         comfortClass: demoCar.comfortClass,
         bodyType: demoCar.bodyType,
         status: 'AVAILABLE',
+        includedPassengers: 1,
         pricePerPerson: demoCar.pricePerPerson,
         crossBorderFee: demoCar.crossBorderFee,
         meetAndGreetFee: demoCar.meetAndGreetFee,
         animalFee: demoCar.animalFee,
         childSeatFee: demoCar.childSeatFee,
+        amortizationPerKm: 0.08,
+        deliveryBaseFee: 20,
+        allowsChildren: true,
+        allowsAnimals: true,
         baseCity: demoCar.baseCity,
         description: demoCar.description,
         features: JSON.stringify(demoCar.features),
@@ -527,11 +547,16 @@ async function seedCars(drivers: { id: string }[]) {
         comfortClass: demoCar.comfortClass,
         bodyType: demoCar.bodyType,
         status: 'AVAILABLE',
+        includedPassengers: 1,
         pricePerPerson: demoCar.pricePerPerson,
         crossBorderFee: demoCar.crossBorderFee,
         meetAndGreetFee: demoCar.meetAndGreetFee,
         animalFee: demoCar.animalFee,
         childSeatFee: demoCar.childSeatFee,
+        amortizationPerKm: 0.08,
+        deliveryBaseFee: 20,
+        allowsChildren: true,
+        allowsAnimals: true,
         baseCity: demoCar.baseCity,
         description: demoCar.description,
         features: JSON.stringify(demoCar.features),
@@ -648,25 +673,31 @@ async function clearDemoBookings() {
   console.log(`Removed old demo bookings: ${bookingIds.length}`);
 }
 
-function calculateDemoCosts(car: any, driver: any, distance: number, deliveryDistance: number, options: { children?: number; animals?: boolean; crossBorder?: boolean; meet?: boolean; extraPassengers?: number }) {
+function calculateDemoCosts(car: any, driver: any, distance: number, deliveryDistance: number, durationHours: number, options: { children?: number; childSeats?: number; petsCount?: number; crossBorder?: boolean; meet?: boolean; extraPassengers?: number }) {
   const cityKm = distance * 0.3;
   const highwayKm = distance * 0.7;
   const liters = (cityKm / 100) * car.fuelConsumptionCity + (highwayKm / 100) * car.fuelConsumptionHighway;
   const fuelPrice = car.fuelType === 'Дизель' ? 1.58 : car.fuelType === 'Електро' ? 0.48 : 1.55;
   const fuelCost = money(liters * fuelPrice);
-  const driverSalary = money((distance + deliveryDistance) * (driver.salaryPerKm || 0.18));
-  const deliveryCost = money(deliveryDistance * 1.1);
-  const amortization = money(distance * 0.08);
+  const customsWaitHours = options.crossBorder ? 1.5 : 0;
+  const billableHours = money((durationHours / 0.9) + customsWaitHours);
+  const driverSalary = money((distance + deliveryDistance) * (driver.salaryPerKm || 0.18) + billableHours * (driver.salaryPerHour || 12));
+  const deliveryCost = money(20 + deliveryDistance * 1.1);
+  const amortization = money((distance + deliveryDistance) * 0.08);
+  const timeCost = 0;
+  const hotelCost = billableHours > 10 ? money(driver.overnightAllowance || 90) : 0;
   const optionCost =
-    (options.children || 0) * car.childSeatFee +
-    (options.animals ? car.animalFee : 0) +
+    (options.childSeats || options.children || 0) * car.childSeatFee +
+    (options.petsCount || 0) * car.animalFee +
     (options.crossBorder ? car.crossBorderFee : 0) +
     (options.meet ? car.meetAndGreetFee : 0) +
     (options.extraPassengers || 0) * car.pricePerPerson;
-  const netProfit = money(distance * car.baseRate * 0.28);
-  const price = money(fuelCost + driverSalary + deliveryCost + amortization + optionCost + netProfit);
+  const routeBasePrice = distance * car.baseRate;
+  const internalCost = fuelCost + driverSalary + deliveryCost + amortization + hotelCost;
+  const price = money(Math.max(routeBasePrice + optionCost + deliveryCost, internalCost * 1.25 + optionCost));
+  const netProfit = money(price - internalCost);
 
-  return { fuelCost, driverSalary, deliveryCost, amortization, netProfit, price };
+  return { fuelCost, driverSalary, deliveryCost, amortization, timeCost, hotelCost, surcharges: money(optionCost), netProfit, price, customsWaitHours, billableHours };
 }
 
 async function seedBookings(cars: any[], drivers: any[], clients: any[]) {
@@ -711,7 +742,7 @@ async function seedBookings(cars: any[], drivers: any[], clients: any[]) {
       animals: false,
       status: 'PENDING' as const,
       invoiceStatus: 'UNPAID' as const,
-      options: { children: 1, meet: true, extraPassengers: 4 },
+      options: { children: 1, childSeats: 1, meet: true, extraPassengers: 4 },
       driverNotes: 'Табличка First Line Transfer, дитяче крісло в салоні.',
     },
     {
@@ -731,7 +762,7 @@ async function seedBookings(cars: any[], drivers: any[], clients: any[]) {
       animals: true,
       status: 'CONFIRMED' as const,
       invoiceStatus: 'PAID' as const,
-      options: { animals: true, crossBorder: true },
+      options: { petsCount: 1, crossBorder: true },
       driverNotes: 'Клієнт їде з маленькою собакою, підготувати плед.',
     },
     {
@@ -751,7 +782,7 @@ async function seedBookings(cars: any[], drivers: any[], clients: any[]) {
       animals: false,
       status: 'PENDING' as const,
       invoiceStatus: 'UNPAID' as const,
-      options: { children: 2, extraPassengers: 9 },
+      options: { children: 2, childSeats: 2, extraPassengers: 9 },
       driverNotes: 'Група з лижами. Перевірити багажний простір перед подачею.',
     },
     {
@@ -777,8 +808,9 @@ async function seedBookings(cars: any[], drivers: any[], clients: any[]) {
   ];
 
   for (const item of bookings) {
-    const costs = calculateDemoCosts(item.car, item.driver, item.distance, item.deliveryDistance, item.options);
+    const costs = calculateDemoCosts(item.car, item.driver, item.distance, item.deliveryDistance, item.durationHours, item.options);
     const dateEnd = addHours(item.dateStart, item.durationHours);
+    const carDispatchAt = addHours(item.dateStart, -0.75);
     const booking = await prisma.booking.create({
       data: {
         clientId: item.client.id,
@@ -791,22 +823,45 @@ async function seedBookings(cars: any[], drivers: any[], clients: any[]) {
         price: costs.price,
         dateStart: item.dateStart,
         dateEnd,
+        desiredArrivalAt: dateEnd,
+        pickupAt: item.dateStart,
+        carDispatchAt,
+        estimatedArrivalAt: dateEnd,
+        routeDurationMins: Math.round(item.durationHours * 60),
+        deliveryDurationMins: Math.round((item.deliveryDistance / 55) * 60),
+        prepBufferMins: 30,
+        customsWaitHours: costs.customsWaitHours,
+        manualWaitingHours: 0,
+        trafficBufferPercent: 10,
+        billableHours: costs.billableHours,
         fuelCost: costs.fuelCost,
         driverSalary: costs.driverSalary,
         deliveryCost: costs.deliveryCost,
         deliveryDistance: item.deliveryDistance,
         amortization: costs.amortization,
+        timeCost: costs.timeCost,
+        hotelCost: costs.hotelCost,
+        surcharges: costs.surcharges,
         netProfit: costs.netProfit,
         passengers: item.passengers,
         children: item.children,
+        childSeats: item.options.childSeats || item.children || 0,
         luggage: item.luggage,
         animals: item.animals,
+        petsCount: item.options.petsCount || (item.animals ? 1 : 0),
         status: item.status,
         notes: `${demoBookingMarker} Demo route for calculator/calendar testing.`,
         driverNotes: item.driverNotes,
         carStartLocation: item.car.baseCity || 'Львів',
         expenseDeliveryDistance: item.deliveryDistance,
         totalExpenseDistance: item.distance + item.deliveryDistance,
+        pricingSnapshot: {
+          demo: true,
+          customsWaitHours: costs.customsWaitHours,
+          billableHours: costs.billableHours,
+          deliveryDistance: item.deliveryDistance,
+          internalCost: money(costs.fuelCost + costs.driverSalary + costs.deliveryCost + costs.amortization + costs.hotelCost),
+        },
         isEndingAtBase: false,
         returnToBaseDistance: Math.round(item.distance * 0.12),
       },

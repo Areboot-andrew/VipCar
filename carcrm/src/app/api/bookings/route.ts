@@ -10,9 +10,13 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { 
-      name, phone, email, password, routeFrom, routeTo, distance, price, dateStart, dateEnd, carId,
-      passengers, children, luggage, animals,
-      fuelCost, driverSalary, deliveryCost, deliveryDistance, amortization, netProfit
+      name, phone, email, password, routeFrom, routeTo, routeCountries, distance, price, dateStart, dateEnd, carId,
+      passengers, children, childSeats, luggage, animals, petsCount,
+      fuelCost, driverSalary, deliveryCost, deliveryDistance, deliveryDurationMins, amortization,
+      timeCost, hotelCost, surcharges, netProfit,
+      desiredArrivalAt, pickupAt, carDispatchAt, estimatedArrivalAt,
+      routeDurationMins, prepBufferMins, customsWaitHours, manualWaitingHours,
+      trafficBufferPercent, billableHours, totalExpenseDistance, pricingSnapshot
     } = body;
 
     const rawPassword = password || Math.random().toString(36).slice(-8);
@@ -37,20 +41,39 @@ export async function POST(request: Request) {
         carId,
         routeFrom,
         routeTo,
+        routeCountries: Array.isArray(routeCountries) ? routeCountries : [],
         distance: Number(distance),
         price: Number(price),
         dateStart: new Date(dateStart),
         dateEnd: new Date(dateEnd),
+        desiredArrivalAt: desiredArrivalAt ? new Date(desiredArrivalAt) : null,
+        pickupAt: pickupAt ? new Date(pickupAt) : new Date(dateStart),
+        carDispatchAt: carDispatchAt ? new Date(carDispatchAt) : null,
+        estimatedArrivalAt: estimatedArrivalAt ? new Date(estimatedArrivalAt) : new Date(dateEnd),
+        routeDurationMins: Number(routeDurationMins || 0),
+        deliveryDurationMins: Number(deliveryDurationMins || 0),
+        prepBufferMins: Number(prepBufferMins || 30),
+        customsWaitHours: Number(customsWaitHours || 0),
+        manualWaitingHours: Number(manualWaitingHours || 0),
+        trafficBufferPercent: Number(trafficBufferPercent || 10),
+        billableHours: Number(billableHours || 0),
         passengers: Number(passengers),
         children: Number(children),
+        childSeats: Number(childSeats || children || 0),
         luggage,
         animals: Boolean(animals),
+        petsCount: Number(petsCount || (animals ? 1 : 0)),
         fuelCost: Number(fuelCost || 0),
         driverSalary: Number(driverSalary || 0),
         deliveryCost: Number(deliveryCost || 0),
         deliveryDistance: Number(deliveryDistance || 0),
         amortization: Number(amortization || 0),
+        timeCost: Number(timeCost || 0),
+        hotelCost: Number(hotelCost || 0),
+        surcharges: Number(surcharges || 0),
         netProfit: Number(netProfit || 0),
+        totalExpenseDistance: Number(totalExpenseDistance || Number(distance) + Number(deliveryDistance || 0)),
+        pricingSnapshot: pricingSnapshot || undefined,
         status: 'PENDING'
       }
     });

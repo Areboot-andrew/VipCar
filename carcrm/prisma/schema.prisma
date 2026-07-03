@@ -71,6 +71,9 @@ model Driver {
   
   // Salary and Perks
   salaryPerKm Float     @default(0.15) // Driver's salary per km in EUR
+  salaryPerHour Float   @default(12.0) // Driver's billable working hour in EUR
+  dailyAllowance Float  @default(0.0)
+  overnightAllowance Float @default(90.0)
   bonuses     String?   @db.Text // JSON of additional perks
 
   createdAt   DateTime  @default(now())
@@ -101,11 +104,16 @@ model Car {
   status                 String   @default("AVAILABLE") // AVAILABLE, MAINTENANCE, IN_USE
   
   // Per-Car Pricing Coefficients
+  includedPassengers    Int      @default(1)
   pricePerPerson         Float    @default(10.0) // Baggage/extra person
   crossBorderFee         Float    @default(150.0) // Fee to cross border
   meetAndGreetFee        Float    @default(20.0)  // Meeting with a sign
   animalFee              Float    @default(30.0)  // Animal fee
   childSeatFee           Float    @default(15.0)  // Child seat fee
+  amortizationPerKm      Float    @default(0.08)
+  deliveryBaseFee        Float    @default(0.0)
+  allowsChildren         Boolean  @default(true)
+  allowsAnimals          Boolean  @default(true)
 
   // Зображення та опис
   images          String[] // URLs of images
@@ -179,6 +187,17 @@ model Booking {
   price       Float         // calculated price
   dateStart   DateTime
   dateEnd     DateTime
+  desiredArrivalAt DateTime?
+  pickupAt          DateTime?
+  carDispatchAt     DateTime?
+  estimatedArrivalAt DateTime?
+  routeDurationMins Int      @default(0)
+  deliveryDurationMins Int   @default(0)
+  prepBufferMins    Int      @default(30)
+  customsWaitHours  Float    @default(0)
+  manualWaitingHours Float   @default(0)
+  trafficBufferPercent Float @default(10)
+  billableHours     Float    @default(0)
   
   // Financial breakdown
   fuelCost     Float?
@@ -186,12 +205,18 @@ model Booking {
   deliveryCost Float?
   deliveryDistance Float @default(0) // km to deliver car to client
   amortization Float?
+  timeCost     Float?
+  hotelCost    Float?
+  surcharges   Float?
   netProfit    Float?
+  pricingSnapshot Json?
   
   passengers  Int           @default(1)
   children    Int           @default(0)
+  childSeats   Int           @default(0)
   luggage     String        @default("Немає")
   animals     Boolean       @default(false)
+  petsCount    Int           @default(0)
   
   status      BookingStatus @default(PENDING)
   notes       String?

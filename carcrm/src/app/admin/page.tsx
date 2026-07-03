@@ -35,6 +35,10 @@ export default async function AdminDashboardPage() {
     ...b,
     dateStart: b.dateStart.toISOString(),
     dateEnd: b.dateEnd.toISOString(),
+    desiredArrivalAt: b.desiredArrivalAt?.toISOString() || null,
+    pickupAt: b.pickupAt?.toISOString() || null,
+    carDispatchAt: b.carDispatchAt?.toISOString() || null,
+    estimatedArrivalAt: b.estimatedArrivalAt?.toISOString() || null,
   }));
 
   return (

@@ -21,6 +21,16 @@ const CONTENT_SETTING_KEYS = [
   'whatsapp_business_account_id',
   'whatsapp_access_token',
   'whatsapp_verify_token',
+  'pricing_delivery_rate',
+  'pricing_delivery_base_fee',
+  'pricing_customs_wait_hours',
+  'pricing_manual_waiting_hours',
+  'pricing_prep_buffer_mins',
+  'pricing_traffic_buffer_percent',
+  'pricing_time_rate_per_hour',
+  'pricing_hotel_after_hours',
+  'pricing_hotel_cost_per_night',
+  'pricing_min_margin_percent',
 ];
 
 export async function GET() {

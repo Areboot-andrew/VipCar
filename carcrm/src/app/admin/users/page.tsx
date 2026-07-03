@@ -13,6 +13,9 @@ type User = {
   driver?: {
     licenseNum: string;
     salaryPerKm: number;
+    salaryPerHour: number;
+    dailyAllowance: number;
+    overnightAllowance: number;
     telegramId?: string | null;
     status?: string;
   } | null;
@@ -30,7 +33,7 @@ export default function UsersAdminPage() {
   const [chats, setChats] = useState<ChatRoom[]>([]);
   const [loading, setLoading] = useState(true);
   const [passwordDrafts, setPasswordDrafts] = useState<Record<string, string>>({});
-  const [driverDrafts, setDriverDrafts] = useState<Record<string, { salaryPerKm: string; telegramId: string; licenseNum: string; status: string }>>({});
+  const [driverDrafts, setDriverDrafts] = useState<Record<string, { salaryPerKm: string; salaryPerHour: string; dailyAllowance: string; overnightAllowance: string; telegramId: string; licenseNum: string; status: string }>>({});
   const [notice, setNotice] = useState("");
 
   const fetchChats = async () => {
@@ -54,12 +57,15 @@ export default function UsersAdminPage() {
         const drafts = data.reduce((acc, user) => {
           acc[user.id] = {
             salaryPerKm: String(user.driver?.salaryPerKm ?? 0.15),
+            salaryPerHour: String(user.driver?.salaryPerHour ?? 12),
+            dailyAllowance: String(user.driver?.dailyAllowance ?? 0),
+            overnightAllowance: String(user.driver?.overnightAllowance ?? 90),
             telegramId: user.driver?.telegramId || "",
             licenseNum: user.driver?.licenseNum || "NEW_DRIVER",
             status: user.driver?.status || "ACTIVE",
           };
           return acc;
-        }, {} as Record<string, { salaryPerKm: string; telegramId: string; licenseNum: string; status: string }>);
+        }, {} as Record<string, { salaryPerKm: string; salaryPerHour: string; dailyAllowance: string; overnightAllowance: string; telegramId: string; licenseNum: string; status: string }>);
         setDriverDrafts(drafts);
       }
     } catch (err) {
@@ -103,11 +109,11 @@ export default function UsersAdminPage() {
     }
   };
 
-  const updateDriverDraft = (userId: string, key: "salaryPerKm" | "telegramId" | "licenseNum" | "status", value: string) => {
+  const updateDriverDraft = (userId: string, key: "salaryPerKm" | "salaryPerHour" | "dailyAllowance" | "overnightAllowance" | "telegramId" | "licenseNum" | "status", value: string) => {
     setDriverDrafts((prev) => ({
       ...prev,
       [userId]: {
-        ...(prev[userId] || { salaryPerKm: "0.15", telegramId: "", licenseNum: "NEW_DRIVER", status: "ACTIVE" }),
+        ...(prev[userId] || { salaryPerKm: "0.15", salaryPerHour: "12", dailyAllowance: "0", overnightAllowance: "90", telegramId: "", licenseNum: "NEW_DRIVER", status: "ACTIVE" }),
         [key]: value,
       },
     }));
@@ -122,6 +128,9 @@ export default function UsersAdminPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         salaryPerKm: Number(draft?.salaryPerKm || 0),
+        salaryPerHour: Number(draft?.salaryPerHour || 0),
+        dailyAllowance: Number(draft?.dailyAllowance || 0),
+        overnightAllowance: Number(draft?.overnightAllowance || 0),
         telegramId: draft?.telegramId || "",
         licenseNum: draft?.licenseNum || "NEW_DRIVER",
         status: draft?.status || "ACTIVE",
@@ -159,7 +168,7 @@ export default function UsersAdminPage() {
           </thead>
           <tbody>
             {users.map((user) => {
-              const driverDraft = driverDrafts[user.id] || { salaryPerKm: "0.15", telegramId: "", licenseNum: "NEW_DRIVER", status: "ACTIVE" };
+              const driverDraft = driverDrafts[user.id] || { salaryPerKm: "0.15", salaryPerHour: "12", dailyAllowance: "0", overnightAllowance: "90", telegramId: "", licenseNum: "NEW_DRIVER", status: "ACTIVE" };
               return (
                 <tr key={user.id} className="border-b border-white/5 align-top hover:bg-white/[0.03]">
                   <td className="p-4">
@@ -222,6 +231,30 @@ export default function UsersAdminPage() {
                             onChange={(event) => updateDriverDraft(user.id, "salaryPerKm", event.target.value)}
                             className="h-10 rounded-lg border border-white/10 bg-[#080818] px-3 text-white outline-none focus:border-[#e9c349]/60"
                             placeholder="EUR/км"
+                          />
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={driverDraft.salaryPerHour}
+                            onChange={(event) => updateDriverDraft(user.id, "salaryPerHour", event.target.value)}
+                            className="h-10 rounded-lg border border-white/10 bg-[#080818] px-3 text-white outline-none focus:border-[#e9c349]/60"
+                            placeholder="EUR/год"
+                          />
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={driverDraft.overnightAllowance}
+                            onChange={(event) => updateDriverDraft(user.id, "overnightAllowance", event.target.value)}
+                            className="h-10 rounded-lg border border-white/10 bg-[#080818] px-3 text-white outline-none focus:border-[#e9c349]/60"
+                            placeholder="Нічліг EUR"
+                          />
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={driverDraft.dailyAllowance}
+                            onChange={(event) => updateDriverDraft(user.id, "dailyAllowance", event.target.value)}
+                            className="h-10 rounded-lg border border-white/10 bg-[#080818] px-3 text-white outline-none focus:border-[#e9c349]/60"
+                            placeholder="Добові EUR"
                           />
                         </div>
                         <div className="grid grid-cols-[1fr_auto] gap-2">

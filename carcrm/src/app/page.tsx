@@ -33,7 +33,10 @@ const toHighlightedText = (text: string | undefined, defaultText: string = '') =
 export default async function Home() {
   const cars = await prisma.car.findMany({
     where: { status: 'AVAILABLE' },
-    include: { media: { where: { active: true }, orderBy: [{ isCover: 'desc' }, { order: 'asc' }] } },
+    include: {
+      media: { where: { active: true }, orderBy: [{ isCover: 'desc' }, { order: 'asc' }] },
+      defaultDriver: true,
+    },
   });
   
   const siteSettings = await prisma.siteSettings.findUnique({ where: { id: 'global' } });

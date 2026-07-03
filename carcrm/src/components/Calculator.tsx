@@ -21,7 +21,7 @@ type Car = {
   images: string[];
 };
 
-import { calculateSmartFuelCost } from '../lib/fuelCalculator';
+import { calculateTripPricing, type TripPricingResult } from '../lib/pricingEngine';
 
 export default function Calculator({ cars, cmsSettings, siteSettings, globalCurrencies = [], globalFuelPrices = [] }: { cars: any[], cmsSettings?: Record<string, string>, siteSettings?: any, globalCurrencies?: any[], globalFuelPrices?: any[] }) {
   const searchParams = useSearchParams();
@@ -46,7 +46,18 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
     amortization: 0,
     deliveryCost: 0,
     deliveryDistance: 0,
-    netProfit: 0
+    deliveryDurationMins: 0,
+    timeCost: 0,
+    hotelCost: 0,
+    surcharges: 0,
+    netProfit: 0,
+    billableHours: 0,
+    customsWaitHours: 0,
+    manualWaitingHours: 0,
+    trafficBufferPercent: 10,
+    prepBufferMins: 30,
+    totalExpenseDistance: 0,
+    pricingSnapshot: {} as Record<string, unknown>,
   });
 
   const fuelPricePetrol = siteSettings?.fuelPricePetrol || 1.6;
@@ -56,15 +67,25 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
   // Fallbacks for older things that aren't per-car yet
   const amortizationRate = parseFloat(cmsSettings?.['amortization_rate'] || '0.05');
   const marginRate = parseFloat(cmsSettings?.['margin_rate'] || '0.2');
-  const deliveryRate = parseFloat(cmsSettings?.['delivery_rate'] || '15');
+  const deliveryRate = parseFloat(cmsSettings?.['pricing_delivery_rate'] || '1.1');
+  const deliveryBaseFee = parseFloat(cmsSettings?.['pricing_delivery_base_fee'] || '20');
+  const defaultCustomsWaitHours = parseFloat(cmsSettings?.['pricing_customs_wait_hours'] || '1.5');
+  const manualWaitingHours = parseFloat(cmsSettings?.['pricing_manual_waiting_hours'] || '0');
+  const prepBufferMins = parseInt(cmsSettings?.['pricing_prep_buffer_mins'] || '30', 10);
+  const trafficBufferPercent = parseFloat(cmsSettings?.['pricing_traffic_buffer_percent'] || '10');
+  const timeRatePerHour = parseFloat(cmsSettings?.['pricing_time_rate_per_hour'] || '0');
+  const hotelAfterHours = parseFloat(cmsSettings?.['pricing_hotel_after_hours'] || '10');
+  const hotelCostPerNight = parseFloat(cmsSettings?.['pricing_hotel_cost_per_night'] || '90');
+  const minMarginPercent = parseFloat(cmsSettings?.['pricing_min_margin_percent'] || '0.25');
   const baseLocationLat = parseFloat(cmsSettings?.['base_location_lat'] || '49.8397');
   const baseLocationLng = parseFloat(cmsSettings?.['base_location_lng'] || '24.0297');
   const weekendCoeff = parseFloat(cmsSettings?.['weekend_coefficient'] || '1.2');
 
   const [passengers, setPassengers] = useState('1');
   const [children, setChildren] = useState('0');
+  const [childSeats, setChildSeats] = useState('0');
   const [luggage, setLuggage] = useState('Немає');
-  const [animals, setAnimals] = useState('Ні');
+  const [petsCount, setPetsCount] = useState('0');
   const [meetAndGreet, setMeetAndGreet] = useState(false);
 
   const [originSearch, setOriginSearch] = useState('');
@@ -92,7 +113,7 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
 
   const [excludeIntervals, setExcludeIntervals] = useState<{start: Date, end: Date}[]>([]);
 
-  const requiredCapacity = Number(passengers) + Number(children) * 1.5;
+  const requiredCapacity = Number(passengers) + Number(children);
   const selectedCar = cars.find(c => c.id === selectedCarId);
 
   useEffect(() => {
@@ -151,155 +172,101 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
     }
   }, [originObj, destObj]);
 
+  const getRouteCountries = () => {
+    const countries: string[] = [];
+    if (originObj?.address?.country) countries.push(originObj.address.country);
+    if (destObj?.address?.country && destObj.address.country !== originObj?.address?.country) {
+      countries.push(destObj.address.country);
+    }
+    return countries;
+  };
+
+  const getCarForPricing = (car: any) => ({
+    ...car,
+    baseLat: car.baseLat ?? baseLocationLat,
+    baseLng: car.baseLng ?? baseLocationLng,
+  });
+
+  const getPricingForCar = (car: any): TripPricingResult => calculateTripPricing({
+    car: getCarForPricing(car),
+    distance,
+    distanceCity,
+    distanceHighway,
+    durationMins,
+    routeCountries: getRouteCountries(),
+    origin: originObj ? { lat: originObj.lat, lng: originObj.lng } : null,
+    arrivalDate,
+    crossBorder,
+    meetAndGreet,
+    passengers: Number(passengers),
+    children: Number(children),
+    childSeats: Number(childSeats),
+    petsCount: Number(petsCount),
+    withDriver,
+    discountPercent,
+    globalFuelPrices,
+    settings: {
+      fuelPricePetrol,
+      fuelPriceDiesel,
+      amortizationRate,
+      marginRate,
+      deliveryRate,
+      deliveryBaseFee,
+      defaultCustomsWaitHours,
+      manualWaitingHours,
+      prepBufferMins,
+      trafficBufferPercent,
+      timeRatePerHour,
+      hotelAfterHours,
+      hotelCostPerNight,
+      minMarginPercent,
+      weekendCoeff,
+      forceWeekend: isWeekend,
+    },
+  });
+
   const calculatePriceForCar = (car: any) => {
     if (distance === 0) return 0;
-    
-    const litersCity = (distanceCity / 100) * car.fuelConsumptionCity;
-    const litersHighway = (distanceHighway / 100) * car.fuelConsumptionHighway;
-    const totalLiters = litersCity + litersHighway;
-    const fuelPrice = car.fuelType === 'Дизель' ? fuelPriceDiesel : fuelPricePetrol;
-    const fuelCostEur = totalLiters * fuelPrice;
-    
-    let calcDeliveryDist = 0;
-    if (originObj) {
-      const R = 6371; // km
-      const dLat = (originObj.lat - baseLocationLat) * Math.PI / 180;
-      const dLon = (originObj.lng - baseLocationLng) * Math.PI / 180;
-      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(baseLocationLat * Math.PI / 180) * Math.cos(originObj.lat * Math.PI / 180) *
-                Math.sin(dLon/2) * Math.sin(dLon/2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      calcDeliveryDist = Math.ceil(R * c * 1.3); // * 1.3 to approximate road distance
-    }
-
-    // Driver salary should include delivery distance (pure km)
-    const costDriver = (distance + calcDeliveryDist) * 0.15; 
-    const costAmortization = distance * amortizationRate;
-    
-    const costDelivery = calcDeliveryDist * deliveryRate;
-    const netProfit = distance * marginRate;
-
-    let currentPrice = fuelCostEur + costDriver + costAmortization + costDelivery + netProfit;
-    
-    // Per-car coefficients
-    if (crossBorder) currentPrice += (car.crossBorderFee || 150);
-    if (meetAndGreet) currentPrice += (car.meetAndGreetFee || 20);
-    currentPrice += parseInt(children) * (car.childSeatFee || 15);
-    if (animals === 'Так') currentPrice += (car.animalFee || 30);
-    
-    // For baggage / extra persons: calculate how many extra people above 1 there are.
-    const extraPassengers = Math.max(0, parseInt(passengers) - 1);
-    currentPrice += extraPassengers * (car.pricePerPerson || 10);
-
-    let isWeekendReal = false;
-    if (arrivalDate) {
-      const day = arrivalDate.getDay();
-      if (day === 0 || day === 6) isWeekendReal = true;
-    }
-    if (isWeekendReal || isWeekend) {
-      currentPrice *= weekendCoeff;
-    }
-
-    if (!withDriver) currentPrice *= 0.6; // 40% off if no driver
-    if (discountPercent > 0) {
-      currentPrice *= (1 - discountPercent / 100);
-    }
-    
-    return Math.round(currentPrice);
+    return getPricingForCar(car).price;
   };
 
   useEffect(() => {
     const selectedCar = cars.find(c => c.id === selectedCarId);
     if (!selectedCar) return;
 
-    const routeCountries = [];
-    if (originObj?.address?.country) routeCountries.push(originObj.address.country);
-    if (destObj?.address?.country && destObj.address.country !== originObj?.address?.country) {
-      routeCountries.push(destObj.address.country);
-    }
-
-    const avgConsumption = ((distanceCity / distance) * selectedCar.fuelConsumptionCity) + ((distanceHighway / distance) * selectedCar.fuelConsumptionHighway);
-
-    const fuelCalc = calculateSmartFuelCost({
-      totalDistance: distance,
-      fuelConsumption: avgConsumption || 8.0,
-      fuelTankVolume: selectedCar.fuelTankVolume || 60.0,
-      fuelType: selectedCar.fuelType,
-      routeCountries: routeCountries,
-      globalFuelPrices: globalFuelPrices
-    });
-
-    // Fallback if no prices found for route
-    const fuelCostEur = fuelCalc.totalFuelCostEur > 0 
-      ? fuelCalc.totalFuelCostEur 
-      : ((distanceCity / 100) * selectedCar.fuelConsumptionCity + (distanceHighway / 100) * selectedCar.fuelConsumptionHighway) * (selectedCar.fuelType === 'Дизель' ? fuelPriceDiesel : fuelPricePetrol);
-
-    // Calculate delivery distance
-    let calcDeliveryDist = 0;
-    if (originObj) {
-      const R = 6371;
-      const dLat = (originObj.lat - baseLocationLat) * Math.PI / 180;
-      const dLon = (originObj.lng - baseLocationLng) * Math.PI / 180;
-      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(baseLocationLat * Math.PI / 180) * Math.cos(originObj.lat * Math.PI / 180) *
-                Math.sin(dLon/2) * Math.sin(dLon/2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      calcDeliveryDist = Math.ceil(R * c * 1.3);
-    }
-
-    const costDriver = (distance + calcDeliveryDist) * 0.15;
-    const costAmortization = distance * amortizationRate;
-    const costDelivery = calcDeliveryDist * deliveryRate;
-    const netProfit = distance * marginRate;
-
-    // Total final price based on actual profitability formula
-    let currentPrice = fuelCostEur + costDriver + costAmortization + costDelivery + netProfit;
-    
-    if (crossBorder) currentPrice += (selectedCar.crossBorderFee || 150);
-    if (meetAndGreet) currentPrice += (selectedCar.meetAndGreetFee || 20);
-    currentPrice += parseInt(children) * (selectedCar.childSeatFee || 15);
-    if (animals === 'Так') currentPrice += (selectedCar.animalFee || 30);
-    
-    const extraPassengers = Math.max(0, parseInt(passengers) - 1);
-    currentPrice += extraPassengers * (selectedCar.pricePerPerson || 10);
-    
-    let isWeekendReal = false;
-    if (arrivalDate) {
-      const day = arrivalDate.getDay();
-      if (day === 0 || day === 6) isWeekendReal = true;
-    }
-    if (isWeekendReal || isWeekend) {
-      currentPrice *= weekendCoeff;
-    }
-    if (!withDriver) currentPrice *= 0.6; // 40% off if no driver
-
-    if (discountPercent > 0) {
-      currentPrice *= (1 - discountPercent / 100);
-    }
-    
-    setPrice(Math.round(currentPrice));
+    const pricing = getPricingForCar(selectedCar);
+    setPrice(pricing.price);
+    setPickupTime(pricing.pickupAt);
     
     setExpenseSnapshot({
-      fuelCost: fuelCostEur,
-      driverSalary: costDriver,
-      amortization: costAmortization,
-      deliveryCost: costDelivery,
-      deliveryDistance: calcDeliveryDist,
-      netProfit: netProfit
+      fuelCost: pricing.fuelCost,
+      driverSalary: pricing.driverSalary,
+      amortization: pricing.amortization,
+      deliveryCost: pricing.deliveryCost,
+      deliveryDistance: pricing.deliveryDistance,
+      deliveryDurationMins: pricing.deliveryDurationMins,
+      timeCost: pricing.timeCost,
+      hotelCost: pricing.hotelCost,
+      surcharges: pricing.surcharges,
+      netProfit: pricing.netProfit,
+      billableHours: pricing.billableHours,
+      customsWaitHours: pricing.customsWaitHours,
+      manualWaitingHours: pricing.manualWaitingHours,
+      trafficBufferPercent: pricing.trafficBufferPercent,
+      prepBufferMins: pricing.prepBufferMins,
+      totalExpenseDistance: pricing.totalExpenseDistance,
+      pricingSnapshot: pricing.pricingSnapshot,
     });
-  }, [distanceCity, distanceHighway, distance, selectedCarId, crossBorder, isWeekend, arrivalDate, withDriver, discountPercent, cars, fuelPricePetrol, fuelPriceDiesel, eurToUahRate, weekendCoeff, children, luggage, animals, meetAndGreet, passengers, originObj, baseLocationLat, baseLocationLng, amortizationRate, deliveryRate, marginRate]);
+  }, [distanceCity, distanceHighway, distance, durationMins, selectedCarId, crossBorder, isWeekend, arrivalDate, withDriver, discountPercent, cars, fuelPricePetrol, fuelPriceDiesel, weekendCoeff, children, childSeats, petsCount, meetAndGreet, passengers, originObj, destObj, baseLocationLat, baseLocationLng, amortizationRate, deliveryRate, deliveryBaseFee, defaultCustomsWaitHours, manualWaitingHours, prepBufferMins, trafficBufferPercent, timeRatePerHour, hotelAfterHours, hotelCostPerNight, minMarginPercent, marginRate, globalFuelPrices]);
 
   // manual distance change removed because the map auto-calculates it
 
   // Calculate pickup time and double-check availability on backend
   useEffect(() => {
-    if (!arrivalDate || durationMins === 0) return;
-    
-    const bufferMins = crossBorder ? 60 : 30;
-    const totalSubtractMins = durationMins + bufferMins;
-    
-    const calculatedPickup = new Date(arrivalDate.getTime() - totalSubtractMins * 60000);
-    setPickupTime(calculatedPickup);
+    if (!arrivalDate || durationMins === 0 || !selectedCar) return;
+    const pricing = getPricingForCar(selectedCar);
+    const calculatedPickup = pricing.pickupAt;
+    if (!calculatedPickup) return;
 
     const checkAvailability = async () => {
       setAvailabilityStatus('checking');
@@ -322,7 +289,7 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
     };
 
     checkAvailability();
-  }, [arrivalDate, durationMins, crossBorder, selectedCarId]);
+  }, [arrivalDate, durationMins, crossBorder, selectedCarId, selectedCar, expenseSnapshot.customsWaitHours]);
 
   const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -347,14 +314,33 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
           carId: selectedCarId,
           passengers: Number(passengers),
           children: Number(children),
+          childSeats: Number(childSeats),
           luggage: luggage,
-          animals: animals === 'Так',
+          animals: Number(petsCount) > 0,
+          petsCount: Number(petsCount),
           fuelCost: expenseSnapshot.fuelCost,
           driverSalary: expenseSnapshot.driverSalary,
           deliveryCost: expenseSnapshot.deliveryCost,
           deliveryDistance: expenseSnapshot.deliveryDistance,
+          deliveryDurationMins: expenseSnapshot.deliveryDurationMins,
           amortization: expenseSnapshot.amortization,
-          netProfit: expenseSnapshot.netProfit
+          timeCost: expenseSnapshot.timeCost,
+          hotelCost: expenseSnapshot.hotelCost,
+          surcharges: expenseSnapshot.surcharges,
+          netProfit: expenseSnapshot.netProfit,
+          desiredArrivalAt: arrivalDate.toISOString(),
+          pickupAt: pickupTime.toISOString(),
+          carDispatchAt: new Date(pickupTime.getTime() - (expenseSnapshot.deliveryDurationMins + expenseSnapshot.prepBufferMins) * 60000).toISOString(),
+          estimatedArrivalAt: arrivalDate.toISOString(),
+          routeDurationMins: durationMins,
+          prepBufferMins: expenseSnapshot.prepBufferMins,
+          customsWaitHours: expenseSnapshot.customsWaitHours,
+          manualWaitingHours: expenseSnapshot.manualWaitingHours,
+          trafficBufferPercent: expenseSnapshot.trafficBufferPercent,
+          billableHours: expenseSnapshot.billableHours,
+          totalExpenseDistance: expenseSnapshot.totalExpenseDistance,
+          routeCountries: getRouteCountries(),
+          pricingSnapshot: expenseSnapshot.pricingSnapshot
         })
       });
       if (res.ok) {
@@ -465,7 +451,7 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
         </div>
 
         {/* Passenger & Luggage Options */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 relative z-10 border-t border-white/10 pt-6 md:pt-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 md:gap-4 relative z-10 border-t border-white/10 pt-6 md:pt-8">
           <div className="bg-[#353536]/30 border border-white/10 rounded-xl p-4">
             <label className="block text-xs text-[#c7c6ca] mb-1 font-label-caps uppercase">Дорослі</label>
             <select className="w-full bg-transparent text-white outline-none" value={passengers} onChange={e => setPassengers(e.target.value)}>
@@ -473,8 +459,14 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
             </select>
           </div>
           <div className="bg-[#353536]/30 border border-white/10 rounded-xl p-4">
-            <label className="block text-xs text-[#c7c6ca] mb-1 font-label-caps uppercase">Діти (+{selectedCar?.childSeatFee || 15}€)</label>
+            <label className="block text-xs text-[#c7c6ca] mb-1 font-label-caps uppercase">Діти</label>
             <select className="w-full bg-transparent text-white outline-none" value={children} onChange={e => setChildren(e.target.value)}>
+              {[0,1,2,3,4].map(n => <option key={n} value={n} className="bg-[#1a1a1b]">{n}</option>)}
+            </select>
+          </div>
+          <div className="bg-[#353536]/30 border border-white/10 rounded-xl p-4">
+            <label className="block text-xs text-[#c7c6ca] mb-1 font-label-caps uppercase">Дитячі крісла (+{selectedCar?.childSeatFee || 15}€)</label>
+            <select className="w-full bg-transparent text-white outline-none" value={childSeats} onChange={e => setChildSeats(e.target.value)}>
               {[0,1,2,3,4].map(n => <option key={n} value={n} className="bg-[#1a1a1b]">{n}</option>)}
             </select>
           </div>
@@ -486,8 +478,8 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
           </div>
           <div className="bg-[#353536]/30 border border-white/10 rounded-xl p-4">
             <label className="block text-xs text-[#c7c6ca] mb-1 font-label-caps uppercase">Тварини (+{selectedCar?.animalFee || 30}€)</label>
-            <select className="w-full bg-transparent text-white outline-none" value={animals} onChange={e => setAnimals(e.target.value)}>
-              {['Ні', 'Так'].map(o => <option key={o} value={o} className="bg-[#1a1a1b]">{o}</option>)}
+            <select className="w-full bg-transparent text-white outline-none" value={petsCount} onChange={e => setPetsCount(e.target.value)}>
+              {[0,1,2,3].map(n => <option key={n} value={n} className="bg-[#1a1a1b]">{n}</option>)}
             </select>
           </div>
         </div>
@@ -658,6 +650,22 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
                         <div className="flex justify-between text-sm mb-1">
                           <span className="text-[#c7c6ca]">Час подачі авто:</span>
                           <span className="text-white font-bold">{pickupTime.toLocaleString('uk-UA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="text-[#c7c6ca]">Виїзд авто з бази:</span>
+                          <span className="text-white font-bold">
+                            {new Date(pickupTime.getTime() - (expenseSnapshot.deliveryDurationMins + expenseSnapshot.prepBufferMins) * 60000).toLocaleString('uk-UA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                        <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                          <div className="rounded-lg border border-white/10 bg-white/[0.03] p-2">
+                            <span className="block text-[#8a8a93]">Митниця</span>
+                            <strong className="text-[#e9c349]">{expenseSnapshot.customsWaitHours} год</strong>
+                          </div>
+                          <div className="rounded-lg border border-white/10 bg-white/[0.03] p-2">
+                            <span className="block text-[#8a8a93]">Робочий час</span>
+                            <strong className="text-[#e9c349]">{expenseSnapshot.billableHours} год</strong>
+                          </div>
                         </div>
                         
                         {availabilityStatus === 'checking' && <div className="text-xs text-blue-400 mt-2 flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">sync</span> Перевірка доступності...</div>}

@@ -62,11 +62,16 @@ type CarRecord = {
   bodyType?: string | null;
   luggageNote?: string | null;
   status: string;
+  includedPassengers: number | string;
   pricePerPerson: number | string;
   crossBorderFee: number | string;
   meetAndGreetFee: number | string;
   animalFee: number | string;
   childSeatFee: number | string;
+  amortizationPerKm: number | string;
+  deliveryBaseFee: number | string;
+  allowsChildren: boolean;
+  allowsAnimals: boolean;
   baseCity?: string | null;
   baseLat?: number | string | null;
   baseLng?: number | string | null;
@@ -96,11 +101,16 @@ const emptyCar = (): CarRecord => ({
   bodyType: 'Sedan',
   luggageNote: '',
   status: 'AVAILABLE',
+  includedPassengers: 1,
   pricePerPerson: 10,
   crossBorderFee: 150,
   meetAndGreetFee: 20,
   animalFee: 30,
   childSeatFee: 15,
+  amortizationPerKm: 0.08,
+  deliveryBaseFee: 0,
+  allowsChildren: true,
+  allowsAnimals: true,
   baseCity: 'Львів',
   baseLat: '',
   baseLng: '',
@@ -482,13 +492,18 @@ export default function AdminFleetPage() {
             {activeTab === 'pricing' && (
               <div className="grid gap-5 lg:grid-cols-3">
                 <Field label="Базова ставка €/км"><input type="number" step="0.01" value={draft.baseRate} onChange={(e) => updateDraft('baseRate', e.target.value)} className={inputClass()} /></Field>
+                <Field label="Пасажирів включено"><input type="number" step="1" value={draft.includedPassengers} onChange={(e) => updateDraft('includedPassengers', e.target.value)} className={inputClass()} /></Field>
                 <Field label="Витрата місто"><input type="number" step="0.1" value={draft.fuelConsumptionCity} onChange={(e) => updateDraft('fuelConsumptionCity', e.target.value)} className={inputClass()} /></Field>
                 <Field label="Витрата траса"><input type="number" step="0.1" value={draft.fuelConsumptionHighway} onChange={(e) => updateDraft('fuelConsumptionHighway', e.target.value)} className={inputClass()} /></Field>
                 <Field label="Багаж / дод. особа €"><input type="number" step="0.01" value={draft.pricePerPerson} onChange={(e) => updateDraft('pricePerPerson', e.target.value)} className={inputClass()} /></Field>
+                <Field label="Амортизація €/км"><input type="number" step="0.01" value={draft.amortizationPerKm} onChange={(e) => updateDraft('amortizationPerKm', e.target.value)} className={inputClass()} /></Field>
+                <Field label="Базова подача €"><input type="number" step="0.01" value={draft.deliveryBaseFee} onChange={(e) => updateDraft('deliveryBaseFee', e.target.value)} className={inputClass()} /></Field>
                 <Field label="Перетин кордону €"><input type="number" step="0.01" value={draft.crossBorderFee} onChange={(e) => updateDraft('crossBorderFee', e.target.value)} className={inputClass()} /></Field>
                 <Field label="Зустріч з табличкою €"><input type="number" step="0.01" value={draft.meetAndGreetFee} onChange={(e) => updateDraft('meetAndGreetFee', e.target.value)} className={inputClass()} /></Field>
                 <Field label="Тварини €"><input type="number" step="0.01" value={draft.animalFee} onChange={(e) => updateDraft('animalFee', e.target.value)} className={inputClass()} /></Field>
                 <Field label="Дитяче крісло €"><input type="number" step="0.01" value={draft.childSeatFee} onChange={(e) => updateDraft('childSeatFee', e.target.value)} className={inputClass()} /></Field>
+                <Field label="Діти дозволені"><input type="checkbox" checked={draft.allowsChildren} onChange={(e) => updateDraft('allowsChildren', e.target.checked)} className="h-5 w-5 accent-[#e9c349]" /></Field>
+                <Field label="Тварини дозволені"><input type="checkbox" checked={draft.allowsAnimals} onChange={(e) => updateDraft('allowsAnimals', e.target.checked)} className="h-5 w-5 accent-[#e9c349]" /></Field>
                 <Field label="Базове місто"><input value={draft.baseCity || ''} onChange={(e) => updateDraft('baseCity', e.target.value)} className={inputClass()} /></Field>
                 <Field label="Base lat"><input value={draft.baseLat || ''} onChange={(e) => updateDraft('baseLat', e.target.value)} className={inputClass()} /></Field>
                 <Field label="Base lng"><input value={draft.baseLng || ''} onChange={(e) => updateDraft('baseLng', e.target.value)} className={inputClass()} /></Field>

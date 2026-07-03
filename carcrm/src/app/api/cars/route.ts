@@ -28,7 +28,8 @@ export async function POST(request: Request) {
       make, model, year, capacity, luggageCapacity, largeLuggageCapacity, baseRate, fuelType, 
       fuelConsumptionCity, fuelConsumptionHighway, fuelTankVolume, status, 
       comfortClass, bodyType, luggageNote, images, videos, description, features, baseCity, baseLat, baseLng,
-      pricePerPerson, crossBorderFee, meetAndGreetFee, animalFee, childSeatFee,
+      includedPassengers, pricePerPerson, crossBorderFee, meetAndGreetFee, animalFee, childSeatFee,
+      amortizationPerKm, deliveryBaseFee, allowsChildren, allowsAnimals,
       seoTitle, seoDescription, defaultDriverId, slug
     } = body;
 
@@ -52,11 +53,16 @@ export async function POST(request: Request) {
         bodyType: bodyType || null,
         luggageNote: luggageNote || null,
         
+        includedPassengers: includedPassengers ? parseInt(includedPassengers) : 1,
         pricePerPerson: pricePerPerson ? parseFloat(pricePerPerson) : 10.0,
         crossBorderFee: crossBorderFee ? parseFloat(crossBorderFee) : 150.0,
         meetAndGreetFee: meetAndGreetFee ? parseFloat(meetAndGreetFee) : 20.0,
         animalFee: animalFee ? parseFloat(animalFee) : 30.0,
         childSeatFee: childSeatFee ? parseFloat(childSeatFee) : 15.0,
+        amortizationPerKm: amortizationPerKm ? parseFloat(amortizationPerKm) : 0.08,
+        deliveryBaseFee: deliveryBaseFee ? parseFloat(deliveryBaseFee) : 0.0,
+        allowsChildren: allowsChildren !== false,
+        allowsAnimals: allowsAnimals !== false,
         
         status: status || 'AVAILABLE',
         images: images || [],

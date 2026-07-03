@@ -62,6 +62,16 @@ const defaultContentSettings: Record<string, string> = {
   whatsapp_business_account_id: '',
   whatsapp_access_token: '',
   whatsapp_verify_token: '',
+  pricing_delivery_rate: '1.1',
+  pricing_delivery_base_fee: '20',
+  pricing_customs_wait_hours: '1.5',
+  pricing_manual_waiting_hours: '0',
+  pricing_prep_buffer_mins: '30',
+  pricing_traffic_buffer_percent: '10',
+  pricing_time_rate_per_hour: '0',
+  pricing_hotel_after_hours: '10',
+  pricing_hotel_cost_per_night: '90',
+  pricing_min_margin_percent: '0.25',
 };
 
 const fuelTypes = ['Бензин', 'Дизель', 'Газ', 'Електро'];
@@ -276,6 +286,24 @@ export default function SettingsPage() {
 
       {activeTab === 'pricing' && (
         <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+          <div className="rounded-xl border border-white/10 bg-white/5 p-6 xl:col-span-2">
+            <h2 className="mb-5 flex items-center gap-2 text-xl font-bold text-white">
+              <BadgeEuro className="text-[#e9c349]" /> Правила калькулятора
+            </h2>
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+              <Field label="Подача €/км" type="number" value={contentSettings.pricing_delivery_rate} onChange={(value) => updateSetting('pricing_delivery_rate', value)} />
+              <Field label="Базова подача €" type="number" value={contentSettings.pricing_delivery_base_fee} onChange={(value) => updateSetting('pricing_delivery_base_fee', value)} />
+              <Field label="Митниця, год" type="number" value={contentSettings.pricing_customs_wait_hours} onChange={(value) => updateSetting('pricing_customs_wait_hours', value)} />
+              <Field label="Ручне очікування, год" type="number" value={contentSettings.pricing_manual_waiting_hours} onChange={(value) => updateSetting('pricing_manual_waiting_hours', value)} />
+              <Field label="Буфер підготовки, хв" type="number" value={contentSettings.pricing_prep_buffer_mins} onChange={(value) => updateSetting('pricing_prep_buffer_mins', value)} />
+              <Field label="Запас по часу, %" type="number" value={contentSettings.pricing_traffic_buffer_percent} onChange={(value) => updateSetting('pricing_traffic_buffer_percent', value)} />
+              <Field label="Клієнтська ставка €/год" type="number" value={contentSettings.pricing_time_rate_per_hour} onChange={(value) => updateSetting('pricing_time_rate_per_hour', value)} />
+              <Field label="Нічліг після годин" type="number" value={contentSettings.pricing_hotel_after_hours} onChange={(value) => updateSetting('pricing_hotel_after_hours', value)} />
+              <Field label="Нічліг €" type="number" value={contentSettings.pricing_hotel_cost_per_night} onChange={(value) => updateSetting('pricing_hotel_cost_per_night', value)} />
+              <Field label="Мін. маржа 0.25 = 25%" type="number" value={contentSettings.pricing_min_margin_percent} onChange={(value) => updateSetting('pricing_min_margin_percent', value)} />
+            </div>
+          </div>
+
           <div className="rounded-xl border border-white/10 bg-white/5 p-6">
             <h2 className="mb-5 flex items-center gap-2 text-xl font-bold text-white">
               <Globe className="text-[#e9c349]" /> Курси валют
