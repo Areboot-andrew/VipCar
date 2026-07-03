@@ -13,6 +13,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const updateData: any = {};
     if (body.status !== undefined) updateData.status = body.status;
     if (body.isEndingAtBase !== undefined) updateData.isEndingAtBase = body.isEndingAtBase;
+    if (body.driverNotes !== undefined) updateData.driverNotes = body.driverNotes;
     if (body.driverId !== undefined) {
         updateData.driverId = body.driverId === "" ? null : body.driverId;
     }

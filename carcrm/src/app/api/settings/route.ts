@@ -3,11 +3,40 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+const CONTENT_SETTING_KEYS = [
+  'brand_name',
+  'contact_phone',
+  'contact_email',
+  'payment_card',
+  'payment_usdt',
+  'telegram_enabled',
+  'telegram_api_id',
+  'telegram_api_hash',
+  'telegram_string_session',
+  'facebook_enabled',
+  'facebook_page_token',
+  'facebook_verify_token',
+  'whatsapp_enabled',
+  'whatsapp_phone_number_id',
+  'whatsapp_business_account_id',
+  'whatsapp_access_token',
+  'whatsapp_verify_token',
+];
+
 export async function GET() {
   try {
     const currencies = await prisma.currencyRate.findMany();
     const fuelPrices = await prisma.fuelPrice.findMany();
-    return NextResponse.json({ currencies, fuelPrices });
+    const contentRows = await prisma.siteContent.findMany({
+      where: { key: { in: CONTENT_SETTING_KEYS } },
+    });
+
+    const contentSettings = contentRows.reduce((acc, row) => {
+      acc[row.key] = row.value;
+      return acc;
+    }, {} as Record<string, string>);
+
+    return NextResponse.json({ currencies, fuelPrices, contentSettings });
   } catch (error) {
     console.error('Error fetching settings:', error);
     return NextResponse.json({ error: 'Failed' }, { status: 500 });
@@ -47,6 +76,23 @@ export async function POST(request: Request) {
         });
       }
       return NextResponse.json(result);
+    }
+
+    if (body.type === 'contentSettings') {
+      const settings = body.settings as Record<string, string>;
+      const entries = Object.entries(settings || {}).filter(([key]) => CONTENT_SETTING_KEYS.includes(key));
+
+      await prisma.$transaction(
+        entries.map(([key, value]) =>
+          prisma.siteContent.upsert({
+            where: { key },
+            update: { value: value ?? '' },
+            create: { key, value: value ?? '' },
+          })
+        )
+      );
+
+      return NextResponse.json({ success: true });
     }
     
     return NextResponse.json({ error: 'Invalid type' }, { status: 400 });
