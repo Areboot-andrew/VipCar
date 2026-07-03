@@ -18,6 +18,7 @@
 - Почато нормальну модель автопарку/галереї: додано `CarMedia`, slug/SEO поля авто, багаж, comfort class, кузов, base coords і default driver. `/admin/fleet` переписано в логічний редактор авто: Основне, Розрахунки, Медіа, SEO.
 - `/gallery` перероблено як окрему SEO-сторінку галереї автопарку, а `/cars/[id]` розділено на server metadata page + client lightbox, щоб конкретні авто мали індексовані title/description/schema.
 - Головна карусель галереї тепер використовує `CarMedia`, має анімований marquee, CTA в повну галерею, hover-переходи на авто і fallback на legacy `images/videos`.
+- Для прод-бази додано idempotent migration `202607030001_car_gallery` і переписано `prisma/seed.ts` як demo-updater з новими текстами/фото. Старий дубль `prisma/seed.js` видалено; демо-авто не видаляють реальні записи без `RESET_DEMO_CARS=true`.
 
 ## UI правила для подальшої переробки
 

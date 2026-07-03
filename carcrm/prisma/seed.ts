@@ -1,18 +1,310 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { carSlug } from '../src/lib/slug';
+import { SITE_CONTENT_DEFAULTS } from '../src/lib/contentDefaults';
 
 const prisma = new PrismaClient();
 
-async function seed() {
-  console.log('🌱 Починаємо наповнення бази даних...\n');
+const resetDemoCars = process.env.RESET_DEMO_CARS === 'true';
 
+const demoContent: Record<string, string> = {
+  ...SITE_CONTENT_DEFAULTS,
+  brand_name: 'First Line Transfer',
+  logo_url: '/logo.png',
+  site_meta_title: 'First Line Transfer - VIP трансфери Європою та Україною',
+  site_meta_description:
+    'Преміальні трансфери з водієм, комфортний автопарк, прозорий розрахунок маршруту, допомога з багажем і сервіс від дверей до дверей.',
+  site_meta_keywords:
+    'VIP трансфер, преміум трансфер, авто з водієм, трансфер Європа, трансфер Україна, Mercedes S-Class, Mercedes V-Class',
+  site_og_title: 'First Line Transfer - преміум трансфер без компромісів',
+  site_og_description: 'Авто бізнес- і VIP-класу для міжміських, міжнародних та аеропортових трансферів.',
+  schema_description: 'Преміум трансфер на авто VIP-класу з професійним водієм.',
+  schema_area_served: 'UA,PL,DE,CZ,AT,HU,SK,RO,MD',
+
+  menu_services: 'Сервіс',
+  menu_fleet: 'Автопарк',
+  menu_gallery: 'Галерея',
+  menu_contact: 'Контакти',
+  menu_calculator: 'Бронювання',
+  btn_book_now: 'Забронювати',
+
+  hero_title: 'Преміум *трансфер*\nЄвропою та Україною',
+  hero_subtitle:
+    'Подача точно вчасно, чистий автомобіль, допомога з багажем і спокійна дорога без зайвого шуму.',
+  hero_bg_image: 'https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&fit=crop&q=80&w=1800',
+  btn_hero_cta: 'Розрахувати маршрут',
+
+  services_title: 'Сервіс, де все *по поличках*',
+  feature_1_icon: 'Clock3',
+  feature_1_title: 'Пунктуальність',
+  feature_1_desc: 'Плануємо маршрут, подачу і запас часу так, щоб клієнт не нервував.',
+  feature_2_icon: 'BriefcaseBusiness',
+  feature_2_title: 'Багаж без хаосу',
+  feature_2_desc: 'В адмінці вказується місткість авто, а менеджер одразу бачить реальну логіку посадки.',
+  feature_3_icon: 'ShieldCheck',
+  feature_3_title: 'Конфіденційність',
+  feature_3_desc: 'Поїздки, маршрути і комунікація не розкидані по різних місцях.',
+  feature_4_icon: 'Sparkles',
+  feature_4_title: 'Преміальний досвід',
+  feature_4_desc: 'Чистий салон, вода, зарядки, охайний водій і передбачуваний сервіс.',
+
+  gallery_title: 'Галерея *автопарку*',
+  gallery_subtitle:
+    'Окремі SEO-сторінки авто, фото з ролями, обкладинки, alt-тексти і логічні переходи з головної.',
+  gallery_seo_title: 'Галерея автопарку First Line Transfer',
+  gallery_seo_description:
+    'Фото і відео демо-автопарку First Line Transfer: Mercedes-Benz S-Class, Mercedes-Benz V-Class, BMW 7 Series, Audi A8 L і Mercedes-Benz Sprinter VIP.',
+
+  contact_section_title: 'Підібрати авто під маршрут',
+  contact_section_subtitle:
+    'Залиште контакти і коротко опишіть маршрут. Менеджер підбере авто, водія, багажну місткість і точну логіку розрахунку.',
+  contact_success_title: 'Заявку отримано',
+  contact_success_message: "Ми зв'яжемося з вами, уточнимо деталі і підготуємо пропозицію.",
+  contact_phone: '+380 67 000 00 00',
+  contact_email: 'office@firstlinetransfer.com',
+  footer_text:
+    'First Line Transfer - преміальні трансфери з водієм, логічним розрахунком маршруту і прозорою адмінкою.',
+
+  empty_legs_title: 'Гарячі *Empty Legs*',
+  empty_legs_book_button: 'Забронювати зі знижкою',
+};
+
+const demoCars = [
+  {
+    make: 'Mercedes-Benz',
+    model: 'S-Class W223 Long',
+    year: 2024,
+    capacity: 4,
+    luggageCapacity: 3,
+    largeLuggageCapacity: 2,
+    baseRate: 2.8,
+    fuelType: 'Бензин',
+    fuelConsumptionCity: 10.8,
+    fuelConsumptionHighway: 7.2,
+    fuelTankVolume: 76,
+    comfortClass: 'Executive Sedan',
+    bodyType: 'Sedan',
+    baseCity: 'Львів',
+    pricePerPerson: 15,
+    crossBorderFee: 180,
+    meetAndGreetFee: 25,
+    animalFee: 40,
+    childSeatFee: 20,
+    description:
+      '<h2>Mercedes-Benz S-Class W223 Long</h2><p>Флагманський седан для VIP-трансферів, ділових зустрічей, аеропортів і міжнародних маршрутів. Тихий салон, мʼяка посадка, преміальний рівень приватності.</p>',
+    features: [
+      { icon: 'Armchair', text: 'Комфортні задні сидіння' },
+      { icon: 'Wifi', text: 'Wi-Fi та зарядки для пасажирів' },
+      { icon: 'ShieldCheck', text: 'Конфіденційність і спокійний стиль водіння' },
+      { icon: 'BottleWater', text: 'Вода та базовий travel-набір' },
+    ],
+    seoTitle: 'Mercedes-Benz S-Class W223 Long - VIP трансфер з водієм',
+    seoDescription:
+      'Mercedes-Benz S-Class W223 Long для VIP-трансферів. 4 пасажири, до 3 валіз, преміальний салон, комфортні міжміські та міжнародні маршрути.',
+    media: [
+      {
+        url: 'https://images.unsplash.com/photo-1619767886558-efdc259cde1a?auto=format&fit=crop&q=80&w=1800',
+        role: 'cover',
+        alt: 'Mercedes-Benz S-Class W223 Long чорний седан для VIP трансферу',
+        caption: 'Флагманський седан для VIP-маршрутів',
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1553440569-bcc63803a83d?auto=format&fit=crop&q=80&w=1800',
+        role: 'exterior',
+        alt: 'Mercedes-Benz S-Class зовнішній вигляд',
+        caption: 'Стриманий преміальний екстерʼєр',
+      },
+    ],
+  },
+  {
+    make: 'Mercedes-Benz',
+    model: 'V-Class VIP',
+    year: 2024,
+    capacity: 7,
+    luggageCapacity: 7,
+    largeLuggageCapacity: 5,
+    baseRate: 3.2,
+    fuelType: 'Дизель',
+    fuelConsumptionCity: 12,
+    fuelConsumptionHighway: 8.4,
+    fuelTankVolume: 70,
+    comfortClass: 'VIP Van',
+    bodyType: 'Van',
+    baseCity: 'Львів',
+    pricePerPerson: 12,
+    crossBorderFee: 190,
+    meetAndGreetFee: 25,
+    animalFee: 45,
+    childSeatFee: 20,
+    description:
+      '<h2>Mercedes-Benz V-Class VIP</h2><p>Правильний вибір для сімей, бізнес-груп, аеропортових трансферів і маршрутів з великим багажем. Багато простору без втрати преміального відчуття.</p>',
+    features: [
+      { icon: 'Users', text: 'До 7 пасажирів' },
+      { icon: 'BriefcaseBusiness', text: 'Багато місця для валіз' },
+      { icon: 'Baby', text: 'Дитячі крісла за запитом' },
+      { icon: 'Route', text: 'Зручний для довгих маршрутів' },
+    ],
+    seoTitle: 'Mercedes-Benz V-Class VIP - трансфер для груп і сімей',
+    seoDescription:
+      'Mercedes-Benz V-Class VIP для групових трансферів. 7 пасажирів, до 7 валіз, комфорт для сімей, делегацій і аеропортів.',
+    media: [
+      {
+        url: 'https://images.unsplash.com/photo-1542362567-b07e54358753?auto=format&fit=crop&q=80&w=1800',
+        role: 'cover',
+        alt: 'Mercedes-Benz V-Class VIP для трансферу груп',
+        caption: 'VIP van для групових маршрутів',
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80&w=1800',
+        role: 'gallery',
+        alt: 'Преміальний автомобіль на дорозі',
+        caption: 'Комфорт у місті та на трасі',
+      },
+    ],
+  },
+  {
+    make: 'BMW',
+    model: '7 Series G70',
+    year: 2024,
+    capacity: 4,
+    luggageCapacity: 3,
+    largeLuggageCapacity: 2,
+    baseRate: 2.9,
+    fuelType: 'Дизель',
+    fuelConsumptionCity: 9.6,
+    fuelConsumptionHighway: 6.4,
+    fuelTankVolume: 74,
+    comfortClass: 'Executive Sedan',
+    bodyType: 'Sedan',
+    baseCity: 'Київ',
+    pricePerPerson: 15,
+    crossBorderFee: 170,
+    meetAndGreetFee: 25,
+    animalFee: 40,
+    childSeatFee: 20,
+    description:
+      '<h2>BMW 7 Series G70</h2><p>Преміальний седан з акцентом на динаміку, тишу в салоні та сучасний бізнес-стиль. Добре підходить для швидких міжміських маршрутів.</p>',
+    features: [
+      { icon: 'Gauge', text: 'Сильна динаміка на трасі' },
+      { icon: 'Volume2', text: 'Тихий салон' },
+      { icon: 'Star', text: 'Преміальний імідж' },
+      { icon: 'PlugZap', text: 'Зарядки для гаджетів' },
+    ],
+    seoTitle: 'BMW 7 Series G70 - преміальний трансфер',
+    seoDescription:
+      'BMW 7 Series G70 для VIP-трансферів. 4 пасажири, дизель, комфортний салон і динаміка для міжміських маршрутів.',
+    media: [
+      {
+        url: 'https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&q=80&w=1800',
+        role: 'cover',
+        alt: 'BMW 7 Series G70 для преміального трансферу',
+        caption: 'Динамічний бізнес-седан',
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&q=80&w=1800',
+        role: 'exterior',
+        alt: 'BMW преміальний седан екстерʼєр',
+        caption: 'Для швидких і статусних маршрутів',
+      },
+    ],
+  },
+  {
+    make: 'Audi',
+    model: 'A8 L',
+    year: 2023,
+    capacity: 4,
+    luggageCapacity: 3,
+    largeLuggageCapacity: 2,
+    baseRate: 2.6,
+    fuelType: 'Дизель',
+    fuelConsumptionCity: 10,
+    fuelConsumptionHighway: 6.8,
+    fuelTankVolume: 72,
+    comfortClass: 'Business Sedan',
+    bodyType: 'Sedan',
+    baseCity: 'Варшава',
+    pricePerPerson: 14,
+    crossBorderFee: 160,
+    meetAndGreetFee: 25,
+    animalFee: 40,
+    childSeatFee: 20,
+    description:
+      '<h2>Audi A8 L</h2><p>Стриманий преміум для клієнтів, які хочуть комфорт і статус без зайвої демонстративності. Добре працює для бізнес-маршрутів і трансферів між містами.</p>',
+    features: [
+      { icon: 'BadgeCheck', text: 'Стриманий бізнес-стиль' },
+      { icon: 'MapPinned', text: 'Зручний для міжнародних маршрутів' },
+      { icon: 'Shield', text: 'Спокійна приватна атмосфера' },
+    ],
+    seoTitle: 'Audi A8 L - бізнес трансфер з водієм',
+    seoDescription:
+      'Audi A8 L для бізнес- і VIP-трансферів. 4 пасажири, до 3 валіз, комфортний седан для міжнародних маршрутів.',
+    media: [
+      {
+        url: 'https://images.unsplash.com/photo-1606220838315-056192d5e927?auto=format&fit=crop&q=80&w=1800',
+        role: 'cover',
+        alt: 'Audi A8 L бізнес седан для трансферу',
+        caption: 'Стриманий бізнес-клас',
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1511919884226-fd3cad34687c?auto=format&fit=crop&q=80&w=1800',
+        role: 'gallery',
+        alt: 'Преміальний седан у русі',
+        caption: 'Комфортний формат для ділових поїздок',
+      },
+    ],
+  },
+  {
+    make: 'Mercedes-Benz',
+    model: 'Sprinter VIP',
+    year: 2024,
+    capacity: 12,
+    luggageCapacity: 12,
+    largeLuggageCapacity: 10,
+    baseRate: 4.2,
+    fuelType: 'Дизель',
+    fuelConsumptionCity: 13.5,
+    fuelConsumptionHighway: 9.5,
+    fuelTankVolume: 93,
+    comfortClass: 'VIP Bus',
+    bodyType: 'Minibus',
+    baseCity: 'Львів',
+    pricePerPerson: 10,
+    crossBorderFee: 240,
+    meetAndGreetFee: 30,
+    animalFee: 60,
+    childSeatFee: 20,
+    description:
+      '<h2>Mercedes-Benz Sprinter VIP</h2><p>Великий VIP-мікроавтобус для делегацій, подій, групових трансферів і міжнародних маршрутів з великим багажем.</p>',
+    features: [
+      { icon: 'UsersRound', text: 'До 12 пасажирів' },
+      { icon: 'Luggage', text: 'Великий багажний простір' },
+      { icon: 'Route', text: 'Зручний для міжнародних маршрутів' },
+      { icon: 'Coffee', text: 'Комфорт для довгої дороги' },
+    ],
+    seoTitle: 'Mercedes-Benz Sprinter VIP - трансфер для делегацій',
+    seoDescription:
+      'Mercedes-Benz Sprinter VIP для делегацій і груп. До 12 пасажирів, великий багажний простір, комфортні міжнародні маршрути.',
+    media: [
+      {
+        url: 'https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&q=80&w=1800',
+        role: 'cover',
+        alt: 'Mercedes-Benz Sprinter VIP для делегацій',
+        caption: 'VIP-мікроавтобус для груп',
+      },
+      {
+        url: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&q=80&w=1800',
+        role: 'gallery',
+        alt: 'Преміальний транспорт для групових маршрутів',
+        caption: 'Для подій, делегацій і довгих маршрутів',
+      },
+    ],
+  },
+];
+
+async function ensureUsers() {
   const adminPassword = await bcrypt.hash('admin123', 10);
   const driverPassword = await bcrypt.hash('driver123', 10);
 
-  // ==========================================
-  // 1. ADMIN USER
-  // ==========================================
   const admin = await prisma.user.upsert({
     where: { email: 'admin@firstline.com' },
     update: {},
@@ -24,268 +316,14 @@ async function seed() {
       role: 'ADMIN',
     },
   });
-  console.log('✅ Адмін створений:', admin.email);
 
-  // ==========================================
-  // 2. CARS (Автопарк)
-  // ==========================================
-  const carsData = [
-    {
-      make: 'Mercedes-Benz',
-      model: 'S-Class W223 Long',
-      year: 2024,
-      slug: carSlug('Mercedes-Benz', 'S-Class W223 Long', 2024),
-      capacity: 4,
-      luggageCapacity: 3,
-      largeLuggageCapacity: 2,
-      baseRate: 2.50,
-      fuelType: 'Бензин', fuelConsumptionCity: 10.5, fuelConsumptionHighway: 7.5,
-      fuelTankVolume: 76,
-      comfortClass: 'Executive Sedan',
-      bodyType: 'Sedan',
-      baseCity: 'Львів',
-      status: 'AVAILABLE',
-      description: '<h2>Mercedes-Benz S-Class для VIP-трансферів</h2><p>Тихий салон, комфортні задні місця, преміальна посадка і формат для ділових поїздок, зустрічей в аеропорту та міжнародних маршрутів.</p>',
-      features: JSON.stringify([
-        { icon: 'Armchair', text: 'Комфортні задні сидіння' },
-        { icon: 'Wifi', text: 'Wi-Fi та зарядки' },
-        { icon: 'ShieldCheck', text: 'Конфіденційність' },
-      ]),
-      seoTitle: 'Mercedes-Benz S-Class W223 Long - VIP трансфер',
-      seoDescription: 'Mercedes-Benz S-Class W223 Long для преміальних трансферів з водієм. 4 місця, до 3 валіз, комфортний салон і бізнес-рівень сервісу.',
-      images: [
-        'https://images.unsplash.com/photo-1619767886558-efdc259cde1a?auto=format&fit=crop&q=80&w=1400',
-        'https://images.unsplash.com/photo-1553440569-bcc63803a83d?auto=format&fit=crop&q=80&w=1400',
-      ],
-      videos: [],
-    },
-    {
-      make: 'Mercedes-Benz',
-      model: 'V-Class VIP',
-      year: 2024,
-      slug: carSlug('Mercedes-Benz', 'V-Class VIP', 2024),
-      capacity: 7,
-      luggageCapacity: 7,
-      largeLuggageCapacity: 5,
-      baseRate: 3.00,
-      fuelType: 'Дизель', fuelConsumptionCity: 12.0, fuelConsumptionHighway: 8.5,
-      fuelTankVolume: 70,
-      comfortClass: 'VIP Van',
-      bodyType: 'Van',
-      baseCity: 'Львів',
-      status: 'AVAILABLE',
-      description: '<h2>Mercedes-Benz V-Class VIP для груп і сімей</h2><p>Оптимальний варіант для аеропортів, бізнес-делегацій, сімей з дітьми та поїздок з великим багажем.</p>',
-      features: JSON.stringify([
-        { icon: 'Users', text: 'До 7 пасажирів' },
-        { icon: 'BriefcaseBusiness', text: 'Багато місця для багажу' },
-        { icon: 'Baby', text: 'Дитячі крісла за запитом' },
-      ]),
-      seoTitle: 'Mercedes-Benz V-Class VIP - трансфер для груп',
-      seoDescription: 'Mercedes-Benz V-Class VIP для групових трансферів. 7 місць, великий багажний простір, комфорт для сімей та бізнес-делегацій.',
-      images: [
-        'https://images.unsplash.com/photo-1542362567-b07e54358753?auto=format&fit=crop&q=80&w=1400',
-        'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80&w=1400',
-      ],
-      videos: [],
-    },
-    {
-      make: 'BMW',
-      model: '7 Series G70',
-      year: 2024,
-      slug: carSlug('BMW', '7 Series G70', 2024),
-      capacity: 4,
-      luggageCapacity: 3,
-      largeLuggageCapacity: 2,
-      baseRate: 2.70,
-      fuelType: 'Дизель', fuelConsumptionCity: 9.5, fuelConsumptionHighway: 6.5,
-      fuelTankVolume: 74,
-      comfortClass: 'Executive Sedan',
-      bodyType: 'Sedan',
-      baseCity: 'Київ',
-      status: 'AVAILABLE',
-      description: '<h2>BMW 7 Series для швидких преміальних маршрутів</h2><p>Динамічний седан бізнес-класу з комфортною посадкою, тишею в салоні та сильним іміджевим ефектом.</p>',
-      features: JSON.stringify([
-        { icon: 'Gauge', text: 'Динаміка на трасі' },
-        { icon: 'Volume2', text: 'Тихий салон' },
-        { icon: 'Star', text: 'Преміальний імідж' },
-      ]),
-      seoTitle: 'BMW 7 Series G70 - преміальний трансфер',
-      seoDescription: 'BMW 7 Series G70 для VIP-трансферів. 4 місця, дизель, комфортний салон і сильна динаміка для міжміських маршрутів.',
-      images: [
-        'https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&q=80&w=1400',
-        'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&q=80&w=1400',
-      ],
-      videos: [],
-    },
-    {
-      make: 'Mercedes-Benz',
-      model: 'Sprinter VIP',
-      year: 2024,
-      slug: carSlug('Mercedes-Benz', 'Sprinter VIP', 2024),
-      capacity: 12,
-      luggageCapacity: 12,
-      largeLuggageCapacity: 10,
-      baseRate: 4.00,
-      fuelType: 'Дизель', fuelConsumptionCity: 13.5, fuelConsumptionHighway: 9.5,
-      fuelTankVolume: 93,
-      comfortClass: 'VIP Bus',
-      bodyType: 'Minibus',
-      baseCity: 'Львів',
-      status: 'AVAILABLE',
-      description: '<h2>Mercedes-Benz Sprinter VIP для великих груп</h2><p>Комфортний мікроавтобус для делегацій, подій, трансферів між містами та маршрутів з великим багажем.</p>',
-      features: JSON.stringify([
-        { icon: 'UsersRound', text: 'До 12 пасажирів' },
-        { icon: 'Luggage', text: 'Великий багажний простір' },
-        { icon: 'Route', text: 'Зручний для міжнародних маршрутів' },
-      ]),
-      seoTitle: 'Mercedes-Benz Sprinter VIP - трансфер для делегацій',
-      seoDescription: 'Mercedes-Benz Sprinter VIP для великих груп і делегацій. До 12 пасажирів, великий багажний простір, комфортні міжнародні маршрути.',
-      images: [
-        'https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&q=80&w=1400',
-        'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&q=80&w=1400',
-      ],
-      videos: [],
-    },
-  ];
-
-  const seededSlugs = carsData.map((car) => car.slug);
-  await prisma.car.deleteMany({
-    where: {
-      slug: { notIn: seededSlugs },
-      bookings: { none: {} },
-      promotions: { none: {} },
-    },
-  });
-
-  for (const carData of carsData) {
-    const { images, videos, ...data } = carData;
-    const car = await prisma.car.upsert({
-      where: { slug: carData.slug },
-      update: {
-        ...data,
-        images,
-        videos,
-      },
-      create: {
-        ...data,
-        images,
-        videos,
-      },
-    });
-
-    await prisma.carMedia.deleteMany({ where: { carId: car.id } });
-    await prisma.carMedia.createMany({
-      data: images.map((url, index) => ({
-        carId: car.id,
-        type: 'image',
-        url,
-        role: index === 0 ? 'cover' : 'gallery',
-        isCover: index === 0,
-        order: index,
-        alt: `${car.make} ${car.model} ${index === 0 ? 'cover' : 'gallery'}`,
-        title: `${car.make} ${car.model}`,
-        caption: index === 0 ? `${car.make} ${car.model} для VIP-трансферу` : 'Деталі автопарку First Line Transfer',
-      })),
-    });
-    console.log(`✅ Авто оновлено: ${car.make} ${car.model}`);
-  }
-
-  // ==========================================
-  // 3. SITE CONTENT (CMS Тексти)
-  // ==========================================
-  const contentEntries = [
-    // Бренд
-    { key: 'brand_name', value: 'First Line Transfer' },
-    { key: 'logo_url', value: '' },
-
-    // Меню
-    { key: 'menu_services', value: 'Послуги' },
-    { key: 'menu_fleet', value: 'Автопарк' },
-    { key: 'menu_gallery', value: 'Галерея' },
-    { key: 'menu_contact', value: 'Контакти' },
-    { key: 'menu_calculator', value: 'Бронювання' },
-    { key: 'btn_book_now', value: 'Бронювати' },
-
-    // Hero
-    { key: 'hero_title', value: 'ПРЕМІУМ ТРАНСФЕР<br/><span style="color: #e9c349">БЕЗ КОМПРОМІСІВ</span>' },
-    { key: 'hero_subtitle', value: 'Ваш час. Ваші правила. Ідеальний сервіс від дверей до дверей з гарантованою пунктуальністю.' },
-    { key: 'hero_bg_image', value: '' },
-    { key: 'hero_bg_video', value: '' },
-    { key: 'btn_hero_cta', value: 'Розрахувати вартість' },
-
-    // Features
-    // Features
-    { key: 'services_title', value: 'First Line Transfer — це *преміум-трансфер* від дверей до дверей, де все працює за *вашими* правилами:' },
-    { key: 'feature_1_icon', value: 'schedule' },
-    { key: 'feature_1_title', value: 'Пунктуальність 10/10' },
-    { key: 'feature_1_desc', value: 'Ми цінуємо ваш час, тому авто буде на місці хвилину в хвилину.' },
-    { key: 'feature_2_icon', value: 'workspace_premium' },
-    { key: 'feature_2_title', value: 'Турбота з першої секунди' },
-    { key: 'feature_2_desc', value: 'Водій допоможе з важким багажем та організує простір під вас.' },
-    { key: 'feature_3_icon', value: 'event_available' },
-    { key: 'feature_3_title', value: 'Гнучкість' },
-    { key: 'feature_3_desc', value: 'Ми підлаштовуємося під ваш графік і форс-мажори, а не навпаки.' },
-    { key: 'feature_4_icon', value: 'verified_user' },
-    { key: 'feature_4_title', value: 'Абсолютна конфіденційність' },
-    { key: 'feature_4_desc', value: 'Ваш простір у дорозі — недоторканний. Можна попрацювати в тиші або просто відпочити.' },
-    
-    // Comforts & Advantages
-    { key: 'comforts_title', value: 'Для комфортної поїздки наші авто забезпечені:' },
-    { key: 'comforts_list', value: JSON.stringify([
-      'водою',
-      'пледами',
-      'подушками',
-      'вологими та сухими серветками',
-      'зарядними пристроями та кабелями для різних типів телефонів',
-      'фірмовим шоколадом (на етапі реалізації)',
-      'компактними travel-наборами для подорожей: подушка, беруші та пов’язка на очі (на етапі реалізації)'
-    ])},
-    { key: 'advantages_title', value: 'Наші переваги:' },
-    { key: 'advantages_list', value: JSON.stringify([
-      'завжди чисті та доглянуті авто',
-      'уважні та досвідчені водії',
-      'знижка 10% на першу поїздку',
-      'однаковий рівень комфорту для всіх клієнтів, без поділу на “пакети” чи “класи”',
-      'прозорі та зрозумілі умови бронювання',
-      'підтримка клієнтів 24/7 до, під час та після поїздки',
-      'продуманий маршрут з урахуванням ваших побажань',
-      'програма лояльності для постійних клієнтів (на фінальному етапі формування умов)',
-      'картка постійного клієнта (поки на етапі ідеї)',
-      'Telegram-бот для самостійного бронювання трансферу (розглядаємо як окремий майбутній сервіс)'
-    ])},
-
-    // Gallery
-    { key: 'gallery_title', value: 'Галерея' },
-    { key: 'gallery_subtitle', value: 'Наш автопарк в реальному житті. Відео та фото преміум-якості.' },
-    { key: 'gallery_seo_title', value: 'Галерея автопарку First Line Transfer' },
-    { key: 'gallery_seo_description', value: 'Фото і відео преміального автопарку First Line Transfer: седани, VIP vans і мікроавтобуси для трансферів Європою та Україною.' },
-
-    // Fleet
-    { key: 'fleet_title', value: 'Оберіть свій клас' },
-
-    // Contact
-    { key: 'contact_phone', value: '+380 00 000 00 00' },
-    { key: 'contact_email', value: 'info@firstlinetransfer.com' },
-
-    // Footer
-    { key: 'footer_text', value: 'Преміальні трансфери Європою та Україною. Комфорт, безпека та конфіденційність на найвищому рівні.' },
-  ];
-
-  for (const entry of contentEntries) {
-    await prisma.siteContent.upsert({
-      where: { key: entry.key },
-      update: { value: entry.value },
-      create: entry,
-    });
-  }
-  console.log(`\n✅ CMS тексти: ${contentEntries.length} записів створено`);
-
-  // ==========================================
-  // 4. SAMPLE DRIVER
-  // ==========================================
   const driverUser = await prisma.user.upsert({
     where: { email: 'driver@firstline.com' },
-    update: {},
+    update: {
+      name: 'Олександр Петренко',
+      phone: '+380671112233',
+      role: 'DRIVER',
+    },
     create: {
       email: 'driver@firstline.com',
       password: driverPassword,
@@ -295,28 +333,206 @@ async function seed() {
     },
   });
 
-  await prisma.driver.upsert({
+  const driver = await prisma.driver.upsert({
     where: { userId: driverUser.id },
-    update: {},
+    update: {
+      licenseNum: 'BXR123456',
+      salaryPerKm: 0.18,
+      status: 'ACTIVE',
+    },
     create: {
       userId: driverUser.id,
       licenseNum: 'BXR123456',
-      salaryPerKm: 0.15,
+      salaryPerKm: 0.18,
       status: 'ACTIVE',
     },
   });
-  console.log('✅ Тестовий водій створений:', driverUser.name);
 
-  console.log('\n🎉 Наповнення бази завершено!');
-  console.log('------------------------------------');
-  console.log('Адмін: admin@firstline.com / admin123');
-  console.log('Водій: driver@firstline.com / driver123');
-  console.log('------------------------------------');
+  console.log(`Admin ready: ${admin.email}`);
+  console.log(`Driver ready: ${driverUser.email}`);
+  return driver;
 }
 
-seed()
-  .catch((e) => {
-    console.error('❌ Помилка наповнення:', e);
+async function seedContent() {
+  const entries = Object.entries(demoContent);
+  for (const [key, value] of entries) {
+    await prisma.siteContent.upsert({
+      where: { key },
+      update: { value },
+      create: { key, value },
+    });
+  }
+  console.log(`CMS demo content updated: ${entries.length} keys`);
+}
+
+async function seedCars(defaultDriverId: string) {
+  const demoSlugs = demoCars.map((car) => carSlug(car.make, car.model, car.year));
+
+  if (resetDemoCars) {
+    await prisma.car.deleteMany({
+      where: {
+        slug: { notIn: demoSlugs },
+        bookings: { none: {} },
+        promotions: { none: {} },
+      },
+    });
+    console.log('RESET_DEMO_CARS=true: removed old cars without bookings/promotions');
+  }
+
+  for (const demoCar of demoCars) {
+    const slug = carSlug(demoCar.make, demoCar.model, demoCar.year);
+    const images = demoCar.media.filter((item) => !item.url.includes('.mp4')).map((item) => item.url);
+    const videos = demoCar.media.filter((item) => item.url.includes('.mp4')).map((item) => item.url);
+
+    const car = await prisma.car.upsert({
+      where: { slug },
+      update: {
+        slug,
+        make: demoCar.make,
+        model: demoCar.model,
+        year: demoCar.year,
+        capacity: demoCar.capacity,
+        luggageCapacity: demoCar.luggageCapacity,
+        largeLuggageCapacity: demoCar.largeLuggageCapacity,
+        baseRate: demoCar.baseRate,
+        fuelType: demoCar.fuelType,
+        fuelConsumptionCity: demoCar.fuelConsumptionCity,
+        fuelConsumptionHighway: demoCar.fuelConsumptionHighway,
+        fuelTankVolume: demoCar.fuelTankVolume,
+        comfortClass: demoCar.comfortClass,
+        bodyType: demoCar.bodyType,
+        status: 'AVAILABLE',
+        pricePerPerson: demoCar.pricePerPerson,
+        crossBorderFee: demoCar.crossBorderFee,
+        meetAndGreetFee: demoCar.meetAndGreetFee,
+        animalFee: demoCar.animalFee,
+        childSeatFee: demoCar.childSeatFee,
+        baseCity: demoCar.baseCity,
+        description: demoCar.description,
+        features: JSON.stringify(demoCar.features),
+        seoTitle: demoCar.seoTitle,
+        seoDescription: demoCar.seoDescription,
+        defaultDriverId,
+        images,
+        videos,
+      },
+      create: {
+        slug,
+        make: demoCar.make,
+        model: demoCar.model,
+        year: demoCar.year,
+        capacity: demoCar.capacity,
+        luggageCapacity: demoCar.luggageCapacity,
+        largeLuggageCapacity: demoCar.largeLuggageCapacity,
+        baseRate: demoCar.baseRate,
+        fuelType: demoCar.fuelType,
+        fuelConsumptionCity: demoCar.fuelConsumptionCity,
+        fuelConsumptionHighway: demoCar.fuelConsumptionHighway,
+        fuelTankVolume: demoCar.fuelTankVolume,
+        comfortClass: demoCar.comfortClass,
+        bodyType: demoCar.bodyType,
+        status: 'AVAILABLE',
+        pricePerPerson: demoCar.pricePerPerson,
+        crossBorderFee: demoCar.crossBorderFee,
+        meetAndGreetFee: demoCar.meetAndGreetFee,
+        animalFee: demoCar.animalFee,
+        childSeatFee: demoCar.childSeatFee,
+        baseCity: demoCar.baseCity,
+        description: demoCar.description,
+        features: JSON.stringify(demoCar.features),
+        seoTitle: demoCar.seoTitle,
+        seoDescription: demoCar.seoDescription,
+        defaultDriverId,
+        images,
+        videos,
+      },
+    });
+
+    await prisma.carMedia.deleteMany({ where: { carId: car.id } });
+    await prisma.carMedia.createMany({
+      data: demoCar.media.map((item, index) => ({
+        carId: car.id,
+        type: item.url.includes('.mp4') ? 'video' : 'image',
+        url: item.url,
+        role: item.role,
+        isCover: item.role === 'cover' || index === 0,
+        order: index,
+        alt: item.alt,
+        title: `${demoCar.make} ${demoCar.model}`,
+        caption: item.caption,
+        active: true,
+      })),
+    });
+
+    await prisma.carReview.deleteMany({ where: { carId: car.id } });
+    await prisma.carReview.createMany({
+      data: [
+        {
+          carId: car.id,
+          author: 'Ірина К.',
+          rating: 5,
+          text: 'Авто подали чистим, водій допоміг з багажем, маршрут пройшов спокійно і без затримок.',
+        },
+        {
+          carId: car.id,
+          author: 'Andriy M.',
+          rating: 5,
+          text: 'Дуже зручний трансфер для довгої дороги. Все виглядало так, як на фото.',
+        },
+      ],
+    });
+
+    console.log(`Demo car updated: ${car.make} ${car.model}`);
+  }
+}
+
+async function seedFinanceDefaults() {
+  await prisma.currencyRate.upsert({
+    where: { currency: 'UAH' },
+    update: { rateToEur: 45.5 },
+    create: { currency: 'UAH', rateToEur: 45.5 },
+  });
+  await prisma.currencyRate.upsert({
+    where: { currency: 'PLN' },
+    update: { rateToEur: 4.25 },
+    create: { currency: 'PLN', rateToEur: 4.25 },
+  });
+
+  const fuelPrices = [
+    { country: 'Україна', fuelType: 'Бензин', priceEur: 1.35 },
+    { country: 'Україна', fuelType: 'Дизель', priceEur: 1.42 },
+    { country: 'Польща', fuelType: 'Бензин', priceEur: 1.55 },
+    { country: 'Польща', fuelType: 'Дизель', priceEur: 1.58 },
+    { country: 'Німеччина', fuelType: 'Бензин', priceEur: 1.82 },
+    { country: 'Німеччина', fuelType: 'Дизель', priceEur: 1.72 },
+    { country: 'Європа', fuelType: 'Електро', priceEur: 0.48 },
+  ];
+
+  for (const item of fuelPrices) {
+    await prisma.fuelPrice.upsert({
+      where: { country_fuelType: { country: item.country, fuelType: item.fuelType } },
+      update: { priceEur: item.priceEur },
+      create: item,
+    });
+  }
+
+  console.log('Currency and fuel demo defaults updated');
+}
+
+async function main() {
+  console.log('Starting production-safe demo seed...');
+  const driver = await ensureUsers();
+  await seedContent();
+  await seedCars(driver.id);
+  await seedFinanceDefaults();
+  console.log('Demo seed complete.');
+  console.log('Admin: admin@firstline.com / admin123 (only created if missing)');
+  console.log('Driver: driver@firstline.com / driver123 (only created if missing)');
+}
+
+main()
+  .catch((error) => {
+    console.error('Seed failed:', error);
     process.exit(1);
   })
   .finally(async () => {
