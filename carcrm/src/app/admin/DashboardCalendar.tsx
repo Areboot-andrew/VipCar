@@ -20,17 +20,29 @@ import {
   CheckCircle,
   Clock,
   Euro,
+  Home,
+  Luggage,
   MapPin,
   MessageSquare,
+  PawPrint,
+  Route,
   Save,
   User,
   Users,
+  Baby,
+  WalletCards,
 } from 'lucide-react';
 
 type Car = {
   id: string;
   make: string;
   model: string;
+  year?: number;
+  capacity?: number;
+  luggageCapacity?: number;
+  comfortClass?: string;
+  bodyType?: string | null;
+  baseCity?: string | null;
 };
 
 type Driver = {
@@ -51,15 +63,31 @@ type Booking = {
   desiredArrivalAt?: string | null;
   pickupAt?: string | null;
   carDispatchAt?: string | null;
+  estimatedArrivalAt?: string | null;
   deliveryDistance?: number | null;
+  deliveryDurationMins?: number | null;
   totalExpenseDistance?: number | null;
+  routeDurationMins?: number | null;
   customsWaitHours?: number | null;
+  manualWaitingHours?: number | null;
   billableHours?: number | null;
+  fuelCost?: number | null;
+  driverSalary?: number | null;
+  deliveryCost?: number | null;
+  amortization?: number | null;
+  timeCost?: number | null;
+  hotelCost?: number | null;
+  surcharges?: number | null;
   netProfit?: number | null;
   passengers?: number;
   children?: number;
   childSeats?: number;
+  luggage?: string;
+  animals?: boolean;
   petsCount?: number;
+  isEndingAtBase?: boolean;
+  returnToBaseDistance?: number | null;
+  carStartLocation?: string | null;
   driverNotes?: string | null;
   client: { name: string; phone: string | null; email?: string | null };
   driver?: { id?: string; user?: { name: string } } | null;
@@ -100,6 +128,35 @@ function time(value?: string | null) {
 function dateTime(value?: string | null) {
   if (!value) return '--';
   return format(new Date(value), 'dd MMM, HH:mm', { locale: uk });
+}
+
+function money(value?: number | null) {
+  return `€${Number(value || 0).toFixed(0)}`;
+}
+
+function km(value?: number | null) {
+  return `${Number(value || 0).toFixed(0)} км`;
+}
+
+function hours(value?: number | null) {
+  return `${Number(value || 0).toFixed(1)} год`;
+}
+
+function minutesToLabel(value?: number | null) {
+  const total = Number(value || 0);
+  if (!total) return '0 хв';
+  const h = Math.floor(total / 60);
+  const m = Math.round(total % 60);
+  return h > 0 ? `${h} год ${m} хв` : `${m} хв`;
+}
+
+function estimatedBaseReturn(booking: Booking) {
+  const end = new Date(booking.estimatedArrivalAt || booking.dateEnd);
+  if (Number.isNaN(end.getTime())) return null;
+  if (booking.isEndingAtBase) return end;
+  const returnDistance = Number(booking.returnToBaseDistance || booking.deliveryDistance || 0);
+  if (!returnDistance) return null;
+  return new Date(end.getTime() + Math.ceil((returnDistance / 55) * 60) * 60000);
 }
 
 function toDateTimeLocal(value?: string | null) {
@@ -238,6 +295,8 @@ export default function DashboardCalendar({ cars, bookings, drivers = [], onOpen
   const periodTitle = viewMode === 'month'
     ? format(cursor, 'LLLL yyyy', { locale: uk })
     : `${format(days[0], 'dd MMM', { locale: uk })} - ${format(days[6], 'dd MMM', { locale: uk })}`;
+  const selectedBookingCar = selectedBooking ? carFor(selectedBooking) : null;
+  const selectedReturnAt = selectedBooking ? estimatedBaseReturn(selectedBooking) : null;
 
   return (
     <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#13131a] shadow-2xl">
@@ -313,35 +372,53 @@ export default function DashboardCalendar({ cars, bookings, drivers = [], onOpen
               {selectedDayBookings.map((booking) => {
                 const car = carFor(booking);
                 const active = selectedBooking?.id === booking.id;
+                const returnAt = estimatedBaseReturn(booking);
                 return (
                   <button
                     key={booking.id}
                     onClick={() => setSelectedId(booking.id)}
-                    className={`grid gap-3 rounded-xl border p-4 text-left transition-colors lg:grid-cols-[120px_1fr_auto] ${
+                    className={`grid gap-4 rounded-xl border p-4 text-left transition-colors xl:grid-cols-[120px_1fr_220px] ${
                       active ? 'border-[#e9c349]/70 bg-[#e9c349]/10' : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.06]'
                     }`}
                   >
                     <div>
                       <div className="text-2xl font-bold text-white">{time(booking.dateStart)}</div>
-                      <div className="mt-1 text-xs text-[#8a8a93]">приб. {time(booking.dateEnd)}</div>
+                      <div className="mt-1 text-xs text-[#8a8a93]">приб. {time(booking.desiredArrivalAt || booking.dateEnd)}</div>
                       <div className={`mt-3 inline-flex rounded-full border px-2 py-1 text-[11px] font-bold ${statusClass[booking.status] || statusClass.PENDING}`}>
                         {statusLabel[booking.status] || booking.status}
                       </div>
                     </div>
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2 text-sm font-bold text-white">
+                      <div className="flex items-center gap-2 text-sm font-bold text-white md:text-base">
                         <MapPin size={15} className="text-[#e9c349]" />
                         <span className="truncate">{shortPlace(booking.routeFrom)} {'->'} {shortPlace(booking.routeTo)}</span>
                       </div>
-                      <div className="mt-2 grid gap-2 text-xs text-[#c7c6ca] sm:grid-cols-3">
-                        <span className="inline-flex items-center gap-1"><CarIcon size={14} /> {car ? `${car.make} ${car.model}` : 'Авто'}</span>
+                      <div className="mt-3 grid gap-2 text-xs text-[#c7c6ca] md:grid-cols-2 xl:grid-cols-3">
+                        <span className="inline-flex items-center gap-1"><CarIcon size={14} /> {car ? `${car.make} ${car.model}` : 'Авто не знайдено'}</span>
                         <span className="inline-flex items-center gap-1"><User size={14} /> {booking.driver?.user?.name || 'Водія не призначено'}</span>
-                        <span className="inline-flex items-center gap-1"><Users size={14} /> {booking.passengers || 1}+{booking.children || 0}</span>
+                        <span className="inline-flex items-center gap-1"><Users size={14} /> {booking.passengers || 1} дор. / {booking.children || 0} діт.</span>
+                        <span className="inline-flex items-center gap-1"><Luggage size={14} /> {booking.luggage || 'Багаж не вказано'}</span>
+                        <span className="inline-flex items-center gap-1"><Baby size={14} /> крісла: {booking.childSeats || 0}</span>
+                        <span className="inline-flex items-center gap-1"><PawPrint size={14} /> тварини: {booking.petsCount || 0}</span>
+                      </div>
+                      <div className="mt-3 grid gap-2 text-[11px] text-[#8a8a93] md:grid-cols-3">
+                        <span className="rounded-lg bg-black/20 px-2 py-1">з бази: {dateTime(booking.carDispatchAt)}</span>
+                        <span className="rounded-lg bg-black/20 px-2 py-1">клієнт: {dateTime(booking.pickupAt || booking.dateStart)}</span>
+                        <span className="rounded-lg bg-black/20 px-2 py-1">на базу: {returnAt ? format(returnAt, 'dd MMM, HH:mm', { locale: uk }) : '--'}</span>
                       </div>
                     </div>
-                    <div className="text-left lg:text-right">
-                      <div className="text-lg font-bold text-[#e9c349]">€{Number(booking.price || 0).toFixed(0)}</div>
-                      <div className="mt-1 text-xs text-emerald-300">profit €{Number(booking.netProfit || 0).toFixed(0)}</div>
+                    <div className="grid grid-cols-2 gap-2 text-xs xl:block xl:text-right">
+                      <div className="rounded-lg border border-[#e9c349]/20 bg-[#e9c349]/10 p-2 xl:border-0 xl:bg-transparent xl:p-0">
+                        <div className="text-[#8a8a93]">ціна</div>
+                        <div className="text-lg font-bold text-[#e9c349]">{money(booking.price)}</div>
+                      </div>
+                      <div className="rounded-lg border border-emerald-400/20 bg-emerald-400/10 p-2 xl:mt-2 xl:border-0 xl:bg-transparent xl:p-0">
+                        <div className="text-[#8a8a93]">прибуток</div>
+                        <div className="text-lg font-bold text-emerald-300">{money(booking.netProfit)}</div>
+                      </div>
+                      <div className="col-span-2 mt-1 text-[#8a8a93] xl:mt-3">
+                        {km(booking.distance)} маршрут / {km(booking.totalExpenseDistance || booking.distance)} повний пробіг
+                      </div>
                     </div>
                   </button>
                 );
@@ -359,22 +436,85 @@ export default function DashboardCalendar({ cars, bookings, drivers = [], onOpen
         <aside className="rounded-xl border border-white/10 bg-[#080818] p-5">
           {selectedBooking ? (
             <div className="space-y-5">
-              <div>
-                <div className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold ${statusClass[selectedBooking.status] || statusClass.PENDING}`}>
-                  {statusLabel[selectedBooking.status] || selectedBooking.status}
+              <div className="rounded-xl border border-[#e9c349]/20 bg-[#e9c349]/10 p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <div className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold ${statusClass[selectedBooking.status] || statusClass.PENDING}`}>
+                      {statusLabel[selectedBooking.status] || selectedBooking.status}
+                    </div>
+                    <h3 className="mt-4 text-xl font-bold text-white">{shortPlace(selectedBooking.routeFrom)} {'->'} {shortPlace(selectedBooking.routeTo)}</h3>
+                    <p className="mt-2 text-sm leading-6 text-[#c7c6ca]">
+                      Рейс #{selectedBooking.id.slice(0, 8)}: авто виїжджає з {selectedBooking.carStartLocation || selectedBookingCar?.baseCity || 'бази'}, забирає клієнта у точці старту і рухається до {shortPlace(selectedBooking.routeTo)}.
+                    </p>
+                  </div>
+                  <div className="text-left sm:text-right">
+                    <div className="text-xs uppercase tracking-widest text-[#8a8a93]">Ціна / профіт</div>
+                    <div className="mt-1 text-2xl font-bold text-[#e9c349]">{money(selectedBooking.price)}</div>
+                    <div className="text-sm font-bold text-emerald-300">{money(selectedBooking.netProfit)}</div>
+                  </div>
                 </div>
-                <h3 className="mt-4 text-xl font-bold text-white">{shortPlace(selectedBooking.routeFrom)} {'->'} {shortPlace(selectedBooking.routeTo)}</h3>
-                <p className="mt-1 text-sm text-[#8a8a93]">{selectedBooking.client.name} • {selectedBooking.client.phone || 'телефон не вказано'}</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="grid gap-3 text-sm sm:grid-cols-2">
                 <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
-                  <div className="mb-1 flex items-center gap-1 text-xs uppercase tracking-widest text-[#8a8a93]"><Clock size={13} /> Виїзд</div>
-                  <div className="font-bold text-white">{dateTime(selectedBooking.dateStart)}</div>
+                  <div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-widest text-[#8a8a93]"><CarIcon size={14} /> Авто</div>
+                  <div className="font-bold text-white">{selectedBookingCar ? `${selectedBookingCar.make} ${selectedBookingCar.model}` : 'Авто не знайдено'}</div>
+                  <div className="mt-1 text-xs text-[#8a8a93]">{selectedBookingCar?.year || '--'} • {selectedBookingCar?.comfortClass || 'клас не вказано'} • {selectedBookingCar?.capacity || '--'} місць</div>
                 </div>
                 <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
-                  <div className="mb-1 flex items-center gap-1 text-xs uppercase tracking-widest text-[#8a8a93]"><Clock size={13} /> Прибуття</div>
-                  <div className="font-bold text-white">{dateTime(selectedBooking.desiredArrivalAt || selectedBooking.dateEnd)}</div>
+                  <div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-widest text-[#8a8a93]"><User size={14} /> Водій</div>
+                  <div className="font-bold text-white">{selectedBooking.driver?.user?.name || 'Водія не призначено'}</div>
+                  <div className="mt-1 text-xs text-[#8a8a93]">клієнт: {selectedBooking.client.name} • {selectedBooking.client.phone || 'телефон не вказано'}</div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+                <div className="mb-3 flex items-center gap-2 text-sm font-bold text-white"><Route size={16} className="text-[#e9c349]" /> Маршрут і таймлайн</div>
+                <div className="grid gap-2 text-sm">
+                  <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Звідки виїхало авто</span><strong className="text-right text-white">{selectedBooking.carStartLocation || selectedBookingCar?.baseCity || 'База'}</strong></div>
+                  <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Виїзд авто з бази</span><strong className="text-right text-white">{dateTime(selectedBooking.carDispatchAt)}</strong></div>
+                  <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Подача клієнту</span><strong className="text-right text-white">{dateTime(selectedBooking.pickupAt || selectedBooking.dateStart)}</strong></div>
+                  <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Куди їде</span><strong className="text-right text-white">{shortPlace(selectedBooking.routeTo)}</strong></div>
+                  <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Прибуття клієнта</span><strong className="text-right text-white">{dateTime(selectedBooking.desiredArrivalAt || selectedBooking.dateEnd)}</strong></div>
+                  <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Орієнтовно на базі</span><strong className="text-right text-white">{selectedReturnAt ? format(selectedReturnAt, 'dd MMM, HH:mm', { locale: uk }) : selectedBooking.isEndingAtBase ? dateTime(selectedBooking.dateEnd) : '--'}</strong></div>
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+                  <div className="mb-3 flex items-center gap-2 text-sm font-bold text-white"><Users size={16} className="text-[#e9c349]" /> Пасажири й опції</div>
+                  <div className="grid gap-2 text-sm">
+                    <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Дорослі</span><strong className="text-white">{selectedBooking.passengers || 1}</strong></div>
+                    <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Діти</span><strong className="text-white">{selectedBooking.children || 0}</strong></div>
+                    <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Дитячі крісла</span><strong className="text-white">{selectedBooking.childSeats || 0}</strong></div>
+                    <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Багаж</span><strong className="text-right text-white">{selectedBooking.luggage || 'Немає'}</strong></div>
+                    <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Тварини</span><strong className="text-white">{selectedBooking.petsCount || 0}</strong></div>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+                  <div className="mb-3 flex items-center gap-2 text-sm font-bold text-white"><Home size={16} className="text-[#e9c349]" /> Дистанції</div>
+                  <div className="grid gap-2 text-sm">
+                    <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Клієнтський маршрут</span><strong className="text-white">{km(selectedBooking.distance)}</strong></div>
+                    <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Подача з бази</span><strong className="text-white">{km(selectedBooking.deliveryDistance)}</strong></div>
+                    <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Повернення на базу</span><strong className="text-white">{km(selectedBooking.returnToBaseDistance)}</strong></div>
+                    <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Повний пробіг</span><strong className="text-white">{km(selectedBooking.totalExpenseDistance || selectedBooking.distance)}</strong></div>
+                    <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Час маршруту</span><strong className="text-white">{minutesToLabel(selectedBooking.routeDurationMins)}</strong></div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+                <div className="mb-3 flex items-center gap-2 text-sm font-bold text-white"><WalletCards size={16} className="text-[#e9c349]" /> Витрати і прибуток</div>
+                <div className="grid gap-2 text-sm sm:grid-cols-2">
+                  <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Пальне / зарядка</span><strong className="text-white">{money(selectedBooking.fuelCost)}</strong></div>
+                  <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">ЗП водію</span><strong className="text-white">{money(selectedBooking.driverSalary)}</strong></div>
+                  <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Подача</span><strong className="text-white">{money(selectedBooking.deliveryCost)}</strong></div>
+                  <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Амортизація</span><strong className="text-white">{money(selectedBooking.amortization)}</strong></div>
+                  <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Час / очікування</span><strong className="text-white">{money(selectedBooking.timeCost)}</strong></div>
+                  <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Готель</span><strong className="text-white">{money(selectedBooking.hotelCost)}</strong></div>
+                  <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Надбавки</span><strong className="text-white">{money(selectedBooking.surcharges)}</strong></div>
+                  <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Митниця / робота</span><strong className="text-white">{hours(selectedBooking.customsWaitHours)} / {hours(selectedBooking.billableHours)}</strong></div>
                 </div>
               </div>
 
@@ -403,13 +543,6 @@ export default function DashboardCalendar({ cars, bookings, drivers = [], onOpen
                 <button onClick={saveDetails} disabled={saving} className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#e9c349] px-4 py-3 text-sm font-bold text-black disabled:opacity-60">
                   <Save size={16} /> {saving ? 'Збереження...' : 'Зберегти зміни'}
                 </button>
-              </div>
-
-              <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] p-4 text-sm">
-                <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Клієнтський маршрут</span><strong className="text-white">{selectedBooking.distance} км</strong></div>
-                <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Подача з бази</span><strong className="text-white">{selectedBooking.deliveryDistance || 0} км</strong></div>
-                <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Повний пробіг</span><strong className="text-white">{selectedBooking.totalExpenseDistance || selectedBooking.distance} км</strong></div>
-                <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Митниця / робота</span><strong className="text-white">{selectedBooking.customsWaitHours || 0} / {selectedBooking.billableHours || 0} год</strong></div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
