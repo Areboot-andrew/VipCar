@@ -31,7 +31,10 @@ const toHighlightedText = (text: string | undefined, defaultText: string = '') =
 };
 
 export default async function Home() {
-  const cars = await prisma.car.findMany({ where: { status: 'AVAILABLE' } });
+  const cars = await prisma.car.findMany({
+    where: { status: 'AVAILABLE' },
+    include: { media: { where: { active: true }, orderBy: [{ isCover: 'desc' }, { order: 'asc' }] } },
+  });
   
   const siteSettings = await prisma.siteSettings.findUnique({ where: { id: 'global' } });
   
@@ -50,13 +53,17 @@ export default async function Home() {
   });
 
   // Fallback Media for Gallery if no blocks exist
-  const allMedia: { type: 'image' | 'video', url: string, carId?: string }[] = [];
+  const allMedia: { type: 'image' | 'video', url: string, carId?: string, title?: string, alt?: string }[] = [];
   if (c.standalone_gallery_media) {
     try { allMedia.push(...JSON.parse(c.standalone_gallery_media)); } catch (e) {}
   }
   cars.forEach(car => {
-    car.images.forEach(img => allMedia.push({ type: 'image', url: img, carId: car.id }));
-    car.videos.forEach(vid => allMedia.push({ type: 'video', url: vid, carId: car.id }));
+    if (car.media.length > 0) {
+      car.media.forEach(item => allMedia.push({ type: item.type === 'video' ? 'video' : 'image', url: item.url, carId: car.slug || car.id, title: `${car.make} ${car.model}`, alt: item.alt || `${car.make} ${car.model}` }));
+      return;
+    }
+    car.images.forEach(img => allMedia.push({ type: 'image', url: img, carId: car.slug || car.id, title: `${car.make} ${car.model}`, alt: `${car.make} ${car.model}` }));
+    car.videos.forEach(vid => allMedia.push({ type: 'video', url: vid, carId: car.slug || car.id, title: `${car.make} ${car.model}`, alt: `${car.make} ${car.model} video` }));
   });
 
   return (
@@ -135,7 +142,7 @@ export default async function Home() {
                 const galleryMedia = (parsed.items || []).map((url: string) => ({ type: url.includes('.mp4') ? 'video' : 'image', url }));
                 return (
                   <div key={block.id}>
-                    <MarqueeGallery media={galleryMedia.length > 0 ? galleryMedia : allMedia} title={parsed.title} />
+                    <MarqueeGallery media={galleryMedia.length > 0 ? galleryMedia : allMedia} title={parsed.title} subtitle={parsed.subtitle || c['gallery_subtitle']} />
                   </div>
                 );
               }
@@ -197,7 +204,7 @@ export default async function Home() {
             
             <MarqueeGallery media={allMedia.length > 0 ? allMedia : [
               { type: 'image', url: 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80' }
-            ]} title={parseAccent(c['gallery_title'])} />
+            ]} title={parseAccent(c['gallery_title'])} subtitle={c['gallery_subtitle']} />
           </>
         )}
 

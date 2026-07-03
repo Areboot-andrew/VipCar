@@ -77,6 +77,7 @@ const homeFields: FieldConfig[] = [
   { key: 'hero_bg_video', label: 'Hero відео', type: 'media' },
   { key: 'services_title', label: 'Заголовок переваг', preview: true, hint: 'Наприклад: Чому обирають *нас*?' },
   { key: 'gallery_title', label: 'Заголовок галереї', preview: true },
+  { key: 'gallery_subtitle', label: 'Опис галереї', type: 'textarea' },
   { key: 'loading_calculator', label: 'Текст завантаження калькулятора' },
 ];
 
@@ -118,6 +119,8 @@ const seoFields: FieldConfig[] = [
   { key: 'schema_address_city', label: 'Schema місто' },
   { key: 'schema_address_country', label: 'Schema країна' },
   { key: 'schema_area_served', label: 'Країни обслуговування', hint: 'Через кому: UA,PL,DE...' },
+  { key: 'gallery_seo_title', label: 'Gallery SEO title' },
+  { key: 'gallery_seo_description', label: 'Gallery SEO description', type: 'textarea' },
 ];
 
 const explicitKeys = new Set([

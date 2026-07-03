@@ -1,11 +1,12 @@
 'use client';
 
+import { ArrowRight, Camera } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import Link from 'next/link';
 
 interface MarqueeGalleryProps {
-  media: { type: 'image' | 'video', url: string, carId?: string }[];
+  media: { type: 'image' | 'video', url: string, carId?: string, title?: string, alt?: string }[];
   title?: string;
   subtitle?: string;
 }
@@ -25,15 +26,24 @@ export default function MarqueeGallery({ media, title, subtitle }: MarqueeGaller
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-100px" }}
         transition={{ duration: 0.6 }}
-        className="max-w-[1280px] mx-auto px-[24px] md:px-[64px] mb-8 md:mb-16 text-center"
+        className="max-w-[1280px] mx-auto px-[24px] md:px-[64px] mb-8 md:mb-16"
       >
-        <span className="text-[#e9c349] font-label-caps tracking-widest uppercase mb-4 block">Галерея</span>
-        {title && (
-          <h2 className="font-headline-lg text-[40px] md:text-[56px] text-white" dangerouslySetInnerHTML={{ __html: title }}></h2>
-        )}
-        {subtitle && (
-          <p className="text-[#c7c6ca] mt-4 max-w-2xl mx-auto" dangerouslySetInnerHTML={{ __html: subtitle }}></p>
-        )}
+        <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+          <div>
+            <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#e9c349]/25 bg-[#e9c349]/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-[#e9c349]">
+              <Camera size={15} /> Галерея
+            </span>
+            {title && (
+              <h2 className="font-headline-lg text-[40px] md:text-[56px] text-white" dangerouslySetInnerHTML={{ __html: title }}></h2>
+            )}
+            {subtitle && (
+              <p className="text-[#c7c6ca] mt-4 max-w-2xl" dangerouslySetInnerHTML={{ __html: subtitle }}></p>
+            )}
+          </div>
+          <Link href="/gallery" className="inline-flex w-fit items-center gap-2 rounded-lg border border-[#e9c349]/40 px-5 py-3 text-sm font-bold uppercase tracking-[0.12em] text-[#e9c349] transition-colors hover:bg-[#e9c349] hover:text-black">
+            Вся галерея <ArrowRight size={16} />
+          </Link>
+        </div>
       </motion.div>
 
       <div className="relative w-full flex overflow-hidden">
@@ -53,7 +63,7 @@ export default function MarqueeGallery({ media, title, subtitle }: MarqueeGaller
           {marqueeItems.map((item, index) => {
             const innerContent = (
               <div
-                className="group relative w-[280px] md:w-[450px] aspect-[4/3] rounded-2xl overflow-hidden flex-shrink-0 border border-white/5 bg-[#1b1b1c] cursor-pointer"
+                className="group relative w-[280px] md:w-[450px] aspect-[4/3] rounded-xl overflow-hidden flex-shrink-0 border border-white/10 bg-[#1b1b1c] cursor-pointer shadow-[0_24px_70px_rgba(0,0,0,0.25)]"
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
               >
@@ -74,16 +84,18 @@ export default function MarqueeGallery({ media, title, subtitle }: MarqueeGaller
                 ) : (
                   <img
                     src={item.url}
-                    alt="Gallery Item"
+                    alt={item.alt || item.title || 'Gallery Item'}
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                     loading="lazy"
                   />
                 )}
                 {/* Optional Glassmorphism overlay on hover */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none flex items-end justify-center pb-6">
-                  {item.carId && (
-                    <span className="text-white font-bold tracking-widest uppercase text-sm border border-white/20 px-4 py-2 rounded-full backdrop-blur-md bg-black/30">Детальніше про авто</span>
-                  )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none flex items-end justify-between gap-3 p-6">
+                  <div className="min-w-0">
+                    {item.title && <div className="truncate text-lg font-bold text-white">{item.title}</div>}
+                    {item.carId && <div className="mt-1 text-xs font-bold uppercase tracking-[0.14em] text-[#e9c349]">Детальніше про авто</div>}
+                  </div>
+                  {item.carId && <ArrowRight className="shrink-0 text-white" size={22} />}
                 </div>
               </div>
             );

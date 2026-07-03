@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import { carSlug } from '../src/lib/slug';
 
 const prisma = new PrismaClient();
 
@@ -31,64 +32,162 @@ async function seed() {
   const carsData = [
     {
       make: 'Mercedes-Benz',
-      model: 'S-Class W223',
+      model: 'S-Class W223 Long',
       year: 2024,
+      slug: carSlug('Mercedes-Benz', 'S-Class W223 Long', 2024),
       capacity: 4,
+      luggageCapacity: 3,
+      largeLuggageCapacity: 2,
       baseRate: 2.50,
       fuelType: 'Бензин', fuelConsumptionCity: 10.5, fuelConsumptionHighway: 7.5,
+      fuelTankVolume: 76,
+      comfortClass: 'Executive Sedan',
+      bodyType: 'Sedan',
+      baseCity: 'Львів',
       status: 'AVAILABLE',
-      images: [],
+      description: '<h2>Mercedes-Benz S-Class для VIP-трансферів</h2><p>Тихий салон, комфортні задні місця, преміальна посадка і формат для ділових поїздок, зустрічей в аеропорту та міжнародних маршрутів.</p>',
+      features: JSON.stringify([
+        { icon: 'Armchair', text: 'Комфортні задні сидіння' },
+        { icon: 'Wifi', text: 'Wi-Fi та зарядки' },
+        { icon: 'ShieldCheck', text: 'Конфіденційність' },
+      ]),
+      seoTitle: 'Mercedes-Benz S-Class W223 Long - VIP трансфер',
+      seoDescription: 'Mercedes-Benz S-Class W223 Long для преміальних трансферів з водієм. 4 місця, до 3 валіз, комфортний салон і бізнес-рівень сервісу.',
+      images: [
+        'https://images.unsplash.com/photo-1619767886558-efdc259cde1a?auto=format&fit=crop&q=80&w=1400',
+        'https://images.unsplash.com/photo-1553440569-bcc63803a83d?auto=format&fit=crop&q=80&w=1400',
+      ],
       videos: [],
     },
     {
       make: 'Mercedes-Benz',
-      model: 'V-Class (VIP)',
+      model: 'V-Class VIP',
       year: 2024,
+      slug: carSlug('Mercedes-Benz', 'V-Class VIP', 2024),
       capacity: 7,
+      luggageCapacity: 7,
+      largeLuggageCapacity: 5,
       baseRate: 3.00,
-      fuelType: 'Бензин', fuelConsumptionCity: 12.0, fuelConsumptionHighway: 8.5,
+      fuelType: 'Дизель', fuelConsumptionCity: 12.0, fuelConsumptionHighway: 8.5,
+      fuelTankVolume: 70,
+      comfortClass: 'VIP Van',
+      bodyType: 'Van',
+      baseCity: 'Львів',
       status: 'AVAILABLE',
-      images: [],
+      description: '<h2>Mercedes-Benz V-Class VIP для груп і сімей</h2><p>Оптимальний варіант для аеропортів, бізнес-делегацій, сімей з дітьми та поїздок з великим багажем.</p>',
+      features: JSON.stringify([
+        { icon: 'Users', text: 'До 7 пасажирів' },
+        { icon: 'BriefcaseBusiness', text: 'Багато місця для багажу' },
+        { icon: 'Baby', text: 'Дитячі крісла за запитом' },
+      ]),
+      seoTitle: 'Mercedes-Benz V-Class VIP - трансфер для груп',
+      seoDescription: 'Mercedes-Benz V-Class VIP для групових трансферів. 7 місць, великий багажний простір, комфорт для сімей та бізнес-делегацій.',
+      images: [
+        'https://images.unsplash.com/photo-1542362567-b07e54358753?auto=format&fit=crop&q=80&w=1400',
+        'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80&w=1400',
+      ],
       videos: [],
     },
     {
       make: 'BMW',
       model: '7 Series G70',
       year: 2024,
+      slug: carSlug('BMW', '7 Series G70', 2024),
       capacity: 4,
+      luggageCapacity: 3,
+      largeLuggageCapacity: 2,
       baseRate: 2.70,
       fuelType: 'Дизель', fuelConsumptionCity: 9.5, fuelConsumptionHighway: 6.5,
+      fuelTankVolume: 74,
+      comfortClass: 'Executive Sedan',
+      bodyType: 'Sedan',
+      baseCity: 'Київ',
       status: 'AVAILABLE',
-      images: [],
-      videos: [],
-    },
-    {
-      make: 'Audi',
-      model: 'A8 L',
-      year: 2023,
-      capacity: 4,
-      baseRate: 2.40,
-      fuelType: 'Дизель', fuelConsumptionCity: 10.0, fuelConsumptionHighway: 7.0,
-      status: 'AVAILABLE',
-      images: [],
+      description: '<h2>BMW 7 Series для швидких преміальних маршрутів</h2><p>Динамічний седан бізнес-класу з комфортною посадкою, тишею в салоні та сильним іміджевим ефектом.</p>',
+      features: JSON.stringify([
+        { icon: 'Gauge', text: 'Динаміка на трасі' },
+        { icon: 'Volume2', text: 'Тихий салон' },
+        { icon: 'Star', text: 'Преміальний імідж' },
+      ]),
+      seoTitle: 'BMW 7 Series G70 - преміальний трансфер',
+      seoDescription: 'BMW 7 Series G70 для VIP-трансферів. 4 місця, дизель, комфортний салон і сильна динаміка для міжміських маршрутів.',
+      images: [
+        'https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&q=80&w=1400',
+        'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&q=80&w=1400',
+      ],
       videos: [],
     },
     {
       make: 'Mercedes-Benz',
       model: 'Sprinter VIP',
       year: 2024,
+      slug: carSlug('Mercedes-Benz', 'Sprinter VIP', 2024),
       capacity: 12,
+      luggageCapacity: 12,
+      largeLuggageCapacity: 10,
       baseRate: 4.00,
-      fuelType: 'Бензин', fuelConsumptionCity: 11.5, fuelConsumptionHighway: 8.0,
+      fuelType: 'Дизель', fuelConsumptionCity: 13.5, fuelConsumptionHighway: 9.5,
+      fuelTankVolume: 93,
+      comfortClass: 'VIP Bus',
+      bodyType: 'Minibus',
+      baseCity: 'Львів',
       status: 'AVAILABLE',
-      images: [],
+      description: '<h2>Mercedes-Benz Sprinter VIP для великих груп</h2><p>Комфортний мікроавтобус для делегацій, подій, трансферів між містами та маршрутів з великим багажем.</p>',
+      features: JSON.stringify([
+        { icon: 'UsersRound', text: 'До 12 пасажирів' },
+        { icon: 'Luggage', text: 'Великий багажний простір' },
+        { icon: 'Route', text: 'Зручний для міжнародних маршрутів' },
+      ]),
+      seoTitle: 'Mercedes-Benz Sprinter VIP - трансфер для делегацій',
+      seoDescription: 'Mercedes-Benz Sprinter VIP для великих груп і делегацій. До 12 пасажирів, великий багажний простір, комфортні міжнародні маршрути.',
+      images: [
+        'https://images.unsplash.com/photo-1541899481282-d53bffe3c35d?auto=format&fit=crop&q=80&w=1400',
+        'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&q=80&w=1400',
+      ],
       videos: [],
     },
   ];
 
+  const seededSlugs = carsData.map((car) => car.slug);
+  await prisma.car.deleteMany({
+    where: {
+      slug: { notIn: seededSlugs },
+      bookings: { none: {} },
+      promotions: { none: {} },
+    },
+  });
+
   for (const carData of carsData) {
-    const car = await prisma.car.create({ data: carData });
-    console.log(`✅ Авто створено: ${car.make} ${car.model}`);
+    const { images, videos, ...data } = carData;
+    const car = await prisma.car.upsert({
+      where: { slug: carData.slug },
+      update: {
+        ...data,
+        images,
+        videos,
+      },
+      create: {
+        ...data,
+        images,
+        videos,
+      },
+    });
+
+    await prisma.carMedia.deleteMany({ where: { carId: car.id } });
+    await prisma.carMedia.createMany({
+      data: images.map((url, index) => ({
+        carId: car.id,
+        type: 'image',
+        url,
+        role: index === 0 ? 'cover' : 'gallery',
+        isCover: index === 0,
+        order: index,
+        alt: `${car.make} ${car.model} ${index === 0 ? 'cover' : 'gallery'}`,
+        title: `${car.make} ${car.model}`,
+        caption: index === 0 ? `${car.make} ${car.model} для VIP-трансферу` : 'Деталі автопарку First Line Transfer',
+      })),
+    });
+    console.log(`✅ Авто оновлено: ${car.make} ${car.model}`);
   }
 
   // ==========================================
@@ -158,6 +257,8 @@ async function seed() {
     // Gallery
     { key: 'gallery_title', value: 'Галерея' },
     { key: 'gallery_subtitle', value: 'Наш автопарк в реальному житті. Відео та фото преміум-якості.' },
+    { key: 'gallery_seo_title', value: 'Галерея автопарку First Line Transfer' },
+    { key: 'gallery_seo_description', value: 'Фото і відео преміального автопарку First Line Transfer: седани, VIP vans і мікроавтобуси для трансферів Європою та Україною.' },
 
     // Fleet
     { key: 'fleet_title', value: 'Оберіть свій клас' },

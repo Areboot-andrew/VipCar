@@ -1,120 +1,253 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import dynamic from 'next/dynamic';
-import { Plus, X, Image as ImageIcon, Video, Star, Trash2 } from 'lucide-react';
-
-const ReactQuill = dynamic(() => import('react-quill-new'), { ssr: false });
+import {
+  BadgeEuro,
+  CarFront,
+  CheckCircle2,
+  GalleryHorizontalEnd,
+  ImageIcon,
+  Loader2,
+  Plus,
+  Save,
+  Search,
+  Trash2,
+  Upload,
+} from 'lucide-react';
+import IconPicker from '@/components/admin/IconPicker';
+import DynamicIcon from '@/components/ui/DynamicIcon';
+import { carSlug } from '@/lib/slug';
 import 'react-quill-new/dist/quill.snow.css';
 
-type CarReview = {
+const RichEditor = dynamic(() => import('react-quill-new'), {
+  ssr: false,
+  loading: () => <div className="min-h-[160px] rounded-lg border border-white/10 bg-[#080818] p-4 text-[#8a8a93]">Завантаження редактора...</div>,
+});
+
+type CarMedia = {
   id: string;
-  author: string;
-  rating: number;
-  text: string;
-  date: string;
+  type: string;
+  url: string;
+  role: string;
+  title?: string | null;
+  alt?: string | null;
+  caption?: string | null;
+  order: number;
+  isCover: boolean;
+  active: boolean;
 };
 
-type Car = {
+type Driver = {
   id: string;
+  salaryPerKm: number;
+  user: { name: string; email: string };
+};
+
+type CarRecord = {
+  id?: string;
+  slug?: string | null;
   make: string;
   model: string;
-  year: number;
-  capacity: number;
-  baseRate: number;
+  year: number | string;
+  capacity: number | string;
+  luggageCapacity: number | string;
+  largeLuggageCapacity: number | string;
+  baseRate: number | string;
   fuelType: string;
-  fuelConsumptionCity: number;
-  fuelConsumptionHighway: number;
-  fuelTankVolume: number;
+  fuelConsumptionCity: number | string;
+  fuelConsumptionHighway: number | string;
+  fuelTankVolume: number | string;
+  comfortClass: string;
+  bodyType?: string | null;
+  luggageNote?: string | null;
   status: string;
-  images: string[];
-  videos: string[];
+  pricePerPerson: number | string;
+  crossBorderFee: number | string;
+  meetAndGreetFee: number | string;
+  animalFee: number | string;
+  childSeatFee: number | string;
+  baseCity?: string | null;
+  baseLat?: number | string | null;
+  baseLng?: number | string | null;
+  defaultDriverId?: string | null;
   description?: string | null;
   features?: string | null;
-  reviews?: CarReview[];
-  
-  pricePerPerson?: number;
-  crossBorderFee?: number;
-  meetAndGreetFee?: number;
-  animalFee?: number;
-  childSeatFee?: number;
-  baseCity?: string | null;
+  seoTitle?: string | null;
+  seoDescription?: string | null;
+  images?: string[];
+  videos?: string[];
+  media?: CarMedia[];
 };
 
+const emptyCar = (): CarRecord => ({
+  make: '',
+  model: '',
+  year: new Date().getFullYear(),
+  capacity: 4,
+  luggageCapacity: 2,
+  largeLuggageCapacity: 1,
+  baseRate: 2.5,
+  fuelType: 'Бензин',
+  fuelConsumptionCity: 10,
+  fuelConsumptionHighway: 7,
+  fuelTankVolume: 60,
+  comfortClass: 'Premium',
+  bodyType: 'Sedan',
+  luggageNote: '',
+  status: 'AVAILABLE',
+  pricePerPerson: 10,
+  crossBorderFee: 150,
+  meetAndGreetFee: 20,
+  animalFee: 30,
+  childSeatFee: 15,
+  baseCity: 'Львів',
+  baseLat: '',
+  baseLng: '',
+  defaultDriverId: '',
+  description: '',
+  features: '[]',
+  seoTitle: '',
+  seoDescription: '',
+  images: [],
+  videos: [],
+  media: [],
+});
+
+const tabs = [
+  { id: 'main', label: 'Основне', icon: CarFront },
+  { id: 'pricing', label: 'Розрахунки', icon: BadgeEuro },
+  { id: 'media', label: 'Медіа', icon: GalleryHorizontalEnd },
+  { id: 'seo', label: 'SEO', icon: Search },
+] as const;
+
+function inputClass() {
+  return 'w-full rounded-lg border border-white/10 bg-[#080818] px-3 py-2.5 text-sm text-white outline-none transition-colors placeholder:text-[#64646d] focus:border-[#e9c349]';
+}
+
+function Field({
+  label,
+  children,
+  hint,
+}: {
+  label: string;
+  children: ReactNode;
+  hint?: string;
+}) {
+  return (
+    <div className="space-y-2">
+      <label className="block text-[11px] font-bold uppercase tracking-[0.14em] text-[#8a8a93]">{label}</label>
+      {children}
+      {hint && <p className="m-0 text-xs text-[#6f6f78]">{hint}</p>}
+    </div>
+  );
+}
+
+function parseFeatures(features?: string | null) {
+  try {
+    const parsed = JSON.parse(features || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
 export default function AdminFleetPage() {
-  const [cars, setCars] = useState<Car[]>([]);
+  const [cars, setCars] = useState<CarRecord[]>([]);
+  const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [selectedId, setSelectedId] = useState<string>('new');
+  const [draft, setDraft] = useState<CarRecord>(emptyCar());
+  const [features, setFeatures] = useState<{ icon: string; text: string }[]>([]);
+  const [activeTab, setActiveTab] = useState<(typeof tabs)[number]['id']>('main');
   const [loading, setLoading] = useState(true);
-  
-  // Create Modal State
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    make: '', model: '', year: new Date().getFullYear().toString(),
-    capacity: '4', baseRate: '0', fuelType: 'Бензин', fuelConsumptionCity: '0', fuelConsumptionHighway: '0', fuelTankVolume: '60',
-    description: '', features: '[]', baseCity: 'Львів',
-    pricePerPerson: '10', crossBorderFee: '150', meetAndGreetFee: '20', animalFee: '30', childSeatFee: '15'
-  });
-  const [featuresList, setFeaturesList] = useState<{icon: string, text: string}[]>([]);
+  const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [notice, setNotice] = useState('');
 
-  // Edit State (for description and features of existing cars)
-  const [editingCarId, setEditingCarId] = useState<string | null>(null);
-  const [editFormData, setEditFormData] = useState<Partial<Car>>({});
-  const [editFeaturesList, setEditFeaturesList] = useState<{icon: string, text: string}[]>([]);
+  const selectedCar = useMemo(() => cars.find((car) => car.id === selectedId), [cars, selectedId]);
 
-  // Reviews Modal State
-  const [reviewsModalOpen, setReviewsModalOpen] = useState<string | null>(null);
-  const [newReview, setNewReview] = useState({ author: '', rating: '5', text: '' });
-
-  const fetchCars = () => {
+  const fetchData = async () => {
     setLoading(true);
-    fetch('/api/cars')
-      .then(res => res.json())
-      .then(data => { setCars(data); setLoading(false); })
-      .catch(() => setLoading(false));
+    const [carsRes, driversRes] = await Promise.all([
+      fetch('/api/cars').then((res) => res.json()).catch(() => []),
+      fetch('/api/drivers').then((res) => res.json()).catch(() => []),
+    ]);
+    setCars(Array.isArray(carsRes) ? carsRes : []);
+    setDrivers(Array.isArray(driversRes) ? driversRes : []);
+    setLoading(false);
   };
 
-  useEffect(() => { fetchCars(); }, []);
+  useEffect(() => {
+    fetchData();
+  }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      const payload = {
-        ...formData,
-        features: JSON.stringify(featuresList)
-      };
-      const res = await fetch('/api/cars', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      if (res.ok) {
-        setIsModalOpen(false);
-        setFormData({ make: '', model: '', year: new Date().getFullYear().toString(), capacity: '4', baseRate: '0', fuelType: 'Бензин', fuelConsumptionCity: '0', fuelConsumptionHighway: '0', fuelTankVolume: '60', description: '', features: '[]', baseCity: 'Львів', pricePerPerson: '10', crossBorderFee: '150', meetAndGreetFee: '20', animalFee: '30', childSeatFee: '15' });
-        setFeaturesList([]);
-        fetchCars();
+  useEffect(() => {
+    if (selectedId === 'new') {
+      const next = emptyCar();
+      setDraft(next);
+      setFeatures([]);
+      return;
+    }
+    if (selectedCar) {
+      setDraft({ ...selectedCar });
+      setFeatures(parseFeatures(selectedCar.features));
+    }
+  }, [selectedId, selectedCar]);
+
+  const updateDraft = (key: keyof CarRecord, value: any) => {
+    setDraft((prev) => {
+      const next = { ...prev, [key]: value };
+      if (key === 'make' || key === 'model' || key === 'year') {
+        next.slug = carSlug(String(next.make || ''), String(next.model || ''), String(next.year || ''));
       }
-    } catch (err) { console.error(err); }
+      return next;
+    });
   };
 
-  const handleUpdateCar = async (carId: string) => {
+  const saveCar = async () => {
+    setSaving(true);
+    setNotice('');
+    const payload = {
+      ...draft,
+      features: JSON.stringify(features),
+    };
+    const endpoint = draft.id ? `/api/cars/${draft.slug || draft.id}` : '/api/cars';
+    const method = draft.id ? 'PATCH' : 'POST';
+
     try {
-      const payload = {
-        ...editFormData,
-        features: JSON.stringify(editFeaturesList)
-      };
-      const res = await fetch(`/api/cars/${carId}`, {
-        method: 'PATCH',
+      const res = await fetch(endpoint, {
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
-      if (res.ok) {
-        setEditingCarId(null);
-        fetchCars();
-      }
-    } catch (err) { console.error(err); }
+      const saved = await res.json();
+      if (!res.ok) throw new Error(saved.error || 'Save failed');
+      setNotice('Авто збережено.');
+      await fetchData();
+      setSelectedId(saved.id);
+    } catch {
+      setNotice('Не вдалося зберегти авто.');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleMediaUpload = async (carId: string, file: File, mediaType: 'image' | 'video') => {
+  const deleteCar = async (car: CarRecord) => {
+    if (!car.id || !confirm(`Видалити ${car.make} ${car.model}?`)) return;
+    const res = await fetch(`/api/cars/${car.slug || car.id}`, { method: 'DELETE' });
+    if (res.ok) {
+      setSelectedId('new');
+      await fetchData();
+    } else {
+      setNotice('Не вдалося видалити авто. Можливо, є бронювання.');
+    }
+  };
+
+  const uploadMedia = async (file: File, type: 'image' | 'video') => {
+    if (!draft.id) {
+      setNotice('Спочатку збережи авто, потім додавай медіа.');
+      return;
+    }
     setUploading(true);
     const formData = new FormData();
     formData.append('file', file);
@@ -123,390 +256,337 @@ export default function AdminFleetPage() {
     try {
       const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
       const uploadData = await uploadRes.json();
+      if (!uploadData.url) throw new Error('Upload failed');
 
-      if (uploadData.url) {
-        const res = await fetch(`/api/cars/${carId}/media`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url: uploadData.url, mediaType })
-        });
-        if (res.ok) fetchCars();
-      }
-    } catch (err) { console.error(err); }
-    setUploading(false);
-  };
-
-  const handleMediaDelete = async (carId: string, url: string, mediaType: 'image' | 'video') => {
-    if (!confirm('Видалити медіа?')) return;
-    try {
-      const res = await fetch(`/api/cars/${carId}/media`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url, mediaType })
-      });
-      if (res.ok) fetchCars();
-    } catch (err) { console.error(err); }
-  };
-
-  const handleDelete = async (carId: string) => {
-    if (!confirm('Ви впевнені, що хочете видалити це авто?')) return;
-    try {
-      const res = await fetch(`/api/cars/${carId}`, { method: 'DELETE' });
-      if (res.ok) fetchCars();
-    } catch (err) { console.error(err); }
-  };
-
-  const handleAddReview = async (e: React.FormEvent, carId: string) => {
-    e.preventDefault();
-    try {
-      const res = await fetch(`/api/cars/${carId}/reviews`, {
+      const mediaRes = await fetch(`/api/cars/${draft.slug || draft.id}/media`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newReview)
+        body: JSON.stringify({
+          url: uploadData.url,
+          type,
+          role: draft.media?.length ? 'gallery' : 'cover',
+          isCover: !draft.media?.length,
+          alt: `${draft.make} ${draft.model}`,
+        }),
       });
-      if (res.ok) {
-        setNewReview({ author: '', rating: '5', text: '' });
-        fetchCars(); 
-      }
-    } catch (err) { console.error(err); }
-  };
-
-  const handleDeleteReview = async (carId: string, reviewId: string) => {
-    if (!confirm('Видалити відгук?')) return;
-    try {
-      const res = await fetch(`/api/cars/${carId}/reviews`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reviewId })
-      });
-      if (res.ok) fetchCars();
-    } catch (err) { console.error(err); }
-  };
-
-  const openEditMode = (car: Car) => {
-    setEditingCarId(car.id);
-    setEditFormData({
-      description: car.description || '',
-      pricePerPerson: car.pricePerPerson || 10,
-      crossBorderFee: car.crossBorderFee || 150,
-      meetAndGreetFee: car.meetAndGreetFee || 20,
-      animalFee: car.animalFee || 30,
-      childSeatFee: car.childSeatFee || 15,
-      baseCity: car.baseCity || 'Львів',
-      fuelTankVolume: car.fuelTankVolume || 60
-    });
-    try {
-      setEditFeaturesList(car.features ? JSON.parse(car.features) : []);
-    } catch (e) {
-      setEditFeaturesList([]);
+      if (!mediaRes.ok) throw new Error('Media failed');
+      await fetchData();
+      setNotice('Медіа додано.');
+    } catch {
+      setNotice('Не вдалося завантажити медіа.');
+    } finally {
+      setUploading(false);
     }
   };
 
+  const updateMediaDraft = (index: number, patch: Partial<CarMedia>) => {
+    setDraft((prev) => {
+      const media = [...(prev.media || [])];
+      media[index] = { ...media[index], ...patch };
+      if (patch.isCover) {
+        media.forEach((item, itemIndex) => {
+          if (itemIndex !== index) item.isCover = false;
+        });
+      }
+      return { ...prev, media };
+    });
+  };
+
+  const saveMedia = async () => {
+    if (!draft.id) return;
+    const res = await fetch(`/api/cars/${draft.slug || draft.id}/media`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items: draft.media || [] }),
+    });
+    if (res.ok) {
+      setNotice('Медіа оновлено.');
+      await fetchData();
+    }
+  };
+
+  const deleteMedia = async (media: CarMedia) => {
+    if (!draft.id || !confirm('Видалити медіа?')) return;
+    const res = await fetch(`/api/cars/${draft.slug || draft.id}/media`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mediaId: media.id, url: media.url, mediaType: media.type }),
+    });
+    if (res.ok) {
+      await fetchData();
+      setNotice('Медіа видалено.');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[360px] items-center justify-center text-[#e9c349]">
+        <Loader2 className="mr-3 animate-spin" /> Завантаження автопарку...
+      </div>
+    );
+  }
+
   return (
-    <div className="admin-page-container pb-32">
-      <div className="admin-page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1>Автопарк</h1>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 px-6 py-3 bg-[#e9c349] text-black font-bold rounded-lg hover:scale-105 transition-transform"
-        >
-          <Plus size={20} /> Додати авто
-        </button>
-      </div>
-
-      <div style={{ marginTop: '32px', display: 'grid', gap: '32px' }}>
-        {loading ? <p>Завантаження...</p> : cars.length === 0 ? <p style={{ color: 'var(--text-secondary)' }}>Немає автомобілів в базі</p> : (
-          cars.map(car => (
-            <div key={car.id} style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: '16px', overflow: 'hidden' }}>
-              {/* Car Header */}
-              <div style={{ padding: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
-                <div>
-                  <h2 style={{ color: 'white', margin: 0, fontSize: '24px' }}>{car.make} {car.model}</h2>
-                  <p style={{ color: 'var(--text-secondary)', margin: '4px 0 0', fontSize: '14px' }}>
-                    {car.year} • {car.capacity} місць • {car.fuelType} • {car.fuelConsumptionCity}/{car.fuelConsumptionHighway} л/100км • €{car.baseRate}/км • База: {car.baseCity || 'Львів'}
-                  </p>
-                </div>
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                  <span style={{ 
-                    padding: '6px 12px', 
-                    backgroundColor: car.status === 'AVAILABLE' ? 'rgba(74, 222, 128, 0.15)' : 'rgba(255,255,255,0.1)',
-                    color: car.status === 'AVAILABLE' ? '#4ade80' : 'white',
-                    borderRadius: '6px', fontSize: '12px', fontWeight: 'bold'
-                  }}>{car.status === 'AVAILABLE' ? 'ДОСТУПНИЙ' : car.status}</span>
-                  <button onClick={() => setReviewsModalOpen(car.id)} className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-lg text-sm transition-colors flex items-center gap-2">
-                    <Star size={16} className="text-[#e9c349]" /> Відгуки
-                  </button>
-                  <button onClick={() => handleDelete(car.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '14px' }}>Видалити</button>
-                </div>
-              </div>
-
-              {/* Rich Content Editor (Description & Features) */}
-              <div className="p-6 border-b border-white/10">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-[#e9c349] font-label-caps tracking-widest uppercase text-sm">Опис та Характеристики (SEO)</h3>
-                  {editingCarId !== car.id ? (
-                    <button onClick={() => openEditMode(car)} className="text-sm px-4 py-2 border border-white/20 rounded hover:bg-white/5 transition-colors">Редагувати тексти</button>
-                  ) : (
-                    <div className="flex gap-2">
-                      <button onClick={() => handleUpdateCar(car.id)} className="text-sm px-4 py-2 bg-[#e9c349] text-black font-bold rounded hover:scale-105 transition-transform">Зберегти тексти</button>
-                      <button onClick={() => setEditingCarId(null)} className="text-sm px-4 py-2 border border-white/20 rounded hover:bg-white/5 transition-colors">Скасувати</button>
-                    </div>
-                  )}
-                </div>
-
-                {editingCarId === car.id ? (
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-2 md:grid-cols-7 gap-4 bg-white/5 p-4 rounded-xl border border-white/10">
-                      <div>
-                        <label className="block text-xs uppercase text-gray-400 mb-1">База Авто (Місто)</label>
-                        <input type="text" value={editFormData.baseCity || ''} onChange={e => setEditFormData({...editFormData, baseCity: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded p-2 text-white text-sm" placeholder="напр. Львів" />
-                      </div>
-                      <div>
-                        <label className="block text-xs uppercase text-gray-400 mb-1">Об'єм баку</label>
-                        <input type="number" value={editFormData.fuelTankVolume} onChange={e => setEditFormData({...editFormData, fuelTankVolume: parseFloat(e.target.value)})} className="w-full bg-black/50 border border-white/20 rounded p-2 text-white text-sm" />
-                      </div>
-                      <div>
-                        <label className="block text-xs uppercase text-gray-400 mb-1">Багаж / Особа (€)</label>
-                        <input type="number" step="0.01" value={editFormData.pricePerPerson} onChange={e => setEditFormData({...editFormData, pricePerPerson: parseFloat(e.target.value)})} className="w-full bg-black/50 border border-white/20 rounded p-2 text-white text-sm" />
-                      </div>
-                      <div>
-                        <label className="block text-xs uppercase text-gray-400 mb-1">Кордон (€)</label>
-                        <input type="number" step="0.01" value={editFormData.crossBorderFee} onChange={e => setEditFormData({...editFormData, crossBorderFee: parseFloat(e.target.value)})} className="w-full bg-black/50 border border-white/20 rounded p-2 text-white text-sm" />
-                      </div>
-                      <div>
-                        <label className="block text-xs uppercase text-gray-400 mb-1">Табличка (€)</label>
-                        <input type="number" step="0.01" value={editFormData.meetAndGreetFee} onChange={e => setEditFormData({...editFormData, meetAndGreetFee: parseFloat(e.target.value)})} className="w-full bg-black/50 border border-white/20 rounded p-2 text-white text-sm" />
-                      </div>
-                      <div>
-                        <label className="block text-xs uppercase text-gray-400 mb-1">Тварини (€)</label>
-                        <input type="number" step="0.01" value={editFormData.animalFee} onChange={e => setEditFormData({...editFormData, animalFee: parseFloat(e.target.value)})} className="w-full bg-black/50 border border-white/20 rounded p-2 text-white text-sm" />
-                      </div>
-                      <div>
-                        <label className="block text-xs uppercase text-gray-400 mb-1">Крісло (€)</label>
-                        <input type="number" step="0.01" value={editFormData.childSeatFee} onChange={e => setEditFormData({...editFormData, childSeatFee: parseFloat(e.target.value)})} className="w-full bg-black/50 border border-white/20 rounded p-2 text-white text-sm" />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-xs uppercase text-gray-400 mb-2">Детальний опис авто (HTML)</label>
-                      <div className="bg-white text-black rounded-lg">
-                        <ReactQuill theme="snow" value={editFormData.description || ''} onChange={val => setEditFormData({...editFormData, description: val})} />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-xs uppercase text-gray-400 mb-2">Унікальні фішки (Features)</label>
-                      <div className="space-y-2">
-                        {editFeaturesList.map((feature, idx) => (
-                          <div key={idx} className="flex items-center gap-2 bg-white/5 p-2 rounded">
-                            <input value={feature.icon} onChange={e => { const newF = [...editFeaturesList]; newF[idx].icon = e.target.value; setEditFeaturesList(newF); }} placeholder="Іконка (напр. wifi)" className="bg-transparent border border-white/20 rounded p-1 w-32 text-white text-sm" />
-                            <input value={feature.text} onChange={e => { const newF = [...editFeaturesList]; newF[idx].text = e.target.value; setEditFeaturesList(newF); }} placeholder="Текст фішки (напр. Wi-Fi в салоні)" className="bg-transparent border border-white/20 rounded p-1 flex-1 text-white text-sm" />
-                            <button onClick={() => { const newF = [...editFeaturesList]; newF.splice(idx, 1); setEditFeaturesList(newF); }} className="text-red-400 hover:text-red-300 p-1"><Trash2 size={16} /></button>
-                          </div>
-                        ))}
-                        <button onClick={() => setEditFeaturesList([...editFeaturesList, { icon: 'star', text: '' }])} className="text-sm text-[#e9c349] hover:underline">+ Додати фішку</button>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div>
-                      <p className="text-xs uppercase text-gray-500 mb-2">Опис</p>
-                      {car.description ? (
-                        <div className="prose prose-sm prose-invert" dangerouslySetInnerHTML={{ __html: car.description }} />
-                      ) : (
-                        <p className="text-gray-600 italic">Опис відсутній</p>
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-xs uppercase text-gray-500 mb-2">Фішки</p>
-                      {car.features && car.features !== '[]' ? (
-                        <ul className="space-y-2">
-                          {JSON.parse(car.features).map((f: any, idx: number) => (
-                            <li key={idx} className="flex items-center gap-2 text-sm text-gray-300">
-                              <span className="material-symbols-outlined text-[#e9c349] text-[18px]">{f.icon || 'star'}</span> {f.text}
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="text-gray-600 italic">Фішки не додані</p>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Media Gallery */}
-              <div style={{ padding: '24px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                  <h3 style={{ color: 'var(--accent-gold)', margin: 0, fontSize: '14px', textTransform: 'uppercase', letterSpacing: '2px' }}>Фото та Відео</h3>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <label style={{ padding: '8px 16px', backgroundColor: 'rgba(212,175,55,0.15)', color: 'var(--accent-gold)', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' }}>
-                      {uploading ? '⏳...' : <span className="flex items-center gap-1"><ImageIcon size={16} /> Фото</span>}
-                      <input type="file" accept="image/*" style={{ display: 'none' }} disabled={uploading}
-                        onChange={e => { if (e.target.files?.[0]) handleMediaUpload(car.id, e.target.files[0], 'image'); }} />
-                    </label>
-                    <label style={{ padding: '8px 16px', backgroundColor: 'rgba(96,165,250,0.15)', color: '#60a5fa', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' }}>
-                      {uploading ? '⏳...' : <span className="flex items-center gap-1"><Video size={16} /> Відео</span>}
-                      <input type="file" accept="video/*" style={{ display: 'none' }} disabled={uploading}
-                        onChange={e => { if (e.target.files?.[0]) handleMediaUpload(car.id, e.target.files[0], 'video'); }} />
-                    </label>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                  {car.images.map((img, i) => (
-                    <div key={`img-${i}`} style={{ width: '160px', height: '100px', borderRadius: '8px', overflow: 'hidden', position: 'relative', border: '1px solid var(--border-color)' }}>
-                      <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      <button onClick={() => handleMediaDelete(car.id, img, 'image')} style={{ position: 'absolute', top: '4px', right: '4px', background: 'rgba(0,0,0,0.7)', color: '#ef4444', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '14px' }}>✕</button>
-                    </div>
-                  ))}
-                  {car.videos.map((vid, i) => (
-                    <div key={`vid-${i}`} style={{ width: '160px', height: '100px', borderRadius: '8px', overflow: 'hidden', position: 'relative', border: '1px solid #60a5fa' }}>
-                      <video src={vid} style={{ width: '100%', height: '100%', objectFit: 'cover' }} muted />
-                      <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', color: 'white', fontSize: '24px' }}>▶</div>
-                      <button onClick={() => handleMediaDelete(car.id, vid, 'video')} style={{ position: 'absolute', top: '4px', right: '4px', background: 'rgba(0,0,0,0.7)', color: '#ef4444', border: 'none', borderRadius: '4px', cursor: 'pointer', padding: '2px 6px', fontSize: '14px' }}>✕</button>
-                    </div>
-                  ))}
-                  {car.images.length === 0 && car.videos.length === 0 && (
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '14px', fontStyle: 'italic' }}>Немає медіа файлів.</p>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-
-      {/* Reviews Modal */}
-      {reviewsModalOpen && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ backgroundColor: 'var(--bg-surface)', padding: '32px', width: '600px', maxHeight: '80vh', overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: '16px' }}>
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-[#e9c349] font-bold text-xl">Відгуки клієнтів</h2>
-              <button onClick={() => setReviewsModalOpen(null)} className="text-gray-400 hover:text-white"><X size={24} /></button>
-            </div>
-            
-            {/* List Existing Reviews */}
-            <div className="space-y-4 mb-8">
-              {cars.find(c => c.id === reviewsModalOpen)?.reviews?.length ? (
-                cars.find(c => c.id === reviewsModalOpen)?.reviews?.map((review: any) => (
-                  <div key={review.id} className="bg-white/5 p-4 rounded-lg relative">
-                    <button onClick={() => handleDeleteReview(reviewsModalOpen, review.id)} className="absolute top-4 right-4 text-red-400 hover:text-red-300"><Trash2 size={16} /></button>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="font-bold text-white">{review.author}</span>
-                      <span className="text-[#e9c349] flex">{Array(review.rating).fill('★').join('')}</span>
-                    </div>
-                    <p className="text-sm text-gray-300">{review.text}</p>
-                    <span className="text-xs text-gray-500 block mt-2">{new Date(review.date).toLocaleDateString()}</span>
-                  </div>
-                ))
-              ) : (
-                <p className="text-gray-500 italic">Відгуків ще немає</p>
-              )}
-            </div>
-
-            {/* Add New Review Form */}
-            <form onSubmit={(e) => handleAddReview(e, reviewsModalOpen)} className="border-t border-white/10 pt-6">
-              <h3 className="text-white font-bold mb-4">Додати відгук від імені клієнта</h3>
-              <div className="space-y-4">
-                <div className="flex gap-4">
-                  <div className="flex-1">
-                    <label className="block text-xs uppercase text-gray-400 mb-1">Ім'я клієнта</label>
-                    <input required value={newReview.author} onChange={e => setNewReview({...newReview, author: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded p-2 text-white" />
-                  </div>
-                  <div className="w-24">
-                    <label className="block text-xs uppercase text-gray-400 mb-1">Оцінка (1-5)</label>
-                    <input type="number" min="1" max="5" required value={newReview.rating} onChange={e => setNewReview({...newReview, rating: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded p-2 text-white" />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs uppercase text-gray-400 mb-1">Текст відгуку</label>
-                  <textarea required value={newReview.text} onChange={e => setNewReview({...newReview, text: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded p-2 text-white h-24" />
-                </div>
-                <button type="submit" className="w-full py-3 bg-[#e9c349] text-black font-bold rounded hover:scale-[1.02] transition-transform">Опублікувати відгук</button>
-              </div>
-            </form>
+    <div className="min-h-screen bg-[#080818] p-4 text-[#e4e2e3] md:p-8">
+      <div className="mb-6 flex flex-col gap-4 border-b border-white/10 pb-6 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#e9c349]/10 text-[#e9c349]">
+            <CarFront size={24} />
+          </div>
+          <div>
+            <h1 className="m-0 text-2xl font-bold text-white md:text-3xl">Автопарк і галерея</h1>
+            <p className="m-0 mt-1 text-sm text-[#8a8a93]">Дані авто для калькулятора, SEO-сторінок і медіа-галереї.</p>
           </div>
         </div>
-      )}
-
-      {/* Create Car Modal */}
-      {isModalOpen && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <form onSubmit={handleSubmit} style={{ backgroundColor: 'var(--bg-surface)', padding: '32px', width: '480px', border: '1px solid var(--border-color)', borderRadius: '16px' }}>
-            <h2 style={{ marginBottom: '24px', color: 'var(--accent-gold)' }}>Нове авто</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-              <div className="col-span-2 border-b border-white/10 pb-2 mb-2">
-                <h3 className="text-[#e9c349] font-bold text-sm uppercase">Основні дані</h3>
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Марка</label>
-                <input required value={formData.make} onChange={e => setFormData({...formData, make: e.target.value})} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '6px' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>База авто (Місто)</label>
-                <input required value={formData.baseCity} onChange={e => setFormData({...formData, baseCity: e.target.value})} placeholder="напр. Львів" style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '6px' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Модель</label>
-                <input required value={formData.model} onChange={e => setFormData({...formData, model: e.target.value})} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '6px' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Рік</label>
-                <input type="number" required value={formData.year} onChange={e => setFormData({...formData, year: e.target.value})} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '6px' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Місць</label>
-                <input type="number" required value={formData.capacity} onChange={e => setFormData({...formData, capacity: e.target.value})} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '6px' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Базова ставка (€/км)</label>
-                <input type="number" step="0.01" required value={formData.baseRate} onChange={e => setFormData({...formData, baseRate: e.target.value})} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '6px' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-secondary)' }}>Тип палива</label>
-                <select required value={formData.fuelType} onChange={e => setFormData({...formData, fuelType: e.target.value})} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '6px' }}>
-                  <option value="Бензин">Бензин</option>
-                  <option value="Дизель">Дизель</option>
-                  <option value="Газ">Газ</option>
-                  <option value="Електро">Електро</option>
-                </select>
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Об'єм баку (л або кВт)</label>
-                <input type="number" required value={formData.fuelTankVolume} onChange={e => setFormData({...formData, fuelTankVolume: e.target.value})} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '6px' }} />
-              </div>
-              
-              <div className="col-span-2 border-b border-white/10 pb-2 mt-4 mb-2">
-                <h3 className="text-[#e9c349] font-bold text-sm uppercase">Коефіцієнти (€)</h3>
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Багаж / Дод. особа</label>
-                <input type="number" step="0.01" required value={formData.pricePerPerson} onChange={e => setFormData({...formData, pricePerPerson: e.target.value})} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '6px' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Перетин кордону</label>
-                <input type="number" step="0.01" required value={formData.crossBorderFee} onChange={e => setFormData({...formData, crossBorderFee: e.target.value})} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '6px' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Зустріч з табличкою</label>
-                <input type="number" step="0.01" required value={formData.meetAndGreetFee} onChange={e => setFormData({...formData, meetAndGreetFee: e.target.value})} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '6px' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Тварини</label>
-                <input type="number" step="0.01" required value={formData.animalFee} onChange={e => setFormData({...formData, animalFee: e.target.value})} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '6px' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Дитяче крісло</label>
-                <input type="number" step="0.01" required value={formData.childSeatFee} onChange={e => setFormData({...formData, childSeatFee: e.target.value})} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '6px' }} />
-              </div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          {notice && (
+            <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-[#c7c6ca]">
+              <CheckCircle2 size={16} className="text-[#e9c349]" /> {notice}
             </div>
-            <div style={{ display: 'flex', gap: '16px', marginTop: '32px' }}>
-              <button type="submit" style={{ flex: 1, padding: '12px', backgroundColor: 'var(--accent-gold)', border: 'none', color: '#000', cursor: 'pointer', fontWeight: 'bold', borderRadius: '8px' }}>Створити</button>
-              <button type="button" onClick={() => setIsModalOpen(false)} style={{ flex: 1, padding: '12px', backgroundColor: 'transparent', border: '1px solid var(--border-color)', color: 'white', cursor: 'pointer', borderRadius: '8px' }}>Скасувати</button>
-            </div>
-          </form>
+          )}
+          <button onClick={() => setSelectedId('new')} className="flex items-center justify-center gap-2 rounded-lg border border-white/10 px-4 py-3 text-sm font-bold text-white hover:bg-white/5">
+            <Plus size={18} /> Нове авто
+          </button>
+          <button onClick={saveCar} disabled={saving} className="flex items-center justify-center gap-2 rounded-lg bg-[#e9c349] px-5 py-3 text-sm font-bold uppercase tracking-[0.12em] text-black hover:scale-[1.02] disabled:opacity-60">
+            {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+            Зберегти
+          </button>
         </div>
-      )}
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[330px_1fr]">
+        <aside className="h-fit rounded-xl border border-white/10 bg-[#13131a] p-3">
+          <button onClick={() => setSelectedId('new')} className={`mb-3 flex w-full items-center gap-3 rounded-lg border px-3 py-3 text-left ${selectedId === 'new' ? 'border-[#e9c349]/40 bg-[#e9c349]/12' : 'border-white/10 bg-white/5 hover:bg-white/10'}`}>
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#e9c349] text-black"><Plus size={18} /></div>
+            <div>
+              <div className="text-sm font-bold text-white">Додати авто</div>
+              <div className="text-xs text-[#8a8a93]">Повна картка для калькулятора</div>
+            </div>
+          </button>
+
+          <div className="space-y-2">
+            {cars.map((car) => {
+              const cover = car.media?.find((item) => item.isCover) || car.media?.[0];
+              const active = selectedId === car.id;
+              return (
+                <button key={car.id} onClick={() => setSelectedId(car.id!)} className={`flex w-full gap-3 rounded-lg border p-3 text-left transition-colors ${active ? 'border-[#e9c349]/40 bg-[#e9c349]/12' : 'border-transparent hover:bg-white/5'}`}>
+                  <div className="h-16 w-20 shrink-0 overflow-hidden rounded-lg bg-[#080818]">
+                    {cover ? <img src={cover.url} alt={cover.alt || `${car.make} ${car.model}`} className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-[#64646d]"><ImageIcon size={18} /></div>}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-bold text-white">{car.make} {car.model}</div>
+                    <div className="mt-1 text-xs text-[#8a8a93]">{car.year} • {car.capacity} місць • {car.luggageCapacity || 2} валіз</div>
+                    <div className="mt-2 text-xs text-[#e9c349]">€{car.baseRate}/км</div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </aside>
+
+        <main className="rounded-xl border border-white/10 bg-[#13131a]">
+          <div className="flex flex-col gap-4 border-b border-white/10 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h2 className="m-0 text-xl font-bold text-white">
+                {draft.id ? `${draft.make} ${draft.model}` : 'Нове авто'}
+              </h2>
+              <p className="m-0 mt-1 text-sm text-[#8a8a93]">
+                {draft.slug || 'slug створиться автоматично'} {draft.id && `• /cars/${draft.slug || draft.id}`}
+              </p>
+            </div>
+            {draft.id && (
+              <button onClick={() => deleteCar(draft)} className="flex items-center gap-2 rounded-lg bg-red-500/10 px-3 py-2 text-sm font-bold text-red-300 hover:bg-red-500/20">
+                <Trash2 size={16} /> Видалити
+              </button>
+            )}
+          </div>
+
+          <div className="flex flex-wrap gap-2 border-b border-white/10 px-5 py-3">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const active = activeTab === tab.id;
+              return (
+                <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-bold ${active ? 'bg-[#e9c349] text-black' : 'bg-white/5 text-[#c7c6ca] hover:text-white'}`}>
+                  <Icon size={16} /> {tab.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="p-5">
+            {activeTab === 'main' && (
+              <div className="space-y-6">
+                <div className="grid gap-5 lg:grid-cols-3">
+                  <Field label="Марка"><input value={draft.make} onChange={(e) => updateDraft('make', e.target.value)} className={inputClass()} /></Field>
+                  <Field label="Модель"><input value={draft.model} onChange={(e) => updateDraft('model', e.target.value)} className={inputClass()} /></Field>
+                  <Field label="Рік"><input type="number" value={draft.year} onChange={(e) => updateDraft('year', e.target.value)} className={inputClass()} /></Field>
+                  <Field label="Slug для Google"><input value={draft.slug || ''} onChange={(e) => updateDraft('slug', e.target.value)} className={inputClass()} /></Field>
+                  <Field label="Статус">
+                    <select value={draft.status} onChange={(e) => updateDraft('status', e.target.value)} className={inputClass()}>
+                      <option value="AVAILABLE">Доступний</option>
+                      <option value="MAINTENANCE">Сервіс</option>
+                      <option value="IN_USE">У роботі</option>
+                    </select>
+                  </Field>
+                  <Field label="Клас"><input value={draft.comfortClass} onChange={(e) => updateDraft('comfortClass', e.target.value)} className={inputClass()} /></Field>
+                  <Field label="Кузов"><input value={draft.bodyType || ''} onChange={(e) => updateDraft('bodyType', e.target.value)} className={inputClass()} /></Field>
+                  <Field label="Місць"><input type="number" value={draft.capacity} onChange={(e) => updateDraft('capacity', e.target.value)} className={inputClass()} /></Field>
+                  <Field label="Валіз"><input type="number" value={draft.luggageCapacity} onChange={(e) => updateDraft('luggageCapacity', e.target.value)} className={inputClass()} /></Field>
+                  <Field label="Великих валіз"><input type="number" value={draft.largeLuggageCapacity} onChange={(e) => updateDraft('largeLuggageCapacity', e.target.value)} className={inputClass()} /></Field>
+                  <Field label="Тип пального">
+                    <select value={draft.fuelType} onChange={(e) => updateDraft('fuelType', e.target.value)} className={inputClass()}>
+                      <option value="Бензин">Бензин</option>
+                      <option value="Дизель">Дизель</option>
+                      <option value="Газ">Газ</option>
+                      <option value="Електро">Електро</option>
+                    </select>
+                  </Field>
+                  <Field label="Бак / батарея"><input type="number" value={draft.fuelTankVolume} onChange={(e) => updateDraft('fuelTankVolume', e.target.value)} className={inputClass()} /></Field>
+                </div>
+
+                <Field label="Опис багажу"><textarea rows={2} value={draft.luggageNote || ''} onChange={(e) => updateDraft('luggageNote', e.target.value)} className={`${inputClass()} resize-y`} /></Field>
+
+                <Field label="Опис авто">
+                  <div className="overflow-hidden rounded-lg border border-white/10 bg-white text-black">
+                    <RichEditor value={draft.description || ''} onChange={(value) => updateDraft('description', value)} />
+                  </div>
+                </Field>
+
+                <div className="space-y-3 rounded-lg border border-white/10 bg-[#080818] p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-bold text-white">Фішки авто</div>
+                      <div className="text-xs text-[#8a8a93]">Іконка + короткий текст для сторінки авто.</div>
+                    </div>
+                    <button onClick={() => setFeatures([...features, { icon: 'CircleCheck', text: '' }])} className="rounded-lg border border-[#e9c349]/30 px-3 py-2 text-sm font-bold text-[#e9c349] hover:bg-[#e9c349]/10">+ Додати</button>
+                  </div>
+                  {features.map((feature, index) => (
+                    <div key={index} className="grid gap-3 lg:grid-cols-[220px_1fr_auto] lg:items-center">
+                      <IconPicker value={feature.icon} onChange={(value) => {
+                        const next = [...features];
+                        next[index].icon = value;
+                        setFeatures(next);
+                      }} />
+                      <input value={feature.text} onChange={(e) => {
+                        const next = [...features];
+                        next[index].text = e.target.value;
+                        setFeatures(next);
+                      }} className={inputClass()} placeholder="Наприклад: Wi-Fi, вода, зарядки, дитяче крісло" />
+                      <button onClick={() => setFeatures(features.filter((_, itemIndex) => itemIndex !== index))} className="rounded-lg bg-red-500/10 p-2 text-red-300 hover:bg-red-500/20"><Trash2 size={16} /></button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'pricing' && (
+              <div className="grid gap-5 lg:grid-cols-3">
+                <Field label="Базова ставка €/км"><input type="number" step="0.01" value={draft.baseRate} onChange={(e) => updateDraft('baseRate', e.target.value)} className={inputClass()} /></Field>
+                <Field label="Витрата місто"><input type="number" step="0.1" value={draft.fuelConsumptionCity} onChange={(e) => updateDraft('fuelConsumptionCity', e.target.value)} className={inputClass()} /></Field>
+                <Field label="Витрата траса"><input type="number" step="0.1" value={draft.fuelConsumptionHighway} onChange={(e) => updateDraft('fuelConsumptionHighway', e.target.value)} className={inputClass()} /></Field>
+                <Field label="Багаж / дод. особа €"><input type="number" step="0.01" value={draft.pricePerPerson} onChange={(e) => updateDraft('pricePerPerson', e.target.value)} className={inputClass()} /></Field>
+                <Field label="Перетин кордону €"><input type="number" step="0.01" value={draft.crossBorderFee} onChange={(e) => updateDraft('crossBorderFee', e.target.value)} className={inputClass()} /></Field>
+                <Field label="Зустріч з табличкою €"><input type="number" step="0.01" value={draft.meetAndGreetFee} onChange={(e) => updateDraft('meetAndGreetFee', e.target.value)} className={inputClass()} /></Field>
+                <Field label="Тварини €"><input type="number" step="0.01" value={draft.animalFee} onChange={(e) => updateDraft('animalFee', e.target.value)} className={inputClass()} /></Field>
+                <Field label="Дитяче крісло €"><input type="number" step="0.01" value={draft.childSeatFee} onChange={(e) => updateDraft('childSeatFee', e.target.value)} className={inputClass()} /></Field>
+                <Field label="Базове місто"><input value={draft.baseCity || ''} onChange={(e) => updateDraft('baseCity', e.target.value)} className={inputClass()} /></Field>
+                <Field label="Base lat"><input value={draft.baseLat || ''} onChange={(e) => updateDraft('baseLat', e.target.value)} className={inputClass()} /></Field>
+                <Field label="Base lng"><input value={draft.baseLng || ''} onChange={(e) => updateDraft('baseLng', e.target.value)} className={inputClass()} /></Field>
+                <Field label="Водій за замовчуванням">
+                  <select value={draft.defaultDriverId || ''} onChange={(e) => updateDraft('defaultDriverId', e.target.value)} className={inputClass()}>
+                    <option value="">Не призначено</option>
+                    {drivers.map((driver) => (
+                      <option key={driver.id} value={driver.id}>{driver.user.name} • €{driver.salaryPerKm}/км</option>
+                    ))}
+                  </select>
+                </Field>
+              </div>
+            )}
+
+            {activeTab === 'media' && (
+              <div className="space-y-5">
+                <div className="flex flex-col gap-3 rounded-lg border border-white/10 bg-[#080818] p-4 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <div className="text-sm font-bold text-white">Медіа-галерея авто</div>
+                    <div className="text-xs text-[#8a8a93]">Cover, alt, caption і порядок потрібні для Google та красивої публічної галереї.</div>
+                  </div>
+                  <div className="flex gap-2">
+                    <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-bold text-white hover:bg-white/10">
+                      {uploading ? <Loader2 className="animate-spin" size={16} /> : <Upload size={16} />} Фото
+                      <input type="file" accept="image/*" className="hidden" disabled={uploading} onChange={(e) => e.target.files?.[0] && uploadMedia(e.target.files[0], 'image')} />
+                    </label>
+                    <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-bold text-white hover:bg-white/10">
+                      {uploading ? <Loader2 className="animate-spin" size={16} /> : <Upload size={16} />} Відео
+                      <input type="file" accept="video/*" className="hidden" disabled={uploading} onChange={(e) => e.target.files?.[0] && uploadMedia(e.target.files[0], 'video')} />
+                    </label>
+                  </div>
+                </div>
+
+                <div className="grid gap-4">
+                  {(draft.media || []).map((media, index) => (
+                    <div key={media.id} className="grid gap-4 rounded-lg border border-white/10 bg-[#080818] p-4 xl:grid-cols-[180px_1fr_auto]">
+                      <div className="aspect-[4/3] overflow-hidden rounded-lg border border-white/10 bg-[#13131a]">
+                        {media.type === 'video' ? <video src={media.url} className="h-full w-full object-cover" muted /> : <img src={media.url} alt={media.alt || ''} className="h-full w-full object-cover" />}
+                      </div>
+                      <div className="grid gap-3 lg:grid-cols-2">
+                        <Field label="Alt"><input value={media.alt || ''} onChange={(e) => updateMediaDraft(index, { alt: e.target.value })} className={inputClass()} /></Field>
+                        <Field label="Title"><input value={media.title || ''} onChange={(e) => updateMediaDraft(index, { title: e.target.value })} className={inputClass()} /></Field>
+                        <Field label="Role">
+                          <select value={media.role} onChange={(e) => updateMediaDraft(index, { role: e.target.value })} className={inputClass()}>
+                            <option value="cover">Cover</option>
+                            <option value="exterior">Exterior</option>
+                            <option value="interior">Interior</option>
+                            <option value="luggage">Luggage</option>
+                            <option value="gallery">Gallery</option>
+                          </select>
+                        </Field>
+                        <Field label="Порядок"><input type="number" value={media.order} onChange={(e) => updateMediaDraft(index, { order: Number(e.target.value) })} className={inputClass()} /></Field>
+                        <Field label="Caption"><textarea rows={2} value={media.caption || ''} onChange={(e) => updateMediaDraft(index, { caption: e.target.value })} className={`${inputClass()} resize-y lg:col-span-2`} /></Field>
+                      </div>
+                      <div className="flex flex-row gap-2 xl:flex-col">
+                        <button onClick={() => updateMediaDraft(index, { isCover: !media.isCover })} className={`rounded-lg px-3 py-2 text-sm font-bold ${media.isCover ? 'bg-[#e9c349] text-black' : 'bg-white/5 text-white hover:bg-white/10'}`}>Cover</button>
+                        <button onClick={() => updateMediaDraft(index, { active: !media.active })} className={`rounded-lg px-3 py-2 text-sm font-bold ${media.active ? 'bg-green-500/15 text-green-300' : 'bg-white/5 text-[#8a8a93]'}`}>{media.active ? 'Visible' : 'Hidden'}</button>
+                        <button onClick={() => deleteMedia(media)} className="rounded-lg bg-red-500/10 p-2 text-red-300 hover:bg-red-500/20"><Trash2 size={16} /></button>
+                      </div>
+                    </div>
+                  ))}
+                  {(draft.media || []).length === 0 && (
+                    <div className="rounded-lg border border-dashed border-white/15 p-8 text-center text-[#8a8a93]">
+                      Збережи авто і додай перше фото. Воно стане cover для галереї та сторінки авто.
+                    </div>
+                  )}
+                </div>
+                {(draft.media || []).length > 0 && (
+                  <button onClick={saveMedia} className="rounded-lg border border-[#e9c349]/40 px-5 py-3 text-sm font-bold uppercase tracking-[0.12em] text-[#e9c349] hover:bg-[#e9c349] hover:text-black">
+                    Зберегти медіа
+                  </button>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'seo' && (
+              <div className="space-y-5">
+                <div className="grid gap-5 lg:grid-cols-2">
+                  <Field label="SEO title"><input value={draft.seoTitle || ''} onChange={(e) => updateDraft('seoTitle', e.target.value)} className={inputClass()} /></Field>
+                  <Field label="Slug"><input value={draft.slug || ''} onChange={(e) => updateDraft('slug', e.target.value)} className={inputClass()} /></Field>
+                </div>
+                <Field label="SEO description"><textarea rows={4} value={draft.seoDescription || ''} onChange={(e) => updateDraft('seoDescription', e.target.value)} className={`${inputClass()} resize-y`} /></Field>
+                <div className="rounded-lg border border-white/10 bg-[#080818] p-4">
+                  <div className="mb-3 text-sm font-bold text-white">Preview features</div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {features.map((feature, index) => (
+                      <div key={index} className="flex items-center gap-2 text-sm text-[#c7c6ca]">
+                        <DynamicIcon name={feature.icon} size={18} className="text-[#e9c349]" />
+                        {feature.text || 'Feature text'}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
