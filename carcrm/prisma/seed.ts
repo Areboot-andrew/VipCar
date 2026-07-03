@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
-const demoSeedVersion = '2026-07-03-gallery-redesign-demo-v5';
+const demoSeedVersion = '2026-07-03-gallery-cards-demo-v6';
 const resetDemoCars = process.env.RESET_DEMO_CARS === 'true';
 const resetDemoData = process.env.RESET_DEMO_DATA === 'true';
 const forceDemoSeed = process.env.FORCE_DEMO_SEED === 'true';
@@ -80,9 +80,9 @@ const demoContent: Record<string, string> = {
   feature_4_title: 'Преміальний досвід',
   feature_4_desc: 'Чистий салон, вода, зарядки, охайний водій і передбачуваний сервіс.',
 
-  gallery_title: 'Автопарк *для трансферу*',
+  gallery_title: 'Автопарк *First Line*',
   gallery_subtitle:
-    'Живі фото і відео автомобілів з водіями: салон, багаж, клас авто і реальний вигляд перед бронюванням. Оберіть машину, перегляньте медіа і відкрийте сторінку конкретного авто.',
+    'Автомобілі з водіями для приватних поїздок, бізнес-маршрутів та трансферів між містами.',
   gallery_seo_title: 'Галерея автопарку First Line Transfer',
   gallery_seo_description:
     'Фото і відео демо-автопарку First Line Transfer: Mercedes-Benz S-Class, Mercedes-Benz V-Class, BMW 7 Series, Audi A8 L і Mercedes-Benz Sprinter VIP.',
