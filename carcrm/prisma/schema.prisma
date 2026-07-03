@@ -67,6 +67,7 @@ model Driver {
   userId      String    @unique
   licenseNum  String    @default("000000")
   status      String    @default("ACTIVE")
+  telegramId  String?
   
   // Salary and Perks
   salaryPerKm Float     @default(0.15) // Driver's salary per km in EUR

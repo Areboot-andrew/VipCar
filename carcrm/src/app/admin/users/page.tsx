@@ -12,6 +12,7 @@ type User = {
   driver?: {
     licenseNum: string;
     salaryPerKm: number;
+    telegramId?: string;
   };
 };
 
@@ -83,9 +84,26 @@ export default function UsersAdminPage() {
                     <option value="ADMIN">Адміністратор</option>
                   </select>
                 </td>
-                <td className="p-4 text-xs">
+                <td className="p-4 text-xs flex items-center gap-2">
                   {u.role === "DRIVER" && u.driver ? (
-                    <div className="text-green-400">Ставка: €{u.driver.salaryPerKm}/км</div>
+                    <>
+                      <div className="text-green-400">€{u.driver.salaryPerKm}/км</div>
+                      <input 
+                        type="text" 
+                        placeholder="Telegram (e.g. +380... або @user)" 
+                        className="bg-[#080818] border border-white/10 rounded px-2 py-1 text-white outline-none focus:border-[#e9c349] w-48"
+                        defaultValue={u.driver.telegramId || ""}
+                        onBlur={(e) => {
+                           if (e.target.value !== u.driver?.telegramId) {
+                             fetch(`/api/users/${u.id}/telegram`, {
+                               method: "PATCH",
+                               headers: { "Content-Type": "application/json" },
+                               body: JSON.stringify({ telegramId: e.target.value })
+                             });
+                           }
+                        }}
+                      />
+                    </>
                   ) : (
                     "—"
                   )}

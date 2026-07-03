@@ -17,6 +17,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         updateData.driverId = body.driverId === "" ? null : body.driverId;
     }
 
+    const oldBooking = await prisma.booking.findUnique({ where: { id } });
+
     const booking = await prisma.booking.update({
       where: { id },
       data: updateData,
@@ -26,6 +28,20 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         driver: { include: { user: true } }
       }
     });
+
+    // Telegram notification to Driver
+    if (updateData.driverId && updateData.driverId !== oldBooking?.driverId && booking.driver?.telegramId) {
+      try {
+        const { getTelegramClient } = await import('@/lib/telegramClient');
+        const client = await getTelegramClient();
+        if (client) {
+          const msg = `🚗 Новий рейс!\n\n📍 ${booking.routeFrom} ➔ ${booking.routeTo}\n📅 ${new Date(booking.dateStart).toLocaleString('uk-UA')}\n👤 Клієнт: ${booking.client.name} (${booking.client.phone})\n🚘 Авто: ${booking.car.make} ${booking.car.model}\n\nЗайдіть у кабінет водія для деталей.`;
+          await client.sendMessage(booking.driver.telegramId, { message: msg });
+        }
+      } catch (e) {
+        console.error("Failed to send telegram to driver:", e);
+      }
+    }
 
     // Recalculate chain for this car
     if (updateData.status !== undefined || updateData.driverId !== undefined || updateData.carId !== undefined || updateData.isEndingAtBase !== undefined) {
