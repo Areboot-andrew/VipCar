@@ -18,11 +18,23 @@ type User = {
 
 export default function UsersAdminPage() {
   const [users, setUsers] = useState<User[]>([]);
+  const [chats, setChats] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchUsers();
+    fetchChats();
   }, []);
+
+  const fetchChats = async () => {
+    try {
+      const res = await fetch("/api/chat");
+      if (res.ok) {
+        const data = await res.json();
+        setChats(data.filter((c: any) => c.platform === 'TELEGRAM'));
+      }
+    } catch (err) {}
+  };
 
   const fetchUsers = async () => {
     try {
@@ -88,21 +100,23 @@ export default function UsersAdminPage() {
                   {u.role === "DRIVER" && u.driver ? (
                     <>
                       <div className="text-green-400">€{u.driver.salaryPerKm}/км</div>
-                      <input 
-                        type="text" 
-                        placeholder="Telegram (e.g. +380... або @user)" 
+                      <select 
                         className="bg-[#080818] border border-white/10 rounded px-2 py-1 text-white outline-none focus:border-[#e9c349] w-48"
-                        defaultValue={u.driver.telegramId || ""}
-                        onBlur={(e) => {
-                           if (e.target.value !== u.driver?.telegramId) {
+                        value={u.driver.telegramId || ""}
+                        onChange={(e) => {
                              fetch(`/api/users/${u.id}/telegram`, {
                                method: "PATCH",
                                headers: { "Content-Type": "application/json" },
                                body: JSON.stringify({ telegramId: e.target.value })
                              });
-                           }
+                             fetchUsers(); // optimistic or refresh
                         }}
-                      />
+                      >
+                        <option value="">Не прив'язано</option>
+                        {chats.map(c => (
+                          <option key={c.id} value={c.externalId}>{c.clientName}</option>
+                        ))}
+                      </select>
                     </>
                   ) : (
                     "—"
