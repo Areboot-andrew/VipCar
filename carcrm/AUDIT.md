@@ -19,6 +19,7 @@
 - `/gallery` перероблено як окрему SEO-сторінку галереї автопарку, а `/cars/[id]` розділено на server metadata page + client lightbox, щоб конкретні авто мали індексовані title/description/schema.
 - Головна карусель галереї тепер використовує `CarMedia`, має анімований marquee, CTA в повну галерею, hover-переходи на авто і fallback на legacy `images/videos`.
 - Для прод-бази додано idempotent migration `202607030001_car_gallery` і переписано `prisma/seed.ts` як demo-updater з новими текстами/фото. Старий дубль `prisma/seed.js` видалено; демо-авто не видаляють реальні записи без `RESET_DEMO_CARS=true`.
+- `docker-entrypoint.sh` перероблено для Coolify: контейнер чекає базу, запускає `prisma migrate deploy`, а demo seed застосовує автоматично тільки якщо поточна seed-версія ще не записана в `SiteContent`.
 
 ## UI правила для подальшої переробки
 

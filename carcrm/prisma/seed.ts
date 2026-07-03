@@ -1,14 +1,29 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
-import { carSlug } from '../src/lib/slug';
-import { SITE_CONTENT_DEFAULTS } from '../src/lib/contentDefaults';
 
 const prisma = new PrismaClient();
 
+const demoSeedVersion = '2026-07-03-gallery-demo-v1';
 const resetDemoCars = process.env.RESET_DEMO_CARS === 'true';
+const forceDemoSeed = process.env.FORCE_DEMO_SEED === 'true';
+const autoDemoSeed = process.env.AUTO_DEMO_SEED === 'true';
+
+function slugify(input: string) {
+  return input
+    .toLowerCase()
+    .trim()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9а-яіїєґ]+/gi, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/-+/g, '-');
+}
+
+function carSlug(make: string, model: string, year?: number | string) {
+  return slugify([make, model, year].filter(Boolean).join(' '));
+}
 
 const demoContent: Record<string, string> = {
-  ...SITE_CONTENT_DEFAULTS,
   brand_name: 'First Line Transfer',
   logo_url: '/logo.png',
   site_meta_title: 'First Line Transfer - VIP трансфери Європою та Україною',
@@ -521,10 +536,21 @@ async function seedFinanceDefaults() {
 
 async function main() {
   console.log('Starting production-safe demo seed...');
+  const existingVersion = await prisma.siteContent.findUnique({ where: { key: '_demo_seed_version' } });
+  if (autoDemoSeed && !forceDemoSeed && existingVersion?.value === demoSeedVersion) {
+    console.log(`Demo seed ${demoSeedVersion} already applied. Skipping. Set FORCE_DEMO_SEED=true to reapply.`);
+    return;
+  }
+
   const driver = await ensureUsers();
   await seedContent();
   await seedCars(driver.id);
   await seedFinanceDefaults();
+  await prisma.siteContent.upsert({
+    where: { key: '_demo_seed_version' },
+    update: { value: demoSeedVersion },
+    create: { key: '_demo_seed_version', value: demoSeedVersion },
+  });
   console.log('Demo seed complete.');
   console.log('Admin: admin@firstline.com / admin123 (only created if missing)');
   console.log('Driver: driver@firstline.com / driver123 (only created if missing)');
