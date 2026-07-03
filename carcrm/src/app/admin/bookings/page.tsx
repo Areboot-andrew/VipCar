@@ -100,6 +100,9 @@ export default function AdminBookingsPage() {
                 <p style={{ color: 'var(--accent-gold)', marginTop: '12px', marginBottom: '4px', fontWeight: 'bold' }}>Реальний маршрут авто</p>
                 <p style={{ color: '#aaa', fontSize: '12px' }}>Старт авто: <span style={{ color: '#fff' }}>{booking.carStartLocation || booking.car.baseCity || 'База'}</span></p>
                 <p style={{ color: '#aaa', fontSize: '12px' }}>Доїзд до клієнта: <span style={{ color: '#fff' }}>{booking.expenseDeliveryDistance || 0} км</span></p>
+                {booking.isEndingAtBase && (
+                  <p style={{ color: '#aaa', fontSize: '12px' }}>Повернення на базу: <span style={{ color: '#fff' }}>{booking.returnToBaseDistance || 0} км</span></p>
+                )}
                 <p style={{ color: '#aaa', fontSize: '12px' }}>Повний пробіг водія: <span style={{ color: '#fff' }}>{booking.totalExpenseDistance || booking.distance} км</span></p>
               </div>
               <div>
@@ -109,7 +112,7 @@ export default function AdminBookingsPage() {
                 <p>Тварини: {booking.animals ? 'Так' : 'Ні'}</p>
               </div>
               <div>
-                <p style={{ color: 'var(--accent-gold)', marginBottom: '4px', fontWeight: 'bold' }}>Призначення</p>
+                <p style={{ color: 'var(--accent-gold)', marginBottom: '4px', fontWeight: 'bold' }}>Призначення та Контроль</p>
                 <select 
                   style={{ width: '100%', padding: '8px', borderRadius: '4px', backgroundColor: '#131314', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', marginBottom: '8px' }}
                   value={booking.driverId || ''}
@@ -120,6 +123,14 @@ export default function AdminBookingsPage() {
                     <option key={d.id} value={d.id}>{d.user.name}</option>
                   ))}
                 </select>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '12px', cursor: 'pointer' }}>
+                  <input 
+                    type="checkbox" 
+                    checked={booking.isEndingAtBase || false}
+                    onChange={(e) => updateBooking(booking.id, { isEndingAtBase: e.target.checked })}
+                  />
+                  Маршрут завершується поверненням на Базу
+                </label>
                 <input
                   type="text"
                   placeholder="Вказівки водію..."

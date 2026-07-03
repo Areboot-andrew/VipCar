@@ -12,6 +12,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     // Allow updating status and driverId
     const updateData: any = {};
     if (body.status !== undefined) updateData.status = body.status;
+    if (body.isEndingAtBase !== undefined) updateData.isEndingAtBase = body.isEndingAtBase;
     if (body.driverId !== undefined) {
         updateData.driverId = body.driverId === "" ? null : body.driverId;
     }
@@ -27,7 +28,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     });
 
     // Recalculate chain for this car
-    if (updateData.status !== undefined || updateData.driverId !== undefined || updateData.carId !== undefined) {
+    if (updateData.status !== undefined || updateData.driverId !== undefined || updateData.carId !== undefined || updateData.isEndingAtBase !== undefined) {
       // Async recalculation so it doesn't block response
       recalculateChain(booking.carId).catch(err => console.error('Chain calc error:', err));
     }

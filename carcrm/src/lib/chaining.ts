@@ -51,16 +51,8 @@ export async function recalculateChain(carId: string) {
   
   // Start from car's base city, or fallback to Lviv
   let currentLoc = bookings[0].car.baseCity || "Львів";
-  let previousEndDate = new Date(0); // Epoch
 
   for (const b of bookings) {
-    // If the gap between previous booking and this one is more than 24 hours,
-    // we assume the car returned to base.
-    const gapHours = (b.dateStart.getTime() - previousEndDate.getTime()) / (1000 * 60 * 60);
-    if (gapHours > 24) {
-      currentLoc = b.car.baseCity || "Львів";
-    }
-
     let expenseDeliveryDistance = 0;
     
     // Only calculate if the cities differ to save API calls
@@ -74,7 +66,20 @@ export async function recalculateChain(carId: string) {
        }
     }
     
-    const totalExpenseDistance = expenseDeliveryDistance + b.distance;
+    let returnToBaseDistance = 0;
+    if (b.isEndingAtBase && b.car.baseCity) {
+       // Only calculate if cities differ
+       if (b.routeTo.toLowerCase().trim() !== b.car.baseCity.toLowerCase().trim()) {
+         const loc1 = await geocode(b.routeTo);
+         const loc2 = await geocode(b.car.baseCity);
+         if (loc1 && loc2) {
+           returnToBaseDistance = await getDistance(loc1.lat, loc1.lng, loc2.lat, loc2.lng);
+           returnToBaseDistance = Math.ceil(returnToBaseDistance * 1.3);
+         }
+       }
+    }
+    
+    const totalExpenseDistance = expenseDeliveryDistance + b.distance + returnToBaseDistance;
     
     let newDriverSalary = b.driverSalary;
     if (b.driverId && b.driver) {
@@ -89,14 +94,18 @@ export async function recalculateChain(carId: string) {
       data: {
          carStartLocation: currentLoc,
          expenseDeliveryDistance,
+         returnToBaseDistance,
          totalExpenseDistance,
          driverSalary: newDriverSalary
       }
     });
     
-    // Move the car to the dropoff location
-    currentLoc = b.routeTo;
-    previousEndDate = b.dateEnd;
+    // Move the car to the next location
+    if (b.isEndingAtBase) {
+      currentLoc = b.car.baseCity || "Львів";
+    } else {
+      currentLoc = b.routeTo;
+    }
   }
   
   console.log(`Chain recalculated for car ${carId}.`);
