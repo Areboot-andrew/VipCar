@@ -1,357 +1,700 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import dynamic from 'next/dynamic';
-import { Plus, Trash2, GripVertical, Save, ArrowUp, ArrowDown } from 'lucide-react';
+import {
+  ArrowDown,
+  ArrowUp,
+  Blocks,
+  CheckCircle2,
+  Eye,
+  FileText,
+  GalleryHorizontalEnd,
+  Globe2,
+  ImageIcon,
+  LayoutTemplate,
+  Loader2,
+  Mail,
+  Plus,
+  Save,
+  Search,
+  Settings2,
+  Sparkles,
+  Trash2,
+  Upload,
+} from 'lucide-react';
 import IconPicker from '@/components/admin/IconPicker';
+import DynamicIcon from '@/components/ui/DynamicIcon';
 import HighlightedTitle from '@/components/ui/HighlightedTitle';
+import { SITE_CONTENT_DEFAULTS, withContentDefaults } from '@/lib/contentDefaults';
 import 'react-quill-new/dist/quill.snow.css';
 
 const RichEditor = dynamic(() => import('react-quill-new'), {
   ssr: false,
-  loading: () => <div className="text-black p-4">Завантаження редактора...</div>
+  loading: () => <div className="min-h-[180px] rounded-lg border border-white/10 bg-[#080818] p-4 text-[#8a8a93]">Завантаження редактора...</div>,
 });
 
 type PageBlock = {
   id: string;
   order: number;
   type: string;
-  content: string; // JSON string
+  content: string;
   active: boolean;
 };
 
+type FieldConfig = {
+  key: string;
+  label: string;
+  hint?: string;
+  type?: 'text' | 'textarea' | 'media' | 'secret';
+  preview?: boolean;
+};
+
+const tabs = [
+  { id: 'home', label: 'Головна', desc: 'Hero, меню, переваги', icon: LayoutTemplate },
+  { id: 'blocks', label: 'Блоки', desc: 'Конструктор секцій', icon: Blocks },
+  { id: 'contacts', label: 'Контакти', desc: 'Форма, footer, CTA', icon: Mail },
+  { id: 'seo', label: 'SEO', desc: 'Meta і schema', icon: Search },
+  { id: 'technical', label: 'Технічні', desc: 'Решта ключів', icon: Settings2 },
+] as const;
+
+const homeFields: FieldConfig[] = [
+  { key: 'brand_name', label: 'Назва бренду' },
+  { key: 'logo_url', label: 'Логотип', type: 'media' },
+  { key: 'menu_services', label: 'Меню: послуги' },
+  { key: 'menu_fleet', label: 'Меню: автопарк' },
+  { key: 'menu_gallery', label: 'Меню: галерея' },
+  { key: 'menu_contact', label: 'Меню: контакти' },
+  { key: 'menu_login', label: 'Меню: вхід' },
+  { key: 'menu_profile', label: 'Меню: профіль' },
+  { key: 'menu_driver_cabinet', label: 'Меню: кабінет водія' },
+  { key: 'menu_logout', label: 'Меню: вихід' },
+  { key: 'btn_book_now', label: 'Кнопка в шапці' },
+  { key: 'btn_hero_cta', label: 'Головна CTA-кнопка' },
+  { key: 'hero_title', label: 'Hero заголовок', type: 'textarea', preview: true, hint: 'Золотий акцент: *текст*. Новий рядок теж підтримується.' },
+  { key: 'hero_subtitle', label: 'Hero підзаголовок', type: 'textarea', hint: 'Можна виділяти слова через *зірочки*.' },
+  { key: 'hero_bg_image', label: 'Hero фон', type: 'media' },
+  { key: 'hero_bg_video', label: 'Hero відео', type: 'media' },
+  { key: 'services_title', label: 'Заголовок переваг', preview: true, hint: 'Наприклад: Чому обирають *нас*?' },
+  { key: 'gallery_title', label: 'Заголовок галереї', preview: true },
+  { key: 'loading_calculator', label: 'Текст завантаження калькулятора' },
+];
+
+const contactFields: FieldConfig[] = [
+  { key: 'contact_section_title', label: 'Заголовок форми' },
+  { key: 'contact_section_subtitle', label: 'Опис форми', type: 'textarea' },
+  { key: 'contact_success_title', label: 'Success заголовок' },
+  { key: 'contact_success_message', label: 'Success повідомлення', type: 'textarea' },
+  { key: 'contact_name_label', label: 'Label: імʼя' },
+  { key: 'contact_name_placeholder', label: 'Placeholder: імʼя' },
+  { key: 'contact_phone_label', label: 'Label: телефон' },
+  { key: 'contact_phone_placeholder', label: 'Placeholder: телефон' },
+  { key: 'contact_email_label', label: 'Label: email' },
+  { key: 'contact_email_placeholder', label: 'Placeholder: email' },
+  { key: 'contact_message_label', label: 'Label: повідомлення' },
+  { key: 'contact_message_placeholder', label: 'Placeholder: повідомлення' },
+  { key: 'contact_submit', label: 'Кнопка форми' },
+  { key: 'contact_submitting', label: 'Кнопка під час відправки' },
+  { key: 'contact_phone', label: 'Телефон у footer' },
+  { key: 'contact_email', label: 'Email у footer' },
+  { key: 'footer_text', label: 'Опис у footer', type: 'textarea' },
+  { key: 'footer_menu_title', label: 'Footer: меню' },
+  { key: 'footer_contacts_title', label: 'Footer: контакти' },
+  { key: 'footer_rights', label: 'Footer: права' },
+  { key: 'empty_legs_title', label: 'Empty Legs заголовок', preview: true },
+  { key: 'empty_legs_anywhere', label: 'Empty Legs: будь-яке місто' },
+  { key: 'empty_legs_book_button', label: 'Empty Legs: кнопка' },
+];
+
+const seoFields: FieldConfig[] = [
+  { key: 'site_meta_title', label: 'Meta title' },
+  { key: 'site_meta_description', label: 'Meta description', type: 'textarea' },
+  { key: 'site_meta_keywords', label: 'Meta keywords', type: 'textarea' },
+  { key: 'site_og_title', label: 'OpenGraph title' },
+  { key: 'site_og_description', label: 'OpenGraph description', type: 'textarea' },
+  { key: 'site_url', label: 'URL сайту' },
+  { key: 'schema_description', label: 'Schema description', type: 'textarea' },
+  { key: 'schema_price_range', label: 'Schema price range' },
+  { key: 'schema_address_city', label: 'Schema місто' },
+  { key: 'schema_address_country', label: 'Schema країна' },
+  { key: 'schema_area_served', label: 'Країни обслуговування', hint: 'Через кому: UA,PL,DE...' },
+];
+
+const explicitKeys = new Set([
+  ...homeFields.map((field) => field.key),
+  ...contactFields.map((field) => field.key),
+  ...seoFields.map((field) => field.key),
+  ...Array.from({ length: 4 }).flatMap((_, index) => [
+    `feature_${index + 1}_icon`,
+    `feature_${index + 1}_title`,
+    `feature_${index + 1}_desc`,
+  ]),
+]);
+
+const blockLabels: Record<string, string> = {
+  HERO: 'Hero банер',
+  TEXT_IMAGE: 'Текст + медіа',
+  GALLERY: 'Галерея',
+  FEATURES: 'Переваги',
+};
+
+function parseBlockContent(content: string) {
+  try {
+    return JSON.parse(content || '{}');
+  } catch {
+    return {};
+  }
+}
+
+function fieldClass() {
+  return 'w-full rounded-lg border border-white/10 bg-[#080818] px-3 py-2.5 text-sm text-white outline-none transition-colors placeholder:text-[#64646d] focus:border-[#e9c349]';
+}
+
+function SectionShell({
+  icon: Icon,
+  title,
+  desc,
+  children,
+}: {
+  icon: typeof Sparkles;
+  title: string;
+  desc?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="rounded-xl border border-white/10 bg-[#13131a]">
+      <div className="flex items-start gap-3 border-b border-white/10 px-5 py-4">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#e9c349]/10 text-[#e9c349]">
+          <Icon size={20} />
+        </div>
+        <div>
+          <h2 className="m-0 text-lg font-bold text-white">{title}</h2>
+          {desc && <p className="m-0 mt-1 text-sm text-[#8a8a93]">{desc}</p>}
+        </div>
+      </div>
+      <div className="p-5">{children}</div>
+    </section>
+  );
+}
+
+function CmsField({
+  field,
+  value,
+  uploading,
+  onChange,
+  onUpload,
+}: {
+  field: FieldConfig;
+  value: string;
+  uploading?: boolean;
+  onChange: (value: string) => void;
+  onUpload: (file: File) => void;
+}) {
+  const inputId = `cms-${field.key}`;
+  const isMedia = field.type === 'media';
+
+  return (
+    <div className="space-y-2">
+      <label htmlFor={inputId} className="block text-[11px] font-bold uppercase tracking-[0.14em] text-[#8a8a93]">
+        {field.label}
+      </label>
+      {field.type === 'textarea' ? (
+        <textarea id={inputId} rows={3} value={value || ''} onChange={(event) => onChange(event.target.value)} className={`${fieldClass()} resize-y`} />
+      ) : (
+        <div className={isMedia ? 'grid gap-3 md:grid-cols-[96px_1fr_auto]' : ''}>
+          {isMedia && (
+            <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-[#080818]">
+              {value ? (
+                value.includes('.mp4') || value.includes('.webm') ? (
+                  <video src={value} className="h-full w-full object-cover" muted />
+                ) : (
+                  <img src={value} alt={field.label} className="h-full w-full object-cover" />
+                )
+              ) : (
+                <ImageIcon className="text-[#64646d]" />
+              )}
+            </div>
+          )}
+          <input
+            id={inputId}
+            type={field.type === 'secret' ? 'password' : 'text'}
+            value={value || ''}
+            onChange={(event) => onChange(event.target.value)}
+            className={fieldClass()}
+          />
+          {isMedia && (
+            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-bold text-white transition-colors hover:border-[#e9c349]/40 hover:bg-[#e9c349]/10">
+              {uploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+              {uploading ? 'Завантаження' : 'Файл'}
+              <input type="file" className="hidden" onChange={(event) => event.target.files?.[0] && onUpload(event.target.files[0])} />
+            </label>
+          )}
+        </div>
+      )}
+      {field.hint && <p className="m-0 text-xs text-[#6f6f78]">{field.hint}</p>}
+      {field.preview && value && (
+        <div className="rounded-lg border border-white/10 bg-[#080818] p-3">
+          <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#6f6f78]">Preview</div>
+          <HighlightedTitle text={value} as="div" className="text-xl font-bold text-white" />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function CMSPage() {
-  const [content, setContent] = useState<Record<string, string>>({});
+  const [activeTab, setActiveTab] = useState<(typeof tabs)[number]['id']>('home');
+  const [content, setContent] = useState<Record<string, string>>(withContentDefaults());
   const [blocks, setBlocks] = useState<PageBlock[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [notice, setNotice] = useState('');
   const [uploadingState, setUploadingState] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/cms').then(res => res.json()),
-      fetch('/api/page-blocks').then(res => res.json())
-    ]).then(([cmsData, blocksData]) => {
-      setContent(cmsData);
-      setBlocks(blocksData || []);
-      setLoading(false);
-    });
+      fetch('/api/cms').then((res) => res.json()),
+      fetch('/api/page-blocks').then((res) => res.json()),
+    ])
+      .then(([cmsData, blocksData]) => {
+        setContent(withContentDefaults(cmsData));
+        setBlocks(Array.isArray(blocksData) ? blocksData : []);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
-  // --- Global Settings ---
-  const handleGlobalChange = (key: string, value: string) => {
-    setContent(prev => ({ ...prev, [key]: value }));
+  const technicalKeys = useMemo(() => {
+    return Object.keys(content)
+      .filter((key) => !explicitKeys.has(key))
+      .sort((a, b) => a.localeCompare(b));
+  }, [content]);
+
+  const updateContent = (key: string, value: string) => {
+    setContent((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const uploadFile = async (file: File, type = 'cms_media') => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('type', type);
+
+    const res = await fetch('/api/upload', { method: 'POST', body: formData });
+    const data = await res.json();
+    if (!res.ok || !data.url) throw new Error('Upload failed');
+    return data.url as string;
   };
 
   const handleGlobalUpload = async (key: string, file: File) => {
-    setUploadingState(prev => ({ ...prev, [key]: true }));
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('type', 'default');
-    
+    setUploadingState((prev) => ({ ...prev, [key]: true }));
     try {
-      const res = await fetch('/api/upload', { method: 'POST', body: formData });
-      const data = await res.json();
-      if (data.url) handleGlobalChange(key, data.url);
-    } catch (e) { console.error(e); }
-    
-    setUploadingState(prev => ({ ...prev, [key]: false }));
+      const url = await uploadFile(file);
+      updateContent(key, url);
+    } catch {
+      setNotice('Не вдалося завантажити файл.');
+    } finally {
+      setUploadingState((prev) => ({ ...prev, [key]: false }));
+    }
   };
 
-  const handleSaveGlobal = async () => {
-    const res = await fetch('/api/cms', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(content)
-    });
-    if (res.ok) alert('Глобальні налаштування збережено!');
-  };
-
-  // --- Block Builder ---
   const addBlock = async (type: string) => {
-    const defaultContent = type === 'HERO' ? { title: 'Новий Банер', subtitle: 'Опис банеру', bgImage: '' } :
-                           type === 'GALLERY' ? { title: 'Галерея', items: [] } :
-                           type === 'TEXT_IMAGE' ? { title: 'Заголовок', text: 'Текст', image: '', imagePosition: 'left' } :
-                           type === 'FEATURES' ? { title: 'Переваги', items: [] } : {};
-    
+    const defaultContent =
+      type === 'HERO'
+        ? { title: 'Новий *банер*', subtitle: 'Опис банеру', bgImage: '' }
+        : type === 'GALLERY'
+          ? { title: 'Галерея', items: [] }
+          : type === 'TEXT_IMAGE'
+            ? { title: 'Заголовок', text: 'Текст', image: '', imagePosition: 'left' }
+            : type === 'FEATURES'
+              ? { title: 'Переваги', items: [] }
+              : {};
+
     const res = await fetch('/api/page-blocks', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type, content: JSON.stringify(defaultContent) })
+      body: JSON.stringify({ type, content: JSON.stringify(defaultContent) }),
     });
     const newBlock = await res.json();
-    if (newBlock.id) setBlocks([...blocks, newBlock]);
+    if (newBlock.id) setBlocks((prev) => [...prev, newBlock].sort((a, b) => a.order - b.order));
   };
 
   const deleteBlock = async (id: string) => {
     if (!confirm('Видалити цей блок?')) return;
     await fetch(`/api/page-blocks?id=${id}`, { method: 'DELETE' });
-    setBlocks(blocks.filter(b => b.id !== id));
+    setBlocks((prev) => prev.filter((block) => block.id !== id));
   };
 
   const moveBlock = (index: number, direction: 'up' | 'down') => {
-    if (direction === 'up' && index === 0) return;
-    if (direction === 'down' && index === blocks.length - 1) return;
-    
-    const newBlocks = [...blocks];
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    
-    const temp = newBlocks[index].order;
-    newBlocks[index].order = newBlocks[targetIndex].order;
-    newBlocks[targetIndex].order = temp;
-    
-    // Sort array by order
-    newBlocks.sort((a, b) => a.order - b.order);
-    setBlocks(newBlocks);
+    if (targetIndex < 0 || targetIndex >= blocks.length) return;
+
+    const nextBlocks = [...blocks];
+    const currentOrder = nextBlocks[index].order;
+    nextBlocks[index].order = nextBlocks[targetIndex].order;
+    nextBlocks[targetIndex].order = currentOrder;
+    setBlocks(nextBlocks.sort((a, b) => a.order - b.order));
   };
 
-  const updateBlockContent = (index: number, newContentObj: any) => {
-    const newBlocks = [...blocks];
-    newBlocks[index].content = JSON.stringify(newContentObj);
-    setBlocks(newBlocks);
+  const updateBlock = (index: number, patch: Partial<PageBlock>) => {
+    setBlocks((prev) => prev.map((block, blockIndex) => (blockIndex === index ? { ...block, ...patch } : block)));
   };
 
-  const saveBlocks = async () => {
-    const res = await fetch('/api/page-blocks', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(blocks)
-    });
-    if (res.ok) alert('Структуру сторінки збережено!');
+  const updateBlockContent = (index: number, newContent: Record<string, unknown>) => {
+    updateBlock(index, { content: JSON.stringify(newContent) });
   };
 
-  const handleBlockImageUpload = async (blockIndex: number, fieldPath: (content: any, url: string) => void, file: File) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('type', 'block_media');
-    
+  const handleBlockUpload = async (index: number, updater: (parsed: any, url: string) => void, file: File) => {
+    const key = `block-${blocks[index].id}`;
+    setUploadingState((prev) => ({ ...prev, [key]: true }));
     try {
-      const res = await fetch('/api/upload', { method: 'POST', body: formData });
-      const data = await res.json();
-      if (data.url) {
-        const parsed = JSON.parse(blocks[blockIndex].content);
-        fieldPath(parsed, data.url);
-        updateBlockContent(blockIndex, parsed);
-      }
-    } catch (e) { console.error(e); }
+      const url = await uploadFile(file, 'block_media');
+      const parsed = parseBlockContent(blocks[index].content);
+      updater(parsed, url);
+      updateBlockContent(index, parsed);
+    } catch {
+      setNotice('Не вдалося завантажити медіа для блоку.');
+    } finally {
+      setUploadingState((prev) => ({ ...prev, [key]: false }));
+    }
   };
 
-  if (loading) return <div className="p-8 text-white">Завантаження...</div>;
+  const saveAll = async () => {
+    setSaving(true);
+    setNotice('');
+    try {
+      const [contentRes, blockRes] = await Promise.all([
+        fetch('/api/cms', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(content),
+        }),
+        fetch('/api/page-blocks', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(blocks),
+        }),
+      ]);
+
+      setNotice(contentRes.ok && blockRes.ok ? 'Зміни збережено.' : 'Не все вдалося зберегти.');
+    } catch {
+      setNotice('Помилка збереження.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const renderFields = (fields: FieldConfig[], columns = true) => (
+    <div className={columns ? 'grid gap-5 lg:grid-cols-2' : 'space-y-5'}>
+      {fields.map((field) => (
+        <CmsField
+          key={field.key}
+          field={field}
+          value={content[field.key] || ''}
+          uploading={uploadingState[field.key]}
+          onChange={(value) => updateContent(field.key, value)}
+          onUpload={(file) => handleGlobalUpload(field.key, file)}
+        />
+      ))}
+    </div>
+  );
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[360px] items-center justify-center text-[#e9c349]">
+        <Loader2 className="mr-3 animate-spin" /> Завантаження редактора...
+      </div>
+    );
+  }
 
   return (
-    <div className="p-4 md:p-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-display-lg text-[#e9c349]">Управління сайтом (CMS)</h1>
-      </div>
-      
-      {/* Visual Block Builder */}
-      <div className="mb-16">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-white">Структура головної сторінки (Блоки)</h2>
-          <button onClick={saveBlocks} className="flex items-center gap-2 bg-[#e9c349] text-black font-bold px-6 py-2 rounded-lg hover:scale-105 transition-transform">
-            <Save size={18} /> Зберегти блоки
-          </button>
-        </div>
-
-        <div className="flex gap-4 mb-8 p-4 bg-[#13131a] border border-white/10 rounded-xl">
-          <span className="text-[#8a8a93] text-sm uppercase tracking-widest font-bold self-center mr-4">Додати блок:</span>
-          <button onClick={() => addBlock('HERO')} className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded border border-white/10 transition-colors">+ Hero-Банер</button>
-          <button onClick={() => addBlock('TEXT_IMAGE')} className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded border border-white/10 transition-colors">+ Текст + Зображення (Блог)</button>
-          <button onClick={() => addBlock('GALLERY')} className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded border border-white/10 transition-colors">+ Галерея (Карусель)</button>
-          <button onClick={() => addBlock('FEATURES')} className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded border border-white/10 transition-colors">+ Переваги</button>
-        </div>
-
-        <div className="space-y-6">
-          {blocks.length === 0 && <p className="text-[#8a8a93] italic">Немає жодного блоку. Додайте перший блок вище.</p>}
-          
-          {blocks.map((block, index) => {
-            let parsed = {};
-            try { parsed = JSON.parse(block.content); } catch (e) {}
-
-            return (
-              <div key={block.id} className="bg-[#13131a] rounded-2xl border border-white/10 shadow-lg overflow-hidden flex flex-col md:flex-row">
-                
-                {/* Block Controls */}
-                <div className="bg-[#1a1a24] p-4 flex md:flex-col items-center justify-between md:justify-start gap-4 border-b md:border-b-0 md:border-r border-white/5 w-full md:w-16 shrink-0">
-                  <div className="text-[#8a8a93] font-bold text-xs">{index + 1}</div>
-                  <div className="flex md:flex-col gap-2">
-                    <button onClick={() => moveBlock(index, 'up')} disabled={index === 0} className="p-2 bg-white/5 hover:bg-white/10 rounded text-white disabled:opacity-30"><ArrowUp size={16} /></button>
-                    <button onClick={() => moveBlock(index, 'down')} disabled={index === blocks.length - 1} className="p-2 bg-white/5 hover:bg-white/10 rounded text-white disabled:opacity-30"><ArrowDown size={16} /></button>
-                  </div>
-                  <button onClick={() => deleteBlock(block.id)} className="p-2 text-red-400 hover:bg-red-400/20 rounded mt-auto"><Trash2 size={16} /></button>
-                </div>
-
-                {/* Block Editor */}
-                <div className="flex-1 p-6">
-                  <div className="flex justify-between items-center mb-4">
-                    <span className="text-[#e9c349] font-bold tracking-widest uppercase text-xs px-3 py-1 bg-[#e9c349]/10 rounded-full">{block.type} BLOCK</span>
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input 
-                        type="checkbox" 
-                        checked={block.active} 
-                        onChange={(e) => {
-                          const newBlocks = [...blocks];
-                          newBlocks[index].active = e.target.checked;
-                          setBlocks(newBlocks);
-                        }}
-                      />
-                      <span className="text-sm text-white">Активний</span>
-                    </label>
-                  </div>
-
-                  {/* Render Editor Based on Type */}
-                  {block.type === 'HERO' && (
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-xs text-[#8a8a93] uppercase">Заголовок</label>
-                        <input type="text" className="w-full bg-[#080818] border border-white/10 p-3 rounded text-white" value={(parsed as any).title || ''} onChange={e => updateBlockContent(index, { ...parsed, title: e.target.value })} />
-                        <p className="mt-2 text-xs text-[#8a8a93]">Виділення золотим: напишіть слово між *зірочками*.</p>
-                        {(parsed as any).title && (
-                          <HighlightedTitle text={(parsed as any).title} as="div" className="mt-3 text-2xl font-bold text-white" />
-                        )}
-                      </div>
-                      <div>
-                        <label className="text-xs text-[#8a8a93] uppercase">Підзаголовок</label>
-                        <input type="text" className="w-full bg-[#080818] border border-white/10 p-3 rounded text-white" value={(parsed as any).subtitle || ''} onChange={e => updateBlockContent(index, { ...parsed, subtitle: e.target.value })} />
-                      </div>
-                      <div>
-                        <label className="text-xs text-[#8a8a93] uppercase">Фонове зображення/відео</label>
-                        <div className="flex gap-4">
-                          <input type="text" className="flex-1 bg-[#080818] border border-white/10 p-3 rounded text-white" value={(parsed as any).bgImage || ''} onChange={e => updateBlockContent(index, { ...parsed, bgImage: e.target.value })} />
-                          <label className="bg-[#353536] text-white px-6 py-3 rounded hover:bg-[#46474a] cursor-pointer">
-                            Завантажити
-                            <input type="file" className="hidden" onChange={e => e.target.files && handleBlockImageUpload(index, (c, url) => c.bgImage = url, e.target.files[0])} />
-                          </label>
-                        </div>
-                        {(parsed as any).bgImage && <img src={(parsed as any).bgImage} className="mt-2 h-20 rounded border border-white/10" />}
-                      </div>
-                    </div>
-                  )}
-
-                  {block.type === 'TEXT_IMAGE' && (
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-xs text-[#8a8a93] uppercase">Заголовок блоку</label>
-                        <input type="text" className="w-full bg-[#080818] border border-white/10 p-3 rounded text-white" value={(parsed as any).title || ''} onChange={e => updateBlockContent(index, { ...parsed, title: e.target.value })} />
-                        <p className="mt-2 text-xs text-[#8a8a93]">Виділення золотим: напишіть слово між *зірочками*.</p>
-                      </div>
-                      <div className="bg-white text-black rounded">
-                        <RichEditor value={(parsed as any).text || ''} onChange={val => updateBlockContent(index, { ...parsed, text: val })} />
-                      </div>
-                      <div className="flex gap-4 items-end">
-                        <div className="flex-1">
-                          <label className="text-xs text-[#8a8a93] uppercase">Зображення</label>
-                          <div className="flex gap-4">
-                            <input type="text" className="flex-1 bg-[#080818] border border-white/10 p-3 rounded text-white" value={(parsed as any).image || ''} onChange={e => updateBlockContent(index, { ...parsed, image: e.target.value })} />
-                            <label className="bg-[#353536] text-white px-6 py-3 rounded hover:bg-[#46474a] cursor-pointer">
-                              Завантажити
-                              <input type="file" className="hidden" onChange={e => e.target.files && handleBlockImageUpload(index, (c, url) => c.image = url, e.target.files[0])} />
-                            </label>
-                          </div>
-                        </div>
-                        <div className="shrink-0">
-                           <label className="text-xs text-[#8a8a93] uppercase block mb-1">Позиція фото</label>
-                           <select className="bg-[#080818] border border-white/10 p-3 rounded text-white" value={(parsed as any).imagePosition || 'left'} onChange={e => updateBlockContent(index, { ...parsed, imagePosition: e.target.value })}>
-                             <option value="left">Зліва</option>
-                             <option value="right">Справа</option>
-                           </select>
-                        </div>
-                      </div>
-                      {(parsed as any).image && <img src={(parsed as any).image} className="mt-2 h-20 rounded border border-white/10" />}
-                    </div>
-                  )}
-                  
-                  {block.type === 'GALLERY' && (
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-xs text-[#8a8a93] uppercase">Заголовок галереї</label>
-                        <input type="text" className="w-full bg-[#080818] border border-white/10 p-3 rounded text-white" value={(parsed as any).title || ''} onChange={e => updateBlockContent(index, { ...parsed, title: e.target.value })} />
-                        <p className="mt-2 text-xs text-[#8a8a93]">Виділення золотим: напишіть слово між *зірочками*.</p>
-                      </div>
-                      <div>
-                        <label className="text-xs text-[#8a8a93] uppercase mb-2 block">Медіафайли галереї</label>
-                        <div className="flex flex-wrap gap-4">
-                           {((parsed as any).items || []).map((url: string, i: number) => (
-                             <div key={i} className="relative w-32 h-32 border border-white/10 rounded overflow-hidden bg-black group">
-                               <img src={url} className="w-full h-full object-cover" />
-                               <button onClick={() => { const newItems = [...((parsed as any).items || [])]; newItems.splice(i, 1); updateBlockContent(index, { ...parsed, items: newItems }); }} className="absolute top-1 right-1 bg-red-500 text-white rounded p-1 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={14}/></button>
-                             </div>
-                           ))}
-                           <label className="w-32 h-32 border border-dashed border-white/30 rounded flex items-center justify-center text-white/50 hover:bg-white/5 cursor-pointer hover:border-white/60 transition-colors">
-                              + Додати
-                              <input type="file" className="hidden" onChange={e => e.target.files && handleBlockImageUpload(index, (c, url) => { if(!c.items) c.items = []; c.items.push(url); }, e.target.files[0])} />
-                           </label>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {block.type === 'FEATURES' && (
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-xs text-[#8a8a93] uppercase">Заголовок блоку переваг</label>
-                        <input type="text" className="w-full bg-[#080818] border border-white/10 p-3 rounded text-white" value={(parsed as any).title || ''} onChange={e => updateBlockContent(index, { ...parsed, title: e.target.value })} />
-                        <p className="mt-2 text-xs text-[#8a8a93]">Виділення золотим: напишіть слово між *зірочками*.</p>
-                        {(parsed as any).title && (
-                          <HighlightedTitle text={(parsed as any).title} as="div" className="mt-3 text-2xl font-bold text-white" />
-                        )}
-                      </div>
-                      <div className="space-y-2">
-                        {((parsed as any).items || []).map((feat: any, i: number) => (
-                          <div key={i} className="grid gap-3 bg-[#080818] p-3 rounded border border-white/10 md:grid-cols-[180px_1fr_2fr_auto] md:items-center">
-                            <IconPicker value={feat.icon || 'Star'} onChange={value => { const items = [...(parsed as any).items]; items[i].icon = value; updateBlockContent(index, { ...parsed, items }); }} />
-                            <input type="text" placeholder="Назва" className="bg-transparent text-white border-b border-white/20 p-2 outline-none focus:border-[#e9c349]" value={feat.title || ''} onChange={e => { const items = [...(parsed as any).items]; items[i].title = e.target.value; updateBlockContent(index, { ...parsed, items }); }} />
-                            <input type="text" placeholder="Опис" className="bg-transparent text-white border-b border-white/20 p-2 outline-none focus:border-[#e9c349]" value={feat.desc || ''} onChange={e => { const items = [...(parsed as any).items]; items[i].desc = e.target.value; updateBlockContent(index, { ...parsed, items }); }} />
-                            <button onClick={() => { const items = [...(parsed as any).items]; items.splice(i, 1); updateBlockContent(index, { ...parsed, items }); }} className="text-red-400 p-2 hover:bg-red-400/20 rounded"><Trash2 size={16}/></button>
-                          </div>
-                        ))}
-                        <button onClick={() => { const items = [...((parsed as any).items || [])]; items.push({ icon: 'CircleCheck', title: '', desc: '' }); updateBlockContent(index, { ...parsed, items }); }} className="text-sm text-[#e9c349] hover:underline">+ Додати перевагу</button>
-                      </div>
-                    </div>
-                  )}
-
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-
-      {/* Global Settings (Old CMS format) */}
-      <h2 className="text-2xl font-bold text-white mb-6">Глобальні константи сайту</h2>
-      <div className="bg-[#080818] rounded-2xl border border-white/10 p-8 space-y-6 max-w-4xl opacity-80 hover:opacity-100 transition-opacity">
-        <p className="text-[#8a8a93] text-sm mb-4">Тут зберігаються старі ключі та глобальні налаштування (наприклад, logo_url, телефони). Це залишено для сумісності.</p>
-        {Object.entries(content).map(([key, value]) => {
-          const isMedia = key.includes('image') || key.includes('video') || key.includes('logo');
-          return (
-            <div key={key} className="space-y-2">
-              <label className="block text-sm font-label-caps text-[#c7c6ca] uppercase tracking-widest">{key}</label>
-              <div className="flex flex-col md:flex-row gap-4">
-                {isMedia ? (
-                  <>
-                    <input type="text" value={value} onChange={e => handleGlobalChange(key, e.target.value)} className="flex-1 bg-transparent border border-white/20 rounded-lg p-3 text-white focus:border-[#e9c349] outline-none" />
-                    <div className="relative">
-                      <input type="file" onChange={(e) => { if (e.target.files && e.target.files[0]) handleGlobalUpload(key, e.target.files[0]); }} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                      <button disabled={uploadingState[key]} className="bg-[#353536] text-white px-6 py-3 rounded-lg w-full md:w-auto hover:bg-[#46474a] transition-colors disabled:opacity-50">
-                        {uploadingState[key] ? 'Завантаження...' : 'Обрати файл'}
-                      </button>
-                    </div>
-                  </>
-                ) : (
-                  <div className="bg-white text-black rounded-lg overflow-hidden w-full">
-                    <RichEditor value={value} onChange={(val) => handleGlobalChange(key, val)} />
-                  </div>
-                )}
-              </div>
+    <div className="min-h-screen bg-[#080818] p-4 text-[#e4e2e3] md:p-8">
+      <div className="mb-6 flex flex-col gap-4 border-b border-white/10 pb-6 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#e9c349]/10 text-[#e9c349]">
+              <FileText size={22} />
             </div>
-          );
-        })}
-        
-        <div className="pt-8 border-t border-white/10">
-          <button onClick={handleSaveGlobal} className="border border-[#e9c349] text-[#e9c349] hover:bg-[#e9c349] hover:text-black font-bold text-sm px-8 py-4 rounded-lg uppercase tracking-widest transition-colors">
-            Зберегти глобальні зміни
+            <div>
+              <h1 className="m-0 text-2xl font-bold text-white md:text-3xl">Редактор сайту</h1>
+              <p className="m-0 mt-1 text-sm text-[#8a8a93]">Тексти, секції, медіа, SEO і структура головної без сирого хаосу.</p>
+            </div>
+          </div>
+        </div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          {notice && (
+            <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-[#c7c6ca]">
+              <CheckCircle2 size={16} className="text-[#e9c349]" />
+              {notice}
+            </div>
+          )}
+          <button
+            onClick={saveAll}
+            disabled={saving}
+            className="flex items-center justify-center gap-2 rounded-lg bg-[#e9c349] px-5 py-3 text-sm font-bold uppercase tracking-[0.12em] text-black transition-transform hover:scale-[1.02] disabled:opacity-60"
+          >
+            {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+            {saving ? 'Збереження' : 'Зберегти все'}
           </button>
         </div>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[280px_1fr]">
+        <aside className="h-fit rounded-xl border border-white/10 bg-[#13131a] p-3">
+          <div className="mb-3 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[#6f6f78]">Розділи редактора</div>
+          <div className="space-y-1">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const active = activeTab === tab.id;
+
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex w-full items-center gap-3 rounded-lg border px-3 py-3 text-left transition-colors ${
+                    active
+                      ? 'border-[#e9c349]/40 bg-[#e9c349]/12 text-white'
+                      : 'border-transparent text-[#c7c6ca] hover:border-white/10 hover:bg-white/5'
+                  }`}
+                >
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${active ? 'bg-[#e9c349] text-black' : 'bg-white/5 text-[#e9c349]'}`}>
+                    <Icon size={18} />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-sm font-bold">{tab.label}</div>
+                    <div className="truncate text-xs text-[#8a8a93]">{tab.desc}</div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </aside>
+
+        <main className="space-y-6">
+          {activeTab === 'home' && (
+            <>
+              <SectionShell icon={Globe2} title="Навігація і бренд" desc="Назва, логотип, меню, кнопки і базова мова сайту.">
+                {renderFields(homeFields.slice(0, 12))}
+              </SectionShell>
+              <SectionShell icon={Sparkles} title="Hero і головні заголовки" desc="Тут працює логіка двоколірного тексту через *зірочки*, як у референсі, але в нашій темі.">
+                {renderFields(homeFields.slice(12), false)}
+              </SectionShell>
+              <SectionShell icon={Sparkles} title="Переваги" desc="Іконки обираються з бібліотеки, назви і описи редагуються як окремі поля.">
+                <div className="grid gap-4 xl:grid-cols-2">
+                  {[1, 2, 3, 4].map((index) => (
+                    <div key={index} className="rounded-lg border border-white/10 bg-[#080818] p-4">
+                      <div className="mb-4 flex items-center justify-between gap-3">
+                        <div>
+                          <div className="text-sm font-bold text-white">Перевага {index}</div>
+                          <div className="text-xs text-[#8a8a93]">Іконка, заголовок, опис</div>
+                        </div>
+                        <DynamicIcon name={content[`feature_${index}_icon`]} size={24} className="text-[#e9c349]" />
+                      </div>
+                      <div className="space-y-4">
+                        <IconPicker value={content[`feature_${index}_icon`]} onChange={(value) => updateContent(`feature_${index}_icon`, value)} />
+                        <CmsField field={{ key: `feature_${index}_title`, label: 'Заголовок', preview: true }} value={content[`feature_${index}_title`]} onChange={(value) => updateContent(`feature_${index}_title`, value)} onUpload={() => undefined} />
+                        <CmsField field={{ key: `feature_${index}_desc`, label: 'Опис', type: 'textarea' }} value={content[`feature_${index}_desc`]} onChange={(value) => updateContent(`feature_${index}_desc`, value)} onUpload={() => undefined} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </SectionShell>
+            </>
+          )}
+
+          {activeTab === 'blocks' && (
+            <>
+              <SectionShell icon={Plus} title="Додати секцію" desc="Блоки нижче йдуть у тому порядку, у якому вони показуються на головній.">
+                <div className="grid gap-3 md:grid-cols-4">
+                  {Object.entries(blockLabels).map(([type, label]) => (
+                    <button key={type} onClick={() => addBlock(type)} className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-left text-sm font-bold text-white transition-colors hover:border-[#e9c349]/40 hover:bg-[#e9c349]/10">
+                      + {label}
+                    </button>
+                  ))}
+                </div>
+              </SectionShell>
+
+              {blocks.length === 0 && (
+                <div className="rounded-xl border border-dashed border-white/15 bg-[#13131a] p-8 text-center text-[#8a8a93]">
+                  Немає жодного блоку. Додай перший блок вище.
+                </div>
+              )}
+
+              {blocks.map((block, index) => {
+                const parsed = parseBlockContent(block.content);
+                const uploadKey = `block-${block.id}`;
+
+                return (
+                  <section key={block.id} className="overflow-hidden rounded-xl border border-white/10 bg-[#13131a]">
+                    <div className="flex flex-col gap-3 border-b border-white/10 bg-[#171721] px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#080818] text-[#e9c349]">{index + 1}</div>
+                        <div>
+                          <div className="text-sm font-bold uppercase tracking-[0.12em] text-[#e9c349]">{blockLabels[block.type] || block.type}</div>
+                          <div className="text-xs text-[#8a8a93]">PageBlock: {block.type}</div>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button onClick={() => moveBlock(index, 'up')} disabled={index === 0} className="rounded-lg bg-white/5 p-2 text-white hover:bg-white/10 disabled:opacity-30"><ArrowUp size={16} /></button>
+                        <button onClick={() => moveBlock(index, 'down')} disabled={index === blocks.length - 1} className="rounded-lg bg-white/5 p-2 text-white hover:bg-white/10 disabled:opacity-30"><ArrowDown size={16} /></button>
+                        <button
+                          onClick={() => updateBlock(index, { active: !block.active })}
+                          className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-bold ${block.active ? 'border-[#e9c349]/40 text-[#e9c349]' : 'border-white/10 text-[#8a8a93]'}`}
+                        >
+                          <Eye size={16} />
+                          {block.active ? 'Активний' : 'Прихований'}
+                        </button>
+                        <button onClick={() => deleteBlock(block.id)} className="rounded-lg bg-red-500/10 p-2 text-red-300 hover:bg-red-500/20"><Trash2 size={16} /></button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-5 p-5">
+                      {block.type === 'HERO' && (
+                        <>
+                          <CmsField field={{ key: 'title', label: 'Заголовок', type: 'textarea', preview: true, hint: 'Золотий акцент через *зірочки*.' }} value={parsed.title || ''} onChange={(value) => updateBlockContent(index, { ...parsed, title: value })} onUpload={() => undefined} />
+                          <CmsField field={{ key: 'subtitle', label: 'Підзаголовок', type: 'textarea' }} value={parsed.subtitle || ''} onChange={(value) => updateBlockContent(index, { ...parsed, subtitle: value })} onUpload={() => undefined} />
+                          <CmsField field={{ key: 'bgImage', label: 'Фон hero', type: 'media' }} value={parsed.bgImage || ''} uploading={uploadingState[uploadKey]} onChange={(value) => updateBlockContent(index, { ...parsed, bgImage: value })} onUpload={(file) => handleBlockUpload(index, (data, url) => { data.bgImage = url; }, file)} />
+                        </>
+                      )}
+
+                      {block.type === 'TEXT_IMAGE' && (
+                        <>
+                          <CmsField field={{ key: 'title', label: 'Заголовок', preview: true }} value={parsed.title || ''} onChange={(value) => updateBlockContent(index, { ...parsed, title: value })} onUpload={() => undefined} />
+                          <div className="space-y-2">
+                            <label className="block text-[11px] font-bold uppercase tracking-[0.14em] text-[#8a8a93]">Текст блоку</label>
+                            <div className="overflow-hidden rounded-lg border border-white/10 bg-white text-black">
+                              <RichEditor value={parsed.text || ''} onChange={(value) => updateBlockContent(index, { ...parsed, text: value })} />
+                            </div>
+                          </div>
+                          <div className="grid gap-5 lg:grid-cols-[1fr_220px]">
+                            <CmsField field={{ key: 'image', label: 'Зображення', type: 'media' }} value={parsed.image || ''} uploading={uploadingState[uploadKey]} onChange={(value) => updateBlockContent(index, { ...parsed, image: value })} onUpload={(file) => handleBlockUpload(index, (data, url) => { data.image = url; }, file)} />
+                            <div className="space-y-2">
+                              <label className="block text-[11px] font-bold uppercase tracking-[0.14em] text-[#8a8a93]">Позиція медіа</label>
+                              <select value={parsed.imagePosition || 'left'} onChange={(event) => updateBlockContent(index, { ...parsed, imagePosition: event.target.value })} className={fieldClass()}>
+                                <option value="left">Зліва</option>
+                                <option value="right">Справа</option>
+                              </select>
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                      {block.type === 'GALLERY' && (
+                        <>
+                          <CmsField field={{ key: 'title', label: 'Заголовок галереї', preview: true }} value={parsed.title || ''} onChange={(value) => updateBlockContent(index, { ...parsed, title: value })} onUpload={() => undefined} />
+                          <div className="space-y-3">
+                            <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#8a8a93]">Медіа блоку</div>
+                            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                              {(parsed.items || []).map((url: string, mediaIndex: number) => (
+                                <div key={`${url}-${mediaIndex}`} className="group relative aspect-square overflow-hidden rounded-lg border border-white/10 bg-[#080818]">
+                                  {url.includes('.mp4') || url.includes('.webm') ? <video src={url} className="h-full w-full object-cover" muted /> : <img src={url} alt="" className="h-full w-full object-cover" />}
+                                  <button
+                                    onClick={() => {
+                                      const items = [...(parsed.items || [])];
+                                      items.splice(mediaIndex, 1);
+                                      updateBlockContent(index, { ...parsed, items });
+                                    }}
+                                    className="absolute right-2 top-2 rounded bg-red-500 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                                  >
+                                    <Trash2 size={14} />
+                                  </button>
+                                </div>
+                              ))}
+                              <label className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-white/20 bg-white/5 text-sm font-bold text-[#c7c6ca] hover:border-[#e9c349]/40 hover:text-[#e9c349]">
+                                {uploadingState[uploadKey] ? <Loader2 className="animate-spin" /> : <GalleryHorizontalEnd />}
+                                Додати
+                                <input
+                                  type="file"
+                                  className="hidden"
+                                  onChange={(event) => event.target.files?.[0] && handleBlockUpload(index, (data, url) => {
+                                    if (!data.items) data.items = [];
+                                    data.items.push(url);
+                                  }, event.target.files[0])}
+                                />
+                              </label>
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                      {block.type === 'FEATURES' && (
+                        <>
+                          <CmsField field={{ key: 'title', label: 'Заголовок блоку', preview: true }} value={parsed.title || ''} onChange={(value) => updateBlockContent(index, { ...parsed, title: value })} onUpload={() => undefined} />
+                          <div className="space-y-3">
+                            {(parsed.items || []).map((feature: any, featureIndex: number) => (
+                              <div key={featureIndex} className="grid gap-3 rounded-lg border border-white/10 bg-[#080818] p-3 lg:grid-cols-[210px_1fr_2fr_auto] lg:items-center">
+                                <IconPicker value={feature.icon || 'Star'} onChange={(value) => {
+                                  const items = [...(parsed.items || [])];
+                                  items[featureIndex] = { ...items[featureIndex], icon: value };
+                                  updateBlockContent(index, { ...parsed, items });
+                                }} />
+                                <input value={feature.title || ''} onChange={(event) => {
+                                  const items = [...(parsed.items || [])];
+                                  items[featureIndex] = { ...items[featureIndex], title: event.target.value };
+                                  updateBlockContent(index, { ...parsed, items });
+                                }} placeholder="Назва" className={fieldClass()} />
+                                <input value={feature.desc || ''} onChange={(event) => {
+                                  const items = [...(parsed.items || [])];
+                                  items[featureIndex] = { ...items[featureIndex], desc: event.target.value };
+                                  updateBlockContent(index, { ...parsed, items });
+                                }} placeholder="Опис" className={fieldClass()} />
+                                <button onClick={() => {
+                                  const items = [...(parsed.items || [])];
+                                  items.splice(featureIndex, 1);
+                                  updateBlockContent(index, { ...parsed, items });
+                                }} className="rounded-lg bg-red-500/10 p-2 text-red-300 hover:bg-red-500/20">
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                            ))}
+                            <button onClick={() => updateBlockContent(index, { ...parsed, items: [...(parsed.items || []), { icon: 'CircleCheck', title: '', desc: '' }] })} className="rounded-lg border border-[#e9c349]/30 px-4 py-2 text-sm font-bold text-[#e9c349] hover:bg-[#e9c349]/10">
+                              + Додати перевагу
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </section>
+                );
+              })}
+            </>
+          )}
+
+          {activeTab === 'contacts' && (
+            <SectionShell icon={Mail} title="Контакти, форма і footer" desc="Усе, що бачить клієнт у контактному блоці та в нижній частині сайту.">
+              {renderFields(contactFields)}
+            </SectionShell>
+          )}
+
+          {activeTab === 'seo' && (
+            <SectionShell icon={Search} title="SEO і structured data" desc="Ці поля впливають на metadata сторінки і JSON-LD schema.">
+              {renderFields(seoFields)}
+            </SectionShell>
+          )}
+
+          {activeTab === 'technical' && (
+            <SectionShell icon={Settings2} title="Технічні ключі" desc="Сюди сховані всі ключі, які ще не мають окремої логічної секції. Це тимчасовий міст, не головний редактор.">
+              <div className="mb-5 rounded-lg border border-[#e9c349]/20 bg-[#e9c349]/10 p-4 text-sm text-[#e4e2e3]">
+                Нові екрани треба переносити з цієї вкладки у нормальні секції. Тут лишаються розрахунки, інтеграції та legacy-поля до їх повного переїзду в окремі сторінки.
+              </div>
+              <div className="grid gap-4 lg:grid-cols-2">
+                {technicalKeys.map((key) => {
+                  const defaultValue = SITE_CONTENT_DEFAULTS[key];
+                  const isMedia = key.includes('image') || key.includes('video') || key.includes('logo');
+
+                  return (
+                    <CmsField
+                      key={key}
+                      field={{ key, label: key, type: isMedia ? 'media' : defaultValue && defaultValue.length > 120 ? 'textarea' : 'text' }}
+                      value={content[key] || ''}
+                      uploading={uploadingState[key]}
+                      onChange={(value) => updateContent(key, value)}
+                      onUpload={(file) => handleGlobalUpload(key, file)}
+                    />
+                  );
+                })}
+              </div>
+            </SectionShell>
+          )}
+        </main>
       </div>
     </div>
   );
