@@ -12,6 +12,29 @@ import 'swiper/css/pagination';
 import 'swiper/css/effect-fade';
 import { useSession } from 'next-auth/react';
 import { ArrowLeft, Check, Users, Fuel, Calendar, Star, X } from 'lucide-react';
+import DynamicIcon from '@/components/ui/DynamicIcon';
+import HighlightedTitle from '@/components/ui/HighlightedTitle';
+
+type CarPageBlock = {
+  id: string;
+  type: 'headline' | 'text' | 'feature_grid' | 'media_text' | 'cta';
+  title: string;
+  text: string;
+  icon: string;
+  imageUrl: string;
+  buttonText: string;
+  buttonUrl: string;
+  active: boolean;
+};
+
+function parseBlocks(value?: string | null): CarPageBlock[] {
+  try {
+    const parsed = JSON.parse(value || '[]');
+    return Array.isArray(parsed) ? parsed.filter((block) => block.active !== false) : [];
+  } catch {
+    return [];
+  }
+}
 
 export default function CarDetailsPage() {
   const params = useParams();
@@ -97,6 +120,7 @@ export default function CarDetailsPage() {
       ];
   const coverMedia = allMedia.find((item: any) => item.isCover) || allMedia[0];
   const features = car.features && car.features !== '[]' ? JSON.parse(car.features) : [];
+  const pageBlocks = parseBlocks(car.pageBlocks);
   
   // Calculate average rating
   const avgRating = reviews.length > 0 ? (reviews.reduce((acc, curr) => acc + curr.rating, 0) / reviews.length).toFixed(1) : '5.0';
@@ -187,18 +211,81 @@ export default function CarDetailsPage() {
           </div>
 
           {/* Description */}
-          {car.description && (
+          {pageBlocks.length > 0 ? (
+            <div className="space-y-10">
+              {pageBlocks.map((block) => {
+                if (block.type === 'feature_grid') {
+                  return features.length > 0 ? (
+                    <div key={block.id} className="rounded-2xl border border-white/10 bg-[#13131a] p-6">
+                      <div className="mb-6 flex items-center gap-3">
+                        <DynamicIcon name={block.icon || 'BadgeCheck'} size={26} className="text-[#e9c349]" />
+                        <HighlightedTitle text={block.title || '*Особливості* авто'} as="h3" className="font-headline-md text-2xl text-white" />
+                      </div>
+                      {block.text && <p className="mb-6 text-[#c7c6ca]">{block.text}</p>}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {features.map((f: any, i: number) => (
+                          <div key={i} className="flex items-center gap-3 rounded-xl border border-white/5 bg-[#080818] p-4">
+                            <DynamicIcon name={f.icon || 'CircleCheck'} size={20} className="text-[#e9c349]" />
+                            <span className="text-[#e4e2e3]">{f.text}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null;
+                }
+
+                if (block.type === 'media_text') {
+                  return (
+                    <div key={block.id} className="grid gap-6 rounded-2xl border border-white/10 bg-[#13131a] p-6 md:grid-cols-[0.9fr_1.1fr] md:items-center">
+                      <div className="aspect-[4/3] overflow-hidden rounded-xl bg-[#080818]">
+                        {block.imageUrl ? <img src={block.imageUrl} alt={block.title} className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-[#64646d]">Media</div>}
+                      </div>
+                      <div>
+                        <div className="mb-3 flex items-center gap-2 text-[#e9c349]"><DynamicIcon name={block.icon || 'Image'} size={22} /></div>
+                        <HighlightedTitle text={block.title} as="h3" className="font-headline-md text-2xl text-white" />
+                        <p className="mt-4 whitespace-pre-line leading-7 text-[#c7c6ca]">{block.text}</p>
+                      </div>
+                    </div>
+                  );
+                }
+
+                if (block.type === 'cta') {
+                  const ctaUrl = block.buttonUrl?.includes('#calculator') ? `/?carId=${car.id}#calculator` : (block.buttonUrl || `/?carId=${car.id}#calculator`);
+                  return (
+                    <div key={block.id} className="rounded-2xl border border-[#e9c349]/25 bg-[#e9c349]/10 p-6">
+                      <DynamicIcon name={block.icon || 'Route'} size={26} className="mb-3 text-[#e9c349]" />
+                      <HighlightedTitle text={block.title} as="h3" className="font-headline-md text-2xl text-white" />
+                      <p className="mt-3 text-[#c7c6ca]">{block.text}</p>
+                      {block.buttonText && (
+                        <Link href={ctaUrl} className="mt-6 inline-flex rounded-xl bg-[#e9c349] px-5 py-3 text-sm font-bold uppercase tracking-wider text-black">
+                          {block.buttonText}
+                        </Link>
+                      )}
+                    </div>
+                  );
+                }
+
+                return (
+                  <div key={block.id} className={block.type === 'headline' ? 'border-y border-white/10 py-8' : 'rounded-2xl border border-white/10 bg-[#13131a] p-6'}>
+                    <div className="mb-3 flex items-center gap-2 text-[#e9c349]"><DynamicIcon name={block.icon || 'Sparkles'} size={22} /></div>
+                    <HighlightedTitle text={block.title} as={block.type === 'headline' ? 'h2' : 'h3'} className={`${block.type === 'headline' ? 'text-3xl md:text-5xl' : 'text-2xl'} font-headline-md text-white`} />
+                    <p className="mt-4 whitespace-pre-line leading-7 text-[#c7c6ca]">{block.text}</p>
+                  </div>
+                );
+              })}
+            </div>
+          ) : car.description && (
             <div className="prose prose-invert prose-lg max-w-none prose-p:text-[#c7c6ca] prose-headings:text-white prose-a:text-[#e9c349]" dangerouslySetInnerHTML={{ __html: car.description }}></div>
           )}
 
           {/* Features */}
-          {features.length > 0 && (
+          {pageBlocks.length === 0 && features.length > 0 && (
             <div>
               <h3 className="font-headline-md text-2xl text-white mb-6">Особливості та Комплектація</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {features.map((f: any, i: number) => (
                   <div key={i} className="flex items-center gap-3 bg-[#13131a] p-4 rounded-xl border border-white/5">
-                    <span className="material-symbols-outlined text-[#e9c349]">{f.icon || 'check_circle'}</span>
+                    <DynamicIcon name={f.icon || 'CircleCheck'} size={20} className="text-[#e9c349]" />
                     <span className="text-[#e4e2e3]">{f.text}</span>
                   </div>
                 ))}

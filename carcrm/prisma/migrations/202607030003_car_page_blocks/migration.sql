@@ -1,0 +1,2 @@
+ALTER TABLE "Car"
+ADD COLUMN "pageBlocks" TEXT NOT NULL DEFAULT '[]';

@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     const { 
       make, model, year, capacity, luggageCapacity, largeLuggageCapacity, baseRate, fuelType, 
       fuelConsumptionCity, fuelConsumptionHighway, fuelTankVolume, status, 
-      comfortClass, bodyType, luggageNote, images, videos, description, features, baseCity, baseLat, baseLng,
+      comfortClass, bodyType, luggageNote, images, videos, description, features, pageBlocks, baseCity, baseLat, baseLng,
       includedPassengers, pricePerPerson, crossBorderFee, meetAndGreetFee, animalFee, childSeatFee,
       amortizationPerKm, deliveryBaseFee, allowsChildren, allowsAnimals,
       seoTitle, seoDescription, defaultDriverId, slug
@@ -69,6 +69,7 @@ export async function POST(request: Request) {
         videos: videos || [],
         description: description || null,
         features: features || null,
+        pageBlocks: pageBlocks || '[]',
         seoTitle: seoTitle || `${make} ${model} ${year} - VIP transfer`,
         seoDescription: seoDescription || null,
         baseCity: baseCity || 'Львів',

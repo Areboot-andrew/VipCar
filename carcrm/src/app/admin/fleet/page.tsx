@@ -1,11 +1,14 @@
 'use client';
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import dynamic from 'next/dynamic';
 import {
+  ArrowDown,
+  ArrowUp,
   BadgeEuro,
   CarFront,
   CheckCircle2,
+  Eye,
+  FileText,
   GalleryHorizontalEnd,
   ImageIcon,
   Loader2,
@@ -17,13 +20,8 @@ import {
 } from 'lucide-react';
 import IconPicker from '@/components/admin/IconPicker';
 import DynamicIcon from '@/components/ui/DynamicIcon';
+import HighlightedTitle from '@/components/ui/HighlightedTitle';
 import { carSlug } from '@/lib/slug';
-import 'react-quill-new/dist/quill.snow.css';
-
-const RichEditor = dynamic(() => import('react-quill-new'), {
-  ssr: false,
-  loading: () => <div className="min-h-[160px] rounded-lg border border-white/10 bg-[#080818] p-4 text-[#8a8a93]">Завантаження редактора...</div>,
-});
 
 type CarMedia = {
   id: string;
@@ -78,6 +76,7 @@ type CarRecord = {
   defaultDriverId?: string | null;
   description?: string | null;
   features?: string | null;
+  pageBlocks?: string | null;
   seoTitle?: string | null;
   seoDescription?: string | null;
   images?: string[];
@@ -117,6 +116,7 @@ const emptyCar = (): CarRecord => ({
   defaultDriverId: '',
   description: '',
   features: '[]',
+  pageBlocks: '[]',
   seoTitle: '',
   seoDescription: '',
   images: [],
@@ -126,10 +126,23 @@ const emptyCar = (): CarRecord => ({
 
 const tabs = [
   { id: 'main', label: 'Основне', icon: CarFront },
+  { id: 'page', label: 'Сторінка', icon: FileText },
   { id: 'pricing', label: 'Розрахунки', icon: BadgeEuro },
   { id: 'media', label: 'Медіа', icon: GalleryHorizontalEnd },
   { id: 'seo', label: 'SEO', icon: Search },
 ] as const;
+
+type CarPageBlock = {
+  id: string;
+  type: 'headline' | 'text' | 'feature_grid' | 'media_text' | 'cta';
+  title: string;
+  text: string;
+  icon: string;
+  imageUrl: string;
+  buttonText: string;
+  buttonUrl: string;
+  active: boolean;
+};
 
 function inputClass() {
   return 'w-full rounded-lg border border-white/10 bg-[#080818] px-3 py-2.5 text-sm text-white outline-none transition-colors placeholder:text-[#64646d] focus:border-[#e9c349]';
@@ -162,12 +175,82 @@ function parseFeatures(features?: string | null) {
   }
 }
 
+function stripHtml(value?: string | null) {
+  return (value || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function parsePageBlocks(value?: string | null, car?: CarRecord): CarPageBlock[] {
+  try {
+    const parsed = JSON.parse(value || '[]');
+    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+  } catch {}
+
+  return [
+    {
+      id: `headline-${Date.now()}`,
+      type: 'headline',
+      title: car?.make ? `*${car.make}* ${car.model}` : '*Преміум* авто для трансферу',
+      text: stripHtml(car?.description) || 'Короткий вступ для сторінки авто: кому підходить, для яких маршрутів і чим відрізняється.',
+      icon: 'Sparkles',
+      imageUrl: '',
+      buttonText: '',
+      buttonUrl: '',
+      active: true,
+    },
+    {
+      id: `features-${Date.now()}`,
+      type: 'feature_grid',
+      title: '*Особливості* авто',
+      text: 'Фішки з іконками нижче редагуються окремо в цьому ж табі.',
+      icon: 'BadgeCheck',
+      imageUrl: '',
+      buttonText: '',
+      buttonUrl: '',
+      active: true,
+    },
+    {
+      id: `cta-${Date.now()}`,
+      type: 'cta',
+      title: 'Готові забронювати *цей клас*?',
+      text: 'Перейдіть до калькулятора, вкажіть маршрут і бажаний час прибуття.',
+      icon: 'Route',
+      imageUrl: '',
+      buttonText: 'Розрахувати маршрут',
+      buttonUrl: '/#calculator',
+      active: true,
+    },
+  ];
+}
+
+function newPageBlock(type: CarPageBlock['type']): CarPageBlock {
+  const labels = {
+    headline: '*Заголовок* сторінки',
+    text: '*Текстовий* блок',
+    feature_grid: '*Переваги* авто',
+    media_text: '*Медіа* + текст',
+    cta: 'Заклик до *бронювання*',
+  };
+
+  return {
+    id: `${type}-${Date.now()}`,
+    type,
+    title: labels[type],
+    text: '',
+    icon: 'Sparkles',
+    imageUrl: '',
+    buttonText: type === 'cta' ? 'Розрахувати маршрут' : '',
+    buttonUrl: type === 'cta' ? '/#calculator' : '',
+    active: true,
+  };
+}
+
 export default function AdminFleetPage() {
   const [cars, setCars] = useState<CarRecord[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [selectedId, setSelectedId] = useState<string>('new');
   const [draft, setDraft] = useState<CarRecord>(emptyCar());
   const [features, setFeatures] = useState<{ icon: string; text: string }[]>([]);
+  const [pageBlocks, setPageBlocks] = useState<CarPageBlock[]>([]);
   const [activeTab, setActiveTab] = useState<(typeof tabs)[number]['id']>('main');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -196,11 +279,13 @@ export default function AdminFleetPage() {
       const next = emptyCar();
       setDraft(next);
       setFeatures([]);
+      setPageBlocks(parsePageBlocks(next.pageBlocks, next));
       return;
     }
     if (selectedCar) {
       setDraft({ ...selectedCar });
       setFeatures(parseFeatures(selectedCar.features));
+      setPageBlocks(parsePageBlocks(selectedCar.pageBlocks, selectedCar));
     }
   }, [selectedId, selectedCar]);
 
@@ -220,6 +305,8 @@ export default function AdminFleetPage() {
     const payload = {
       ...draft,
       features: JSON.stringify(features),
+      description: pageBlocks.find((block) => block.type === 'headline')?.text || draft.description || '',
+      pageBlocks: JSON.stringify(pageBlocks),
     };
     const endpoint = draft.id ? `/api/cars/${draft.slug || draft.id}` : '/api/cars';
     const method = draft.id ? 'PATCH' : 'POST';
@@ -326,6 +413,20 @@ export default function AdminFleetPage() {
       await fetchData();
       setNotice('Медіа видалено.');
     }
+  };
+
+  const updatePageBlock = (index: number, patch: Partial<CarPageBlock>) => {
+    setPageBlocks((prev) => prev.map((block, itemIndex) => itemIndex === index ? { ...block, ...patch } : block));
+  };
+
+  const movePageBlock = (index: number, direction: -1 | 1) => {
+    setPageBlocks((prev) => {
+      const next = [...prev];
+      const target = index + direction;
+      if (target < 0 || target >= next.length) return prev;
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
   };
 
   if (loading) {
@@ -455,37 +556,129 @@ export default function AdminFleetPage() {
                 </div>
 
                 <Field label="Опис багажу"><textarea rows={2} value={draft.luggageNote || ''} onChange={(e) => updateDraft('luggageNote', e.target.value)} className={`${inputClass()} resize-y`} /></Field>
+              </div>
+            )}
 
-                <Field label="Опис авто">
-                  <div className="overflow-hidden rounded-lg border border-white/10 bg-white text-black">
-                    <RichEditor value={draft.description || ''} onChange={(value) => updateDraft('description', value)} />
-                  </div>
-                </Field>
-
-                <div className="space-y-3 rounded-lg border border-white/10 bg-[#080818] p-4">
-                  <div className="flex items-center justify-between">
+            {activeTab === 'page' && (
+              <div className="grid gap-5 xl:grid-cols-[1fr_360px]">
+                <div className="space-y-4">
+                  <div className="flex flex-col gap-3 rounded-lg border border-white/10 bg-[#080818] p-4 md:flex-row md:items-center md:justify-between">
                     <div>
-                      <div className="text-sm font-bold text-white">Фішки авто</div>
-                      <div className="text-xs text-[#8a8a93]">Іконка + короткий текст для сторінки авто.</div>
+                      <div className="text-sm font-bold text-white">Блоки сторінки авто</div>
+                      <div className="text-xs text-[#8a8a93]">Заголовки підтримують акцент через зірочки: Преміум *трансфер*.</div>
                     </div>
-                    <button onClick={() => setFeatures([...features, { icon: 'CircleCheck', text: '' }])} className="rounded-lg border border-[#e9c349]/30 px-3 py-2 text-sm font-bold text-[#e9c349] hover:bg-[#e9c349]/10">+ Додати</button>
+                    <div className="flex flex-wrap gap-2">
+                      {([
+                        ['headline', 'Заголовок'],
+                        ['text', 'Текст'],
+                        ['feature_grid', 'Фішки'],
+                        ['media_text', 'Медіа'],
+                        ['cta', 'CTA'],
+                      ] as const).map(([type, label]) => (
+                        <button key={type} onClick={() => setPageBlocks([...pageBlocks, newPageBlock(type)])} className="rounded-lg border border-[#e9c349]/30 px-3 py-2 text-xs font-bold text-[#e9c349] hover:bg-[#e9c349]/10">
+                          + {label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                  {features.map((feature, index) => (
-                    <div key={index} className="grid gap-3 lg:grid-cols-[220px_1fr_auto] lg:items-center">
-                      <IconPicker value={feature.icon} onChange={(value) => {
-                        const next = [...features];
-                        next[index].icon = value;
-                        setFeatures(next);
-                      }} />
-                      <input value={feature.text} onChange={(e) => {
-                        const next = [...features];
-                        next[index].text = e.target.value;
-                        setFeatures(next);
-                      }} className={inputClass()} placeholder="Наприклад: Wi-Fi, вода, зарядки, дитяче крісло" />
-                      <button onClick={() => setFeatures(features.filter((_, itemIndex) => itemIndex !== index))} className="rounded-lg bg-red-500/10 p-2 text-red-300 hover:bg-red-500/20"><Trash2 size={16} /></button>
+
+                  {pageBlocks.map((block, index) => (
+                    <div key={block.id} className={`rounded-xl border p-4 ${block.active ? 'border-white/10 bg-[#080818]' : 'border-white/5 bg-white/[0.02] opacity-60'}`}>
+                      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#e9c349]/10 text-[#e9c349]">
+                            <DynamicIcon name={block.icon} size={20} />
+                          </div>
+                          <div>
+                            <div className="text-sm font-bold text-white">Блок #{index + 1}</div>
+                            <div className="text-xs text-[#8a8a93]">{block.type}</div>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <button onClick={() => movePageBlock(index, -1)} className="rounded-lg bg-white/5 p-2 text-[#c7c6ca] hover:text-white"><ArrowUp size={16} /></button>
+                          <button onClick={() => movePageBlock(index, 1)} className="rounded-lg bg-white/5 p-2 text-[#c7c6ca] hover:text-white"><ArrowDown size={16} /></button>
+                          <button onClick={() => updatePageBlock(index, { active: !block.active })} className={`rounded-lg px-3 py-2 text-xs font-bold ${block.active ? 'bg-green-500/15 text-green-300' : 'bg-white/5 text-[#8a8a93]'}`}>{block.active ? 'Visible' : 'Hidden'}</button>
+                          <button onClick={() => setPageBlocks(pageBlocks.filter((_, itemIndex) => itemIndex !== index))} className="rounded-lg bg-red-500/10 p-2 text-red-300 hover:bg-red-500/20"><Trash2 size={16} /></button>
+                        </div>
+                      </div>
+
+                      <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
+                        <Field label="Тип блоку">
+                          <select value={block.type} onChange={(e) => updatePageBlock(index, { type: e.target.value as CarPageBlock['type'] })} className={inputClass()}>
+                            <option value="headline">Заголовок сторінки</option>
+                            <option value="text">Текстовий блок</option>
+                            <option value="feature_grid">Сітка фішок</option>
+                            <option value="media_text">Медіа + текст</option>
+                            <option value="cta">CTA / бронювання</option>
+                          </select>
+                        </Field>
+                        <Field label="Іконка"><IconPicker value={block.icon} onChange={(value) => updatePageBlock(index, { icon: value })} /></Field>
+                        <Field label="Заголовок" hint="Слово між *зірочками* буде золотим.">
+                          <input value={block.title} onChange={(e) => updatePageBlock(index, { title: e.target.value })} className={inputClass()} placeholder="Mercedes-Benz *S-Class*" />
+                        </Field>
+                        <Field label="Текст">
+                          <textarea rows={4} value={block.text} onChange={(e) => updatePageBlock(index, { text: e.target.value })} className={`${inputClass()} resize-y`} placeholder="Текст блоку без HTML-хаосу." />
+                        </Field>
+                        {(block.type === 'media_text' || block.type === 'headline') && (
+                          <Field label="URL зображення / відео">
+                            <input value={block.imageUrl} onChange={(e) => updatePageBlock(index, { imageUrl: e.target.value })} className={inputClass()} placeholder="https://..." />
+                          </Field>
+                        )}
+                        {block.type === 'cta' && (
+                          <>
+                            <Field label="Текст кнопки"><input value={block.buttonText} onChange={(e) => updatePageBlock(index, { buttonText: e.target.value })} className={inputClass()} /></Field>
+                            <Field label="Посилання кнопки"><input value={block.buttonUrl} onChange={(e) => updatePageBlock(index, { buttonUrl: e.target.value })} className={inputClass()} /></Field>
+                          </>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
+
+                <aside className="space-y-4">
+                  <div className="rounded-xl border border-white/10 bg-[#080818] p-4">
+                    <div className="mb-3 flex items-center gap-2 text-sm font-bold text-white"><Eye size={16} className="text-[#e9c349]" /> Preview заголовків</div>
+                    <div className="space-y-4">
+                      {pageBlocks.filter((block) => block.active).slice(0, 4).map((block) => (
+                        <div key={block.id} className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+                          <div className="mb-2 flex items-center gap-2 text-[#e9c349]">
+                            <DynamicIcon name={block.icon} size={16} />
+                            <span className="text-xs uppercase tracking-widest">{block.type}</span>
+                          </div>
+                          <HighlightedTitle text={block.title} as="div" className="text-lg font-bold text-white" />
+                          <p className="m-0 mt-2 line-clamp-3 text-xs leading-5 text-[#8a8a93]">{block.text || 'Текст блоку...'}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 rounded-xl border border-white/10 bg-[#080818] p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-sm font-bold text-white">Фішки авто</div>
+                        <div className="text-xs text-[#8a8a93]">Це рендериться у блоці “Фішки”.</div>
+                      </div>
+                      <button onClick={() => setFeatures([...features, { icon: 'CircleCheck', text: '' }])} className="rounded-lg border border-[#e9c349]/30 px-3 py-2 text-xs font-bold text-[#e9c349] hover:bg-[#e9c349]/10">+ Додати</button>
+                    </div>
+                    {features.map((feature, index) => (
+                      <div key={index} className="grid gap-2">
+                        <IconPicker value={feature.icon} onChange={(value) => {
+                          const next = [...features];
+                          next[index].icon = value;
+                          setFeatures(next);
+                        }} />
+                        <div className="grid grid-cols-[1fr_auto] gap-2">
+                          <input value={feature.text} onChange={(e) => {
+                            const next = [...features];
+                            next[index].text = e.target.value;
+                            setFeatures(next);
+                          }} className={inputClass()} placeholder="Wi-Fi, вода, зарядки..." />
+                          <button onClick={() => setFeatures(features.filter((_, itemIndex) => itemIndex !== index))} className="rounded-lg bg-red-500/10 p-2 text-red-300 hover:bg-red-500/20"><Trash2 size={16} /></button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </aside>
               </div>
             )}
 

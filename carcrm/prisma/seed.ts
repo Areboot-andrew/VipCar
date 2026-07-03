@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
-const demoSeedVersion = '2026-07-03-trip-pricing-demo-v3';
+const demoSeedVersion = '2026-07-03-car-page-blocks-demo-v4';
 const resetDemoCars = process.env.RESET_DEMO_CARS === 'true';
 const resetDemoData = process.env.RESET_DEMO_DATA === 'true';
 const forceDemoSeed = process.env.FORCE_DEMO_SEED === 'true';
@@ -333,6 +333,55 @@ const demoCars = [
   },
 ];
 
+function buildCarPageBlocks(car: any) {
+  return JSON.stringify([
+    {
+      id: 'headline',
+      type: 'headline',
+      title: `*${car.make}* ${car.model}`,
+      text: `Преміальний ${car.bodyType || 'автомобіль'} для трансферів, бізнес-поїздок і маршрутів, де важливі комфорт, пунктуальність і приватність.`,
+      icon: 'Sparkles',
+      imageUrl: '',
+      buttonText: '',
+      buttonUrl: '',
+      active: true,
+    },
+    {
+      id: 'comfort',
+      type: 'text',
+      title: 'Комфорт для *довгої дороги*',
+      text: `Місць: ${car.capacity}. Багаж: до ${car.luggageCapacity} валіз. Авто підходить для міських, міжміських і міжнародних маршрутів.`,
+      icon: 'Armchair',
+      imageUrl: '',
+      buttonText: '',
+      buttonUrl: '',
+      active: true,
+    },
+    {
+      id: 'features',
+      type: 'feature_grid',
+      title: '*Оснащення* та сервіс',
+      text: 'Ключові переваги авто для клієнтів і менеджера.',
+      icon: 'BadgeCheck',
+      imageUrl: '',
+      buttonText: '',
+      buttonUrl: '',
+      active: true,
+    },
+    {
+      id: 'cta',
+      type: 'cta',
+      title: 'Розрахувати маршрут на *цьому авто*',
+      text: 'Вкажіть маршрут, кількість пасажирів, багаж і бажаний час прибуття. Система порахує подачу, час і ціну.',
+      icon: 'Route',
+      imageUrl: '',
+      buttonText: 'Розрахувати маршрут',
+      buttonUrl: '/#calculator',
+      active: true,
+    },
+  ]);
+}
+
 async function ensureUsers() {
   const adminPassword = await bcrypt.hash('admin123', 10);
   const driverPassword = await bcrypt.hash('driver123', 10);
@@ -525,6 +574,7 @@ async function seedCars(drivers: { id: string }[]) {
         baseCity: demoCar.baseCity,
         description: demoCar.description,
         features: JSON.stringify(demoCar.features),
+        pageBlocks: buildCarPageBlocks(demoCar),
         seoTitle: demoCar.seoTitle,
         seoDescription: demoCar.seoDescription,
         defaultDriverId,
@@ -560,6 +610,7 @@ async function seedCars(drivers: { id: string }[]) {
         baseCity: demoCar.baseCity,
         description: demoCar.description,
         features: JSON.stringify(demoCar.features),
+        pageBlocks: buildCarPageBlocks(demoCar),
         seoTitle: demoCar.seoTitle,
         seoDescription: demoCar.seoDescription,
         defaultDriverId,

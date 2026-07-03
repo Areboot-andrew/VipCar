@@ -120,6 +120,7 @@ model Car {
   videos          String[] // URLs of videos
   description     String?  @db.Text
   features        String?  @db.Text // JSON string of features
+  pageBlocks      String   @default("[]") @db.Text // JSON blocks for the public car page
   seoTitle        String?
   seoDescription  String?  @db.Text
 
