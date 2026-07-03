@@ -2,9 +2,10 @@ import React from 'react';
 import type { Metadata } from 'next';
 import { PrismaClient } from '@prisma/client';
 import Link from 'next/link';
-import { ArrowRight, Camera, Film, Images, Sparkles } from 'lucide-react';
+import { ArrowRight, BriefcaseBusiness, Camera, Car, Film, Images, ShieldCheck, Sparkles, Users } from 'lucide-react';
 import { withContentDefaults } from '@/lib/contentDefaults';
 import HighlightedTitle from '@/components/ui/HighlightedTitle';
+import GalleryShowcase, { type GalleryCar } from './GalleryShowcase';
 
 const prisma = new PrismaClient();
 export const dynamic = 'force-dynamic';
@@ -44,6 +45,12 @@ export default async function GalleryPage() {
     },
   });
 
+  const title = c['gallery_title']?.includes('SEO') ? 'Автопарк *для трансферу*' : (c['gallery_title'] || 'Автопарк *для трансферу*');
+  const subtitleFromDb = c['gallery_subtitle'] || '';
+  const subtitle = subtitleFromDb.includes('SEO') || subtitleFromDb.includes('alt-тексти')
+    ? 'Живі фото і відео автомобілів з водіями: салон, багаж, клас авто і реальний вигляд перед бронюванням. Оберіть машину, перегляньте медіа і відкрийте сторінку конкретного авто.'
+    : (subtitleFromDb || 'Живі фото і відео автомобілів з водіями: салон, багаж, клас авто і реальний вигляд перед бронюванням.');
+
   const galleryItems = cars.flatMap((car) => {
     const media = car.media.length > 0
       ? car.media
@@ -60,7 +67,37 @@ export default async function GalleryPage() {
     }));
   });
 
-  const heroItems = galleryItems.slice(0, 5);
+  const galleryCars: GalleryCar[] = cars.map((car) => {
+    const media = car.media.length > 0
+      ? car.media
+      : [
+          ...car.images.map((url, index) => ({ id: `${car.id}-image-${index}`, type: 'image', url, alt: `${car.make} ${car.model}`, caption: null, isCover: index === 0 })),
+          ...car.videos.map((url, index) => ({ id: `${car.id}-video-${index}`, type: 'video', url, alt: `${car.make} ${car.model} відео`, caption: null, isCover: false })),
+        ];
+
+    return {
+      id: car.id,
+      slug: car.slug,
+      make: car.make,
+      model: car.model,
+      year: car.year,
+      capacity: car.capacity,
+      luggageCapacity: car.luggageCapacity,
+      comfortClass: car.comfortClass || 'Premium',
+      bodyType: car.bodyType,
+      luggageNote: car.luggageNote,
+      media: media.map((item: any) => ({
+        id: item.id,
+        type: item.type,
+        url: item.url,
+        alt: item.alt,
+        caption: item.caption,
+        isCover: item.isCover,
+      })),
+    };
+  });
+
+  const comfortClasses = Array.from(new Set(cars.map((car) => car.comfortClass || 'Premium')));
 
   return (
     <div className="min-h-screen bg-[#080818] text-[#e4e2e3]">
@@ -76,46 +113,64 @@ export default async function GalleryPage() {
       </header>
 
       <main className="pt-24">
-        <section className="mx-auto grid max-w-[1280px] gap-10 px-6 py-12 md:px-16 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
-          <div>
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#e9c349]/25 bg-[#e9c349]/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-[#e9c349]">
-              <Camera size={16} /> {c['menu_gallery']}
-            </div>
-            <HighlightedTitle
-              text={c['gallery_title'] || 'Автопарк *для трансферу*'}
-              as="h1"
-              className="text-[40px] font-black leading-tight text-white md:text-[64px]"
-            />
-            <p className="mt-5 max-w-xl text-lg leading-relaxed text-[#c7c6ca]">
-              {c['gallery_subtitle'] || 'Фото і відео автомобілів з водіями: клас, кількість місць, багаж і комплектація без зайвої технічної інформації.'}
-            </p>
+        <section className="mx-auto max-w-[1280px] px-6 py-14 text-center md:px-16 md:py-20">
+          <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#e9c349]/25 bg-[#e9c349]/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-[#e9c349]">
+            <Camera size={16} /> {c['menu_gallery']}
           </div>
-
-          {heroItems.length > 0 && (
-            <div className="grid h-[520px] grid-cols-6 grid-rows-6 gap-3">
-              {heroItems.map((item, index) => (
-                <Link
-                  key={item.id}
-                  href={`/cars/${item.carId}`}
-                  className={`group relative overflow-hidden rounded-xl border border-white/10 bg-[#13131a] ${
-                    index === 0 ? 'col-span-4 row-span-6' : index === 1 ? 'col-span-2 row-span-3' : 'col-span-2 row-span-3'
-                  }`}
-                >
-                  {item.type === 'video' ? (
-                    <video src={item.url} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" muted loop autoPlay playsInline />
-                  ) : (
-                    <img src={item.url} alt={item.alt || item.carTitle} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent opacity-90" />
-                  <div className="absolute bottom-0 left-0 right-0 p-4">
-                    <div className="text-sm font-bold text-white">{item.carTitle}</div>
-                    <div className="mt-1 text-xs text-[#c7c6ca]">{item.carMeta}</div>
-                  </div>
-                </Link>
-              ))}
+          <HighlightedTitle
+            text={title}
+            as="h1"
+            className="mx-auto max-w-4xl text-[42px] font-black leading-tight text-white md:text-[76px]"
+          />
+          <p className="mx-auto mt-6 max-w-3xl text-lg leading-8 text-[#c7c6ca]">
+            {subtitle}
+          </p>
+          <div className="mx-auto mt-10 grid max-w-4xl gap-3 md:grid-cols-3">
+            <div className="rounded-xl border border-white/10 bg-[#13131a] p-5 text-left">
+              <Car className="mb-3 text-[#e9c349]" size={24} />
+              <div className="text-2xl font-black text-white">{cars.length}</div>
+              <div className="mt-1 text-sm text-[#8a8a93]">авто з водіями</div>
             </div>
-          )}
+            <div className="rounded-xl border border-white/10 bg-[#13131a] p-5 text-left">
+              <Images className="mb-3 text-[#e9c349]" size={24} />
+              <div className="text-2xl font-black text-white">{galleryItems.length}</div>
+              <div className="mt-1 text-sm text-[#8a8a93]">фото і відео</div>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-[#13131a] p-5 text-left">
+              <ShieldCheck className="mb-3 text-[#e9c349]" size={24} />
+              <div className="text-2xl font-black text-white">{comfortClasses.length}</div>
+              <div className="mt-1 text-sm text-[#8a8a93]">класи комфорту</div>
+            </div>
+          </div>
         </section>
+
+        <section className="mx-auto max-w-[1280px] px-6 pb-8 md:px-16">
+          <div className="grid gap-4 border-y border-white/10 py-8 md:grid-cols-3">
+            <div className="flex gap-4">
+              <Users className="mt-1 shrink-0 text-[#e9c349]" size={24} />
+              <div>
+                <h2 className="m-0 text-lg font-bold text-white">Підбір під пасажирів</h2>
+                <p className="m-0 mt-2 text-sm leading-6 text-[#8a8a93]">На сторінці авто видно місткість, клас і реальні фото салону без зайвої технічної каші.</p>
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <BriefcaseBusiness className="mt-1 shrink-0 text-[#e9c349]" size={24} />
+              <div>
+                <h2 className="m-0 text-lg font-bold text-white">Багаж без сюрпризів</h2>
+                <p className="m-0 mt-2 text-sm leading-6 text-[#8a8a93]">Кожна картка показує валізи і клас, щоб клієнт одразу розумів, чи авто підходить.</p>
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <Sparkles className="mt-1 shrink-0 text-[#e9c349]" size={24} />
+              <div>
+                <h2 className="m-0 text-lg font-bold text-white">Живі фото авто</h2>
+                <p className="m-0 mt-2 text-sm leading-6 text-[#8a8a93]">Великий перегляд і мініатюри допомагають оцінити авто до переходу в бронювання.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <GalleryShowcase cars={galleryCars} />
 
         <section className="mx-auto max-w-[1280px] px-6 pb-20 md:px-16">
           <div className="mb-8 flex flex-col gap-3 border-t border-white/10 pt-10 md:flex-row md:items-end md:justify-between">
