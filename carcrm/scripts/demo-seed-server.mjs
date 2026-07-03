@@ -1,7 +1,7 @@
 import { spawnSync } from 'node:child_process';
 
 const reset = process.argv.includes('--reset');
-const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+const nodeCommand = process.execPath;
 
 const env = {
   ...process.env,
@@ -13,7 +13,7 @@ if (reset) {
   env.RESET_DEMO_DATA = 'true';
 }
 
-const result = spawnSync(npmCommand, ['run', 'seed'], {
+const result = spawnSync(nodeCommand, ['scripts/run-seed.mjs'], {
   stdio: 'inherit',
   env,
   shell: false,

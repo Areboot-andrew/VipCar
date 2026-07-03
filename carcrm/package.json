@@ -8,13 +8,13 @@
     "start": "next start",
     "lint": "eslint",
     "migrate:deploy": "prisma migrate deploy",
-    "seed": "npx ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts",
+    "seed": "node scripts/run-seed.mjs",
     "demo:seed": "npm run seed",
     "demo:seed:server": "node scripts/demo-seed-server.mjs",
     "demo:seed:reset": "node scripts/demo-seed-server.mjs --reset"
   },
   "prisma": {
-    "seed": "npx ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
+    "seed": "node scripts/run-seed.mjs"
   },
   "dependencies": {
     "@next-auth/prisma-adapter": "^1.0.7",
