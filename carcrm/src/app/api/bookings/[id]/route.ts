@@ -9,11 +9,17 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const { id } = await params;
     const body = await req.json();
     
-    // Allow updating status and driverId
     const updateData: any = {};
     if (body.status !== undefined) updateData.status = body.status;
     if (body.isEndingAtBase !== undefined) updateData.isEndingAtBase = body.isEndingAtBase;
     if (body.driverNotes !== undefined) updateData.driverNotes = body.driverNotes;
+    if (body.dateStart !== undefined && body.dateStart) {
+      updateData.dateStart = new Date(body.dateStart);
+      updateData.pickupAt = new Date(body.pickupAt || body.dateStart);
+    }
+    if (body.dateEnd !== undefined && body.dateEnd) updateData.dateEnd = new Date(body.dateEnd);
+    if (body.desiredArrivalAt !== undefined) updateData.desiredArrivalAt = body.desiredArrivalAt ? new Date(body.desiredArrivalAt) : null;
+    if (body.carDispatchAt !== undefined) updateData.carDispatchAt = body.carDispatchAt ? new Date(body.carDispatchAt) : null;
     if (body.driverId !== undefined) {
         updateData.driverId = body.driverId === "" ? null : body.driverId;
     }
@@ -45,7 +51,14 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     }
 
     // Recalculate chain for this car
-    if (updateData.status !== undefined || updateData.driverId !== undefined || updateData.carId !== undefined || updateData.isEndingAtBase !== undefined) {
+    if (
+      updateData.status !== undefined ||
+      updateData.driverId !== undefined ||
+      updateData.carId !== undefined ||
+      updateData.isEndingAtBase !== undefined ||
+      updateData.dateStart !== undefined ||
+      updateData.dateEnd !== undefined
+    ) {
       // Async recalculation so it doesn't block response
       recalculateChain(booking.carId).catch(err => console.error('Chain calc error:', err));
     }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Calendar as CalendarIcon, CheckCircle, XCircle, UserPlus, Car, MessageSquare } from 'lucide-react';
+import { CalendarDays } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import ChatWidget from '@/components/ChatWidget';
 import DashboardCalendar from '../DashboardCalendar';
@@ -11,210 +11,44 @@ export default function AdminBookingsPage() {
   const [bookings, setBookings] = useState<any[]>([]);
   const [drivers, setDrivers] = useState<any[]>([]);
   const [cars, setCars] = useState<any[]>([]);
-  const [content, setContent] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [activeChatBookingId, setActiveChatBookingId] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/bookings').then(res => res.json()),
-      fetch('/api/drivers').then(res => res.json()),
-      fetch('/api/cars').then(res => res.json()),
-      fetch('/api/cms').then(res => res.json())
-    ]).then(([bookingsData, driversData, carsData, cmsData]) => {
-      setBookings(bookingsData);
-      setDrivers(driversData);
-      setCars(carsData);
-      setContent(cmsData || {});
-      setLoading(false);
-    });
+      fetch('/api/bookings').then((res) => res.json()),
+      fetch('/api/drivers').then((res) => res.json()),
+      fetch('/api/cars').then((res) => res.json()),
+    ])
+      .then(([bookingsData, driversData, carsData]) => {
+        setBookings(Array.isArray(bookingsData) ? bookingsData : []);
+        setDrivers(Array.isArray(driversData) ? driversData : []);
+        setCars(Array.isArray(carsData) ? carsData : []);
+      })
+      .finally(() => setLoading(false));
   }, []);
-
-  const updateBooking = async (id: string, updates: any) => {
-    try {
-      const res = await fetch(`/api/bookings/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates)
-      });
-      if (res.ok) {
-        const updatedBooking = await res.json();
-        setBookings(prev => prev.map(b => b.id === id ? updatedBooking : b));
-      } else {
-        alert('Помилка оновлення');
-      }
-    } catch (e) {
-      console.error(e);
-      alert('Помилка оновлення');
-    }
-  };
-
-  const copyPaymentInvoice = (booking: any) => {
-    const deposit = (booking.price * 0.2).toFixed(2);
-    const text = `🚕 First Line Transfer - Деталі Рейсу
-
-Маршрут: ${booking.routeFrom} ➔ ${booking.routeTo}
-Дата: ${new Date(booking.dateStart).toLocaleString('uk-UA')}
-Авто: ${booking.car.make} ${booking.car.model}
-Загальна вартість: €${booking.price}
-
-💳 Для підтвердження бронювання, будь ласка, внесіть завдаток (20%): €${deposit}
-
-Реквізити для оплати:
-${content.payment_card ? `💳 Картка (IBAN/Card): ${content.payment_card}` : ''}
-${content.payment_usdt ? `💎 USDT (Crypto): ${content.payment_usdt}` : ''}
-
-Залишок суми ви можете сплатити готівкою водію або переказом перед поїздкою.
-Дякуємо, що обрали нас!`;
-
-    navigator.clipboard.writeText(text);
-    alert('Інвойс скопійовано в буфер обміну! Тепер ви можете вставити його в чат з клієнтом.');
-  };
 
   if (loading) return <div className="admin-page-container"><p>Завантаження заявок...</p></div>;
 
   return (
     <div className="admin-page-container">
       <div className="admin-page-header">
-        <h1>Управління Заявками</h1>
-        <p style={{ color: 'var(--text-secondary)' }}>Переглядайте та обробляйте нові бронювання, призначайте водіїв.</p>
-      </div>
-
-      <DashboardCalendar cars={cars} bookings={bookings} />
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '24px' }}>
-        {bookings.map(booking => (
-          <div key={booking.id} className="glass-panel" style={{ padding: '24px', borderRadius: '12px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-              <div>
-                <h3 style={{ fontSize: '18px', color: 'var(--accent-gold)' }}>
-                  {booking.routeFrom} ➔ {booking.routeTo}
-                </h3>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginTop: '4px' }}>
-                  <CalendarIcon size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '4px' }} />
-                  {new Date(booking.dateStart).toLocaleString('uk-UA')}
-                </p>
-              </div>
-              <div style={{ 
-                padding: '6px 12px', 
-                borderRadius: '20px', 
-                fontSize: '12px', 
-                fontWeight: 'bold',
-                backgroundColor: booking.status === 'PENDING' ? 'rgba(255,255,255,0.1)' : 
-                                 booking.status === 'CONFIRMED' ? 'rgba(233, 195, 73, 0.2)' : 'rgba(255,0,0,0.1)',
-                color: booking.status === 'PENDING' ? '#fff' : 
-                       booking.status === 'CONFIRMED' ? '#e9c349' : '#ff4444'
-              }}>
-                {booking.status}
-              </div>
-            </div>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '16px', fontSize: '14px', backgroundColor: 'rgba(0,0,0,0.2)', padding: '16px', borderRadius: '8px' }}>
-              <div>
-                <p style={{ color: 'var(--accent-gold)', marginBottom: '4px', fontWeight: 'bold' }}>Клієнт</p>
-                <p>{booking.client.name}</p>
-                <p>{booking.client.phone}</p>
-                <p>{booking.client.email}</p>
-              </div>
-              <div>
-                <p style={{ color: 'var(--accent-gold)', marginBottom: '4px', fontWeight: 'bold' }}>Рейс клієнта</p>
-                <p>Авто: {booking.car.make} {booking.car.model}</p>
-                <p>Клієнтський Маршрут: {booking.distance} км</p>
-                <p>Вартість для клієнта: €{booking.price}</p>
-                
-                <p style={{ color: 'var(--accent-gold)', marginTop: '12px', marginBottom: '4px', fontWeight: 'bold' }}>Реальний маршрут авто</p>
-                <p style={{ color: '#aaa', fontSize: '12px' }}>Старт авто: <span style={{ color: '#fff' }}>{booking.carStartLocation || booking.car.baseCity || 'База'}</span></p>
-                <p style={{ color: '#aaa', fontSize: '12px' }}>Доїзд до клієнта: <span style={{ color: '#fff' }}>{booking.expenseDeliveryDistance || 0} км</span></p>
-                {booking.isEndingAtBase && (
-                  <p style={{ color: '#aaa', fontSize: '12px' }}>Повернення на базу: <span style={{ color: '#fff' }}>{booking.returnToBaseDistance || 0} км</span></p>
-                )}
-                <p style={{ color: '#aaa', fontSize: '12px' }}>Повний пробіг водія: <span style={{ color: '#fff' }}>{booking.totalExpenseDistance || booking.distance} км</span></p>
-              </div>
-              <div>
-                <p style={{ color: 'var(--accent-gold)', marginBottom: '4px', fontWeight: 'bold' }}>Деталі поїздки</p>
-                <p>Пасажири: {booking.passengers} (Діти: {booking.children})</p>
-                <p>Багаж: {booking.luggage}</p>
-                <p>Тварини: {booking.animals ? 'Так' : 'Ні'}</p>
-              </div>
-              <div>
-                <p style={{ color: 'var(--accent-gold)', marginBottom: '4px', fontWeight: 'bold' }}>Призначення та Контроль</p>
-                <select 
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', backgroundColor: '#131314', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', marginBottom: '8px' }}
-                  value={booking.driverId || ''}
-                  onChange={(e) => updateBooking(booking.id, { driverId: e.target.value })}
-                >
-                  <option value="">-- Не призначено --</option>
-                  {drivers.map(d => (
-                    <option key={d.id} value={d.id}>{d.user.name}</option>
-                  ))}
-                </select>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', fontSize: '12px', cursor: 'pointer' }}>
-                  <input 
-                    type="checkbox" 
-                    checked={booking.isEndingAtBase || false}
-                    onChange={(e) => updateBooking(booking.id, { isEndingAtBase: e.target.checked })}
-                  />
-                  Маршрут завершується поверненням на Базу
-                </label>
-                <input
-                  type="text"
-                  placeholder="Вказівки водію..."
-                  style={{ width: '100%', padding: '8px', borderRadius: '4px', backgroundColor: '#131314', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}
-                  value={booking.driverNotes || ''}
-                  onChange={(e) => updateBooking(booking.id, { driverNotes: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px', fontSize: '13px', backgroundColor: 'rgba(233,195,73,0.05)', padding: '16px', borderRadius: '8px', border: '1px solid rgba(233,195,73,0.2)' }}>
-              <div><span style={{ color: 'var(--text-secondary)' }}>Вартість:</span> <br/><strong style={{ fontSize: '16px', color: '#fff' }}>€{booking.price?.toFixed(2)}</strong></div>
-              <div><span style={{ color: 'var(--text-secondary)' }}>Пальне:</span> <br/><strong style={{ color: '#ef4444' }}>-€{booking.fuelCost?.toFixed(2) || '0.00'}</strong></div>
-              <div><span style={{ color: 'var(--text-secondary)' }}>ЗП Водія:</span> <br/><strong style={{ color: '#ef4444' }}>-€{booking.driverSalary?.toFixed(2) || '0.00'}</strong></div>
-              <div><span style={{ color: 'var(--text-secondary)' }}>Амортизація:</span> <br/><strong style={{ color: '#ef4444' }}>-€{booking.amortization?.toFixed(2) || '0.00'}</strong></div>
-              <div><span style={{ color: 'var(--text-secondary)' }}>Чистий Прибуток:</span> <br/><strong style={{ fontSize: '16px', color: '#4ade80' }}>€{booking.netProfit?.toFixed(2) || '0.00'}</strong></div>
-            </div>
-
-            <div style={{ marginTop: '16px', display: 'flex', gap: '12px' }}>
-              <button 
-                onClick={() => setActiveChatBookingId(booking.id)}
-                style={{ padding: '8px 16px', backgroundColor: 'rgba(59, 130, 246, 0.2)', color: '#60a5fa', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', border: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}
-              >
-                <MessageSquare size={16} /> Чат Замовлення
-              </button>
-              <button 
-                onClick={() => copyPaymentInvoice(booking)}
-                style={{ padding: '8px 16px', backgroundColor: 'rgba(16, 185, 129, 0.2)', color: '#34d399', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', border: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}
-              >
-                💳 Скопіювати повідомлення на оплату
-              </button>
-            </div>
-
-            {booking.status === 'PENDING' && (
-              <div style={{ marginTop: '24px', display: 'flex', gap: '12px' }}>
-                <button 
-                  onClick={() => updateBooking(booking.id, { status: 'CONFIRMED' })}
-                  style={{ padding: '10px 24px', backgroundColor: 'var(--accent-gold)', color: '#000', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', border: 'none' }}
-                >
-                  <CheckCircle size={16} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '6px' }} /> Підтвердити
-                </button>
-                <button 
-                  onClick={() => updateBooking(booking.id, { status: 'CANCELLED' })}
-                  style={{ padding: '10px 24px', backgroundColor: 'rgba(255, 255, 255, 0.1)', color: '#fff', borderRadius: '6px', cursor: 'pointer', border: 'none' }}
-                >
-                  <XCircle size={16} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '6px' }} /> Відхилити
-                </button>
-              </div>
-            )}
+        <div className="flex items-center gap-3">
+          <CalendarDays className="text-[#e9c349]" size={30} />
+          <div>
+            <h1>Заявки і календар</h1>
+            <p style={{ color: 'var(--text-secondary)' }}>Рейси, статуси, водії, час подачі, нотатки і чат з клієнтом.</p>
           </div>
-        ))}
-        {bookings.length === 0 && <p>Немає жодної заявки.</p>}
+        </div>
       </div>
+
+      <DashboardCalendar cars={cars} bookings={bookings} drivers={drivers} onOpenChat={setActiveChatBookingId} />
 
       {activeChatBookingId && session?.user && (
-        <ChatWidget 
-          bookingId={activeChatBookingId} 
-          currentUserId={(session.user as any).id || ""} 
-          onClose={() => setActiveChatBookingId(null)} 
+        <ChatWidget
+          bookingId={activeChatBookingId}
+          currentUserId={(session.user as any).id || ''}
+          onClose={() => setActiveChatBookingId(null)}
         />
       )}
     </div>
