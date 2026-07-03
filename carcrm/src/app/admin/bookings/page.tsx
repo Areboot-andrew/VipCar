@@ -11,6 +11,7 @@ export default function AdminBookingsPage() {
   const [bookings, setBookings] = useState<any[]>([]);
   const [drivers, setDrivers] = useState<any[]>([]);
   const [cars, setCars] = useState<any[]>([]);
+  const [content, setContent] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [activeChatBookingId, setActiveChatBookingId] = useState<string | null>(null);
 
@@ -18,11 +19,13 @@ export default function AdminBookingsPage() {
     Promise.all([
       fetch('/api/bookings').then(res => res.json()),
       fetch('/api/drivers').then(res => res.json()),
-      fetch('/api/cars').then(res => res.json())
-    ]).then(([bookingsData, driversData, carsData]) => {
+      fetch('/api/cars').then(res => res.json()),
+      fetch('/api/cms').then(res => res.json())
+    ]).then(([bookingsData, driversData, carsData, cmsData]) => {
       setBookings(bookingsData);
       setDrivers(driversData);
       setCars(carsData);
+      setContent(cmsData || {});
       setLoading(false);
     });
   }, []);
@@ -44,6 +47,28 @@ export default function AdminBookingsPage() {
       console.error(e);
       alert('Помилка оновлення');
     }
+  };
+
+  const copyPaymentInvoice = (booking: any) => {
+    const deposit = (booking.price * 0.2).toFixed(2);
+    const text = `🚕 First Line Transfer - Деталі Рейсу
+
+Маршрут: ${booking.routeFrom} ➔ ${booking.routeTo}
+Дата: ${new Date(booking.dateStart).toLocaleString('uk-UA')}
+Авто: ${booking.car.make} ${booking.car.model}
+Загальна вартість: €${booking.price}
+
+💳 Для підтвердження бронювання, будь ласка, внесіть завдаток (20%): €${deposit}
+
+Реквізити для оплати:
+${content.payment_card ? `💳 Картка (IBAN/Card): ${content.payment_card}` : ''}
+${content.payment_usdt ? `💎 USDT (Crypto): ${content.payment_usdt}` : ''}
+
+Залишок суми ви можете сплатити готівкою водію або переказом перед поїздкою.
+Дякуємо, що обрали нас!`;
+
+    navigator.clipboard.writeText(text);
+    alert('Інвойс скопійовано в буфер обміну! Тепер ви можете вставити його в чат з клієнтом.');
   };
 
   if (loading) return <div className="admin-page-container"><p>Завантаження заявок...</p></div>;
@@ -155,6 +180,12 @@ export default function AdminBookingsPage() {
                 style={{ padding: '8px 16px', backgroundColor: 'rgba(59, 130, 246, 0.2)', color: '#60a5fa', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', border: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}
               >
                 <MessageSquare size={16} /> Чат Замовлення
+              </button>
+              <button 
+                onClick={() => copyPaymentInvoice(booking)}
+                style={{ padding: '8px 16px', backgroundColor: 'rgba(16, 185, 129, 0.2)', color: '#34d399', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', border: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}
+              >
+                💳 Скопіювати повідомлення на оплату
               </button>
             </div>
 
