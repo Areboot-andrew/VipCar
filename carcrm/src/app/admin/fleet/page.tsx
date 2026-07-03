@@ -37,6 +37,7 @@ type Car = {
   meetAndGreetFee?: number;
   animalFee?: number;
   childSeatFee?: number;
+  baseCity?: string | null;
 };
 
 export default function AdminFleetPage() {
@@ -48,7 +49,7 @@ export default function AdminFleetPage() {
   const [formData, setFormData] = useState({
     make: '', model: '', year: new Date().getFullYear().toString(),
     capacity: '4', baseRate: '0', fuelType: 'Бензин', fuelConsumptionCity: '0', fuelConsumptionHighway: '0',
-    description: '', features: '[]',
+    description: '', features: '[]', baseCity: 'Львів',
     pricePerPerson: '10', crossBorderFee: '150', meetAndGreetFee: '20', animalFee: '30', childSeatFee: '15'
   });
   const [featuresList, setFeaturesList] = useState<{icon: string, text: string}[]>([]);
@@ -87,7 +88,7 @@ export default function AdminFleetPage() {
       });
       if (res.ok) {
         setIsModalOpen(false);
-        setFormData({ make: '', model: '', year: new Date().getFullYear().toString(), capacity: '4', baseRate: '0', fuelType: 'Бензин', fuelConsumptionCity: '0', fuelConsumptionHighway: '0', description: '', features: '[]', pricePerPerson: '10', crossBorderFee: '150', meetAndGreetFee: '20', animalFee: '30', childSeatFee: '15' });
+        setFormData({ make: '', model: '', year: new Date().getFullYear().toString(), capacity: '4', baseRate: '0', fuelType: 'Бензин', fuelConsumptionCity: '0', fuelConsumptionHighway: '0', description: '', features: '[]', baseCity: 'Львів', pricePerPerson: '10', crossBorderFee: '150', meetAndGreetFee: '20', animalFee: '30', childSeatFee: '15' });
         setFeaturesList([]);
         fetchCars();
       }
@@ -189,7 +190,8 @@ export default function AdminFleetPage() {
       crossBorderFee: car.crossBorderFee || 150,
       meetAndGreetFee: car.meetAndGreetFee || 20,
       animalFee: car.animalFee || 30,
-      childSeatFee: car.childSeatFee || 15
+      childSeatFee: car.childSeatFee || 15,
+      baseCity: car.baseCity || 'Львів'
     });
     try {
       setEditFeaturesList(car.features ? JSON.parse(car.features) : []);
@@ -219,7 +221,7 @@ export default function AdminFleetPage() {
                 <div>
                   <h2 style={{ color: 'white', margin: 0, fontSize: '24px' }}>{car.make} {car.model}</h2>
                   <p style={{ color: 'var(--text-secondary)', margin: '4px 0 0', fontSize: '14px' }}>
-                    {car.year} • {car.capacity} місць • {car.fuelType} • {car.fuelConsumptionCity}/{car.fuelConsumptionHighway} л/100км • €{car.baseRate}/км
+                    {car.year} • {car.capacity} місць • {car.fuelType} • {car.fuelConsumptionCity}/{car.fuelConsumptionHighway} л/100км • €{car.baseRate}/км • База: {car.baseCity || 'Львів'}
                   </p>
                 </div>
                 <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
@@ -252,7 +254,11 @@ export default function AdminFleetPage() {
 
                 {editingCarId === car.id ? (
                   <div className="space-y-6">
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 bg-white/5 p-4 rounded-xl border border-white/10">
+                    <div className="grid grid-cols-2 md:grid-cols-6 gap-4 bg-white/5 p-4 rounded-xl border border-white/10">
+                      <div>
+                        <label className="block text-xs uppercase text-gray-400 mb-1">База Авто (Місто)</label>
+                        <input type="text" value={editFormData.baseCity || ''} onChange={e => setEditFormData({...editFormData, baseCity: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded p-2 text-white text-sm" placeholder="напр. Львів" />
+                      </div>
                       <div>
                         <label className="block text-xs uppercase text-gray-400 mb-1">Багаж / Особа (€)</label>
                         <input type="number" step="0.01" value={editFormData.pricePerPerson} onChange={e => setEditFormData({...editFormData, pricePerPerson: parseFloat(e.target.value)})} className="w-full bg-black/50 border border-white/20 rounded p-2 text-white text-sm" />
@@ -429,6 +435,10 @@ export default function AdminFleetPage() {
               <div>
                 <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Марка</label>
                 <input required value={formData.make} onChange={e => setFormData({...formData, make: e.target.value})} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '6px' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>База авто (Місто)</label>
+                <input required value={formData.baseCity} onChange={e => setFormData({...formData, baseCity: e.target.value})} placeholder="напр. Львів" style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '6px' }} />
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Модель</label>

@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     const { 
       make, model, year, capacity, baseRate, fuelType, 
       fuelConsumptionCity, fuelConsumptionHighway, status, 
-      images, videos, description, features,
+      images, videos, description, features, baseCity,
       pricePerPerson, crossBorderFee, meetAndGreetFee, animalFee, childSeatFee
     } = body;
 
@@ -48,6 +48,7 @@ export async function POST(request: Request) {
         videos: videos || [],
         description: description || null,
         features: features || null,
+        baseCity: baseCity || 'Львів',
       },
     });
 
