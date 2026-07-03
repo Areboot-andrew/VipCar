@@ -520,14 +520,27 @@ export default function DashboardCalendar({ cars, bookings, drivers = [], onOpen
 
               <div className="space-y-3 rounded-xl border border-white/10 bg-white/[0.03] p-4">
                 <div className="text-sm font-bold text-white">Редагування рейсу</div>
-                <label className="grid gap-1 text-xs uppercase tracking-widest text-[#8a8a93]">Виїзд з клієнтом<input type="datetime-local" value={editDraft.dateStart} onChange={(e) => setEditDraft({ ...editDraft, dateStart: e.target.value })} className={fieldClass()} /></label>
-                <label className="grid gap-1 text-xs uppercase tracking-widest text-[#8a8a93]">Прибуття<input type="datetime-local" value={editDraft.dateEnd} onChange={(e) => setEditDraft({ ...editDraft, dateEnd: e.target.value, desiredArrivalAt: e.target.value })} className={fieldClass()} /></label>
-                <label className="grid gap-1 text-xs uppercase tracking-widest text-[#8a8a93]">Виїзд авто з бази<input type="datetime-local" value={editDraft.carDispatchAt} onChange={(e) => setEditDraft({ ...editDraft, carDispatchAt: e.target.value })} className={fieldClass()} /></label>
+                <label className="grid gap-1 text-xs uppercase tracking-widest text-[#8a8a93]">
+                  Виїзд з клієнтом
+                  <input type="datetime-local" value={editDraft.dateStart} onChange={(e) => setEditDraft({ ...editDraft, dateStart: e.target.value })} className={fieldClass()} />
+                  <span className="text-[11px] normal-case leading-4 tracking-normal text-[#6f6f78]">Час, який бачить клієнт як старт свого маршруту.</span>
+                </label>
+                <label className="grid gap-1 text-xs uppercase tracking-widest text-[#8a8a93]">
+                  Прибуття
+                  <input type="datetime-local" value={editDraft.dateEnd} onChange={(e) => setEditDraft({ ...editDraft, dateEnd: e.target.value, desiredArrivalAt: e.target.value })} className={fieldClass()} />
+                  <span className="text-[11px] normal-case leading-4 tracking-normal text-[#6f6f78]">Орієнтовне прибуття клієнта. Впливає на таймлайн і диспетчеризацію.</span>
+                </label>
+                <label className="grid gap-1 text-xs uppercase tracking-widest text-[#8a8a93]">
+                  Виїзд авто з бази
+                  <input type="datetime-local" value={editDraft.carDispatchAt} onChange={(e) => setEditDraft({ ...editDraft, carDispatchAt: e.target.value })} className={fieldClass()} />
+                  <span className="text-[11px] normal-case leading-4 tracking-normal text-[#6f6f78]">Внутрішній час подачі з бази. Клієнту не показується, але важливий для водія.</span>
+                </label>
                 <label className="grid gap-1 text-xs uppercase tracking-widest text-[#8a8a93]">Водій
                   <select value={editDraft.driverId} onChange={(e) => setEditDraft({ ...editDraft, driverId: e.target.value })} className={fieldClass()}>
                     <option value="">Не призначено</option>
                     {localDrivers.map((driver) => <option key={driver.id} value={driver.id}>{driver.user.name}</option>)}
                   </select>
+                  <span className="text-[11px] normal-case leading-4 tracking-normal text-[#6f6f78]">Заміна водія для конкретного рейсу. Його ставки враховуються у витратах і прибутку.</span>
                 </label>
                 <label className="grid gap-1 text-xs uppercase tracking-widest text-[#8a8a93]">Статус
                   <select value={editDraft.status} onChange={(e) => setEditDraft({ ...editDraft, status: e.target.value })} className={fieldClass()}>
@@ -536,9 +549,11 @@ export default function DashboardCalendar({ cars, bookings, drivers = [], onOpen
                     <option value="COMPLETED">Завершена</option>
                     <option value="CANCELLED">Скасована</option>
                   </select>
+                  <span className="text-[11px] normal-case leading-4 tracking-normal text-[#6f6f78]">Стан рейсу для календаря, клієнта, водія і фінансового обліку.</span>
                 </label>
                 <label className="grid gap-1 text-xs uppercase tracking-widest text-[#8a8a93]">Нотатки для водія
                   <textarea rows={4} value={editDraft.driverNotes} onChange={(e) => setEditDraft({ ...editDraft, driverNotes: e.target.value })} className="w-full resize-y rounded-lg border border-white/10 bg-[#080818] p-3 text-sm normal-case tracking-normal text-white outline-none focus:border-[#e9c349]/60" />
+                  <span className="text-[11px] normal-case leading-4 tracking-normal text-[#6f6f78]">Внутрішня інструкція: багаж, діти, тварини, зустріч, особливості клієнта.</span>
                 </label>
                 <button onClick={saveDetails} disabled={saving} className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#e9c349] px-4 py-3 text-sm font-bold text-black disabled:opacity-60">
                   <Save size={16} /> {saving ? 'Збереження...' : 'Зберегти зміни'}

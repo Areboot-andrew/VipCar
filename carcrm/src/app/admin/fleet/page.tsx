@@ -129,7 +129,7 @@ const tabs = [
   { id: 'page', label: 'Сторінка', icon: FileText },
   { id: 'pricing', label: 'Тарифи', icon: BadgeEuro },
   { id: 'media', label: 'Медіа', icon: GalleryHorizontalEnd },
-  { id: 'seo', label: 'SEO', icon: Search },
+  { id: 'seo', label: 'Meta', icon: Search },
 ] as const;
 
 type CarPageBlock = {
@@ -201,7 +201,7 @@ function parsePageBlocks(value?: string | null, car?: CarRecord): CarPageBlock[]
       id: `features-${Date.now()}`,
       type: 'feature_grid',
       title: '*Особливості* авто',
-      text: 'Фішки з іконками нижче редагуються окремо в цьому ж табі.',
+      text: 'Переваги з іконками нижче редагуються окремо в цьому ж табі.',
       icon: 'BadgeCheck',
       imageUrl: '',
       buttonText: '',
@@ -528,18 +528,18 @@ export default function AdminFleetPage() {
             {activeTab === 'main' && (
               <div className="space-y-6">
                 <div className="grid gap-5 lg:grid-cols-3">
-                  <Field label="Марка"><input value={draft.make} onChange={(e) => updateDraft('make', e.target.value)} className={inputClass()} /></Field>
-                  <Field label="Модель"><input value={draft.model} onChange={(e) => updateDraft('model', e.target.value)} className={inputClass()} /></Field>
-                  <Field label="Рік"><input type="number" value={draft.year} onChange={(e) => updateDraft('year', e.target.value)} className={inputClass()} /></Field>
-                  <Field label="Slug для Google"><input value={draft.slug || ''} onChange={(e) => updateDraft('slug', e.target.value)} className={inputClass()} /></Field>
-                  <Field label="Статус">
+                  <Field label="Марка" hint="Бренд автомобіля: Mercedes-Benz, BMW, Audi тощо. Показується клієнту і в адмінці."><input value={draft.make} onChange={(e) => updateDraft('make', e.target.value)} className={inputClass()} /></Field>
+                  <Field label="Модель" hint="Комерційна назва авто, наприклад S-Class W223 Long або V-Class VIP."><input value={draft.model} onChange={(e) => updateDraft('model', e.target.value)} className={inputClass()} /></Field>
+                  <Field label="Рік" hint="Рік випуску для карток, галереї і сторінки авто."><input type="number" value={draft.year} onChange={(e) => updateDraft('year', e.target.value)} className={inputClass()} /></Field>
+                  <Field label="Адреса сторінки" hint="URL для сторінки авто. Генерується автоматично, але можна виправити вручну."><input value={draft.slug || ''} onChange={(e) => updateDraft('slug', e.target.value)} className={inputClass()} /></Field>
+                  <Field label="Статус" hint="Доступний показується клієнтам; сервіс або у роботі прибирає авто з публічного вибору.">
                     <select value={draft.status} onChange={(e) => updateDraft('status', e.target.value)} className={inputClass()}>
                       <option value="AVAILABLE">Доступний</option>
                       <option value="MAINTENANCE">Сервіс</option>
                       <option value="IN_USE">У роботі</option>
                     </select>
                   </Field>
-                  <Field label="Водій">
+                  <Field label="Водій за замовчуванням" hint="Основний водій цього авто. Його ставка €/км і €/год використовується в калькуляторі витрат, якщо рейс не перепризначили вручну.">
                     <select value={draft.defaultDriverId || ''} onChange={(e) => updateDraft('defaultDriverId', e.target.value)} className={inputClass()}>
                       <option value="">Не призначено</option>
                       {drivers.map((driver) => (
@@ -547,14 +547,14 @@ export default function AdminFleetPage() {
                       ))}
                     </select>
                   </Field>
-                  <Field label="Клас"><input value={draft.comfortClass} onChange={(e) => updateDraft('comfortClass', e.target.value)} className={inputClass()} /></Field>
-                  <Field label="Кузов"><input value={draft.bodyType || ''} onChange={(e) => updateDraft('bodyType', e.target.value)} className={inputClass()} /></Field>
-                  <Field label="Місць"><input type="number" value={draft.capacity} onChange={(e) => updateDraft('capacity', e.target.value)} className={inputClass()} /></Field>
-                  <Field label="Валіз"><input type="number" value={draft.luggageCapacity} onChange={(e) => updateDraft('luggageCapacity', e.target.value)} className={inputClass()} /></Field>
-                  <Field label="Великих валіз"><input type="number" value={draft.largeLuggageCapacity} onChange={(e) => updateDraft('largeLuggageCapacity', e.target.value)} className={inputClass()} /></Field>
+                  <Field label="Клас" hint="Клас для фільтрів клієнта: VIP, Business, Premium, Executive або власна назва."><input value={draft.comfortClass} onChange={(e) => updateDraft('comfortClass', e.target.value)} className={inputClass()} /></Field>
+                  <Field label="Кузов" hint="Тип авто: Sedan, Van, SUV, VIP Bus. Показується як характеристика."><input value={draft.bodyType || ''} onChange={(e) => updateDraft('bodyType', e.target.value)} className={inputClass()} /></Field>
+                  <Field label="Місць" hint="Максимальна кількість пасажирів. Калькулятор не покаже авто, якщо людей більше."><input type="number" value={draft.capacity} onChange={(e) => updateDraft('capacity', e.target.value)} className={inputClass()} /></Field>
+                  <Field label="Валіз" hint="Звичайні валізи, які авто нормально бере без втрати комфорту."><input type="number" value={draft.luggageCapacity} onChange={(e) => updateDraft('luggageCapacity', e.target.value)} className={inputClass()} /></Field>
+                  <Field label="Великих валіз" hint="Окрема оцінка для великого багажу, щоб менеджер бачив реальну місткість."><input type="number" value={draft.largeLuggageCapacity} onChange={(e) => updateDraft('largeLuggageCapacity', e.target.value)} className={inputClass()} /></Field>
                 </div>
 
-                <Field label="Опис багажу"><textarea rows={2} value={draft.luggageNote || ''} onChange={(e) => updateDraft('luggageNote', e.target.value)} className={`${inputClass()} resize-y`} /></Field>
+                <Field label="Опис багажу" hint="Людське пояснення для адміна і сторінки авто: наприклад, 2 великі валізи + ручна поклажа."><textarea rows={2} value={draft.luggageNote || ''} onChange={(e) => updateDraft('luggageNote', e.target.value)} className={`${inputClass()} resize-y`} /></Field>
               </div>
             )}
 
@@ -570,7 +570,7 @@ export default function AdminFleetPage() {
                       {([
                         ['headline', 'Заголовок'],
                         ['text', 'Текст'],
-                        ['feature_grid', 'Фішки'],
+                        ['feature_grid', 'Переваги'],
                         ['media_text', 'Медіа'],
                         ['cta', 'CTA'],
                       ] as const).map(([type, label]) => (
@@ -596,37 +596,37 @@ export default function AdminFleetPage() {
                         <div className="flex flex-wrap gap-2">
                           <button onClick={() => movePageBlock(index, -1)} className="rounded-lg bg-white/5 p-2 text-[#c7c6ca] hover:text-white"><ArrowUp size={16} /></button>
                           <button onClick={() => movePageBlock(index, 1)} className="rounded-lg bg-white/5 p-2 text-[#c7c6ca] hover:text-white"><ArrowDown size={16} /></button>
-                          <button onClick={() => updatePageBlock(index, { active: !block.active })} className={`rounded-lg px-3 py-2 text-xs font-bold ${block.active ? 'bg-green-500/15 text-green-300' : 'bg-white/5 text-[#8a8a93]'}`}>{block.active ? 'Visible' : 'Hidden'}</button>
+                          <button onClick={() => updatePageBlock(index, { active: !block.active })} className={`rounded-lg px-3 py-2 text-xs font-bold ${block.active ? 'bg-green-500/15 text-green-300' : 'bg-white/5 text-[#8a8a93]'}`}>{block.active ? 'Видимий' : 'Схований'}</button>
                           <button onClick={() => setPageBlocks(pageBlocks.filter((_, itemIndex) => itemIndex !== index))} className="rounded-lg bg-red-500/10 p-2 text-red-300 hover:bg-red-500/20"><Trash2 size={16} /></button>
                         </div>
                       </div>
 
                       <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
-                        <Field label="Тип блоку">
+                        <Field label="Тип блоку" hint="Визначає, як блок виглядатиме на публічній сторінці авто.">
                           <select value={block.type} onChange={(e) => updatePageBlock(index, { type: e.target.value as CarPageBlock['type'] })} className={inputClass()}>
                             <option value="headline">Заголовок сторінки</option>
                             <option value="text">Текстовий блок</option>
-                            <option value="feature_grid">Сітка фішок</option>
+                            <option value="feature_grid">Сітка переваг</option>
                             <option value="media_text">Медіа + текст</option>
                             <option value="cta">CTA / бронювання</option>
                           </select>
                         </Field>
-                        <Field label="Іконка"><IconPicker value={block.icon} onChange={(value) => updatePageBlock(index, { icon: value })} /></Field>
+                        <Field label="Іконка" hint="Виберіть символ для блоку або переваги. Іконки беруться з бібліотеки, без ручних SVG."><IconPicker value={block.icon} onChange={(value) => updatePageBlock(index, { icon: value })} /></Field>
                         <Field label="Заголовок" hint="Слово між *зірочками* буде золотим.">
                           <input value={block.title} onChange={(e) => updatePageBlock(index, { title: e.target.value })} className={inputClass()} placeholder="Mercedes-Benz *S-Class*" />
                         </Field>
-                        <Field label="Текст">
+                        <Field label="Текст" hint="Основний текст блоку. Без HTML: форматування робимо структурою блоків.">
                           <textarea rows={4} value={block.text} onChange={(e) => updatePageBlock(index, { text: e.target.value })} className={`${inputClass()} resize-y`} placeholder="Текст блоку без HTML-хаосу." />
                         </Field>
                         {(block.type === 'media_text' || block.type === 'headline') && (
-                          <Field label="URL зображення / відео">
+                          <Field label="URL зображення / відео" hint="Медіа для конкретного блоку сторінки, якщо воно відрізняється від галереї авто.">
                             <input value={block.imageUrl} onChange={(e) => updatePageBlock(index, { imageUrl: e.target.value })} className={inputClass()} placeholder="https://..." />
                           </Field>
                         )}
                         {block.type === 'cta' && (
                           <>
-                            <Field label="Текст кнопки"><input value={block.buttonText} onChange={(e) => updatePageBlock(index, { buttonText: e.target.value })} className={inputClass()} /></Field>
-                            <Field label="Посилання кнопки"><input value={block.buttonUrl} onChange={(e) => updatePageBlock(index, { buttonUrl: e.target.value })} className={inputClass()} /></Field>
+                            <Field label="Текст кнопки" hint="Що побачить клієнт на CTA-кнопці."><input value={block.buttonText} onChange={(e) => updatePageBlock(index, { buttonText: e.target.value })} className={inputClass()} /></Field>
+                            <Field label="Посилання кнопки" hint="Зазвичай лишаємо /#calculator, система сама підставить вибране авто."><input value={block.buttonUrl} onChange={(e) => updatePageBlock(index, { buttonUrl: e.target.value })} className={inputClass()} /></Field>
                           </>
                         )}
                       </div>
@@ -636,7 +636,7 @@ export default function AdminFleetPage() {
 
                 <aside className="space-y-4">
                   <div className="rounded-xl border border-white/10 bg-[#080818] p-4">
-                    <div className="mb-3 flex items-center gap-2 text-sm font-bold text-white"><Eye size={16} className="text-[#e9c349]" /> Preview заголовків</div>
+                    <div className="mb-3 flex items-center gap-2 text-sm font-bold text-white"><Eye size={16} className="text-[#e9c349]" /> Попередній перегляд</div>
                     <div className="space-y-4">
                       {pageBlocks.filter((block) => block.active).slice(0, 4).map((block) => (
                         <div key={block.id} className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
@@ -654,8 +654,8 @@ export default function AdminFleetPage() {
                   <div className="space-y-3 rounded-xl border border-white/10 bg-[#080818] p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <div className="text-sm font-bold text-white">Фішки авто</div>
-                        <div className="text-xs text-[#8a8a93]">Це рендериться у блоці “Фішки”.</div>
+                        <div className="text-sm font-bold text-white">Переваги авто</div>
+                        <div className="text-xs text-[#8a8a93]">Ці пункти рендеряться у блоці “Переваги”.</div>
                       </div>
                       <button onClick={() => setFeatures([...features, { icon: 'CircleCheck', text: '' }])} className="rounded-lg border border-[#e9c349]/30 px-3 py-2 text-xs font-bold text-[#e9c349] hover:bg-[#e9c349]/10">+ Додати</button>
                     </div>
@@ -683,9 +683,9 @@ export default function AdminFleetPage() {
 
             {activeTab === 'pricing' && (
               <div className="grid gap-5 lg:grid-cols-3">
-                <Field label="Базова ставка €/км"><input type="number" step="0.01" value={draft.baseRate} onChange={(e) => updateDraft('baseRate', e.target.value)} className={inputClass()} /></Field>
-                <Field label="Пасажирів включено"><input type="number" step="1" value={draft.includedPassengers} onChange={(e) => updateDraft('includedPassengers', e.target.value)} className={inputClass()} /></Field>
-                <Field label="Тип енергії">
+                <Field label="Базова ставка €/км" hint="Клієнтська ставка авто за кілометр маршруту. Це основа ціни для конкретної машини."><input type="number" step="0.01" value={draft.baseRate} onChange={(e) => updateDraft('baseRate', e.target.value)} className={inputClass()} /></Field>
+                <Field label="Пасажирів включено" hint="Скільки пасажирів входить у базову ціну без доплати за додаткову людину."><input type="number" step="1" value={draft.includedPassengers} onChange={(e) => updateDraft('includedPassengers', e.target.value)} className={inputClass()} /></Field>
+                <Field label="Тип енергії" hint="Потрібно тільки для внутрішньої собівартості: пальне або зарядка по країнах маршруту.">
                   <select value={draft.fuelType} onChange={(e) => updateDraft('fuelType', e.target.value)} className={inputClass()}>
                     <option value="Бензин">Бензин</option>
                     <option value="Дизель">Дизель</option>
@@ -693,21 +693,21 @@ export default function AdminFleetPage() {
                     <option value="Електро">Електро</option>
                   </select>
                 </Field>
-                <Field label="Бак / батарея"><input type="number" value={draft.fuelTankVolume} onChange={(e) => updateDraft('fuelTankVolume', e.target.value)} className={inputClass()} /></Field>
-                <Field label="Внутр. норма місто"><input type="number" step="0.1" value={draft.fuelConsumptionCity} onChange={(e) => updateDraft('fuelConsumptionCity', e.target.value)} className={inputClass()} /></Field>
-                <Field label="Внутр. норма траса"><input type="number" step="0.1" value={draft.fuelConsumptionHighway} onChange={(e) => updateDraft('fuelConsumptionHighway', e.target.value)} className={inputClass()} /></Field>
-                <Field label="Багаж / дод. особа €"><input type="number" step="0.01" value={draft.pricePerPerson} onChange={(e) => updateDraft('pricePerPerson', e.target.value)} className={inputClass()} /></Field>
-                <Field label="Амортизація €/км"><input type="number" step="0.01" value={draft.amortizationPerKm} onChange={(e) => updateDraft('amortizationPerKm', e.target.value)} className={inputClass()} /></Field>
-                <Field label="Базова подача €"><input type="number" step="0.01" value={draft.deliveryBaseFee} onChange={(e) => updateDraft('deliveryBaseFee', e.target.value)} className={inputClass()} /></Field>
-                <Field label="Перетин кордону €"><input type="number" step="0.01" value={draft.crossBorderFee} onChange={(e) => updateDraft('crossBorderFee', e.target.value)} className={inputClass()} /></Field>
-                <Field label="Зустріч з табличкою €"><input type="number" step="0.01" value={draft.meetAndGreetFee} onChange={(e) => updateDraft('meetAndGreetFee', e.target.value)} className={inputClass()} /></Field>
-                <Field label="Тварини €"><input type="number" step="0.01" value={draft.animalFee} onChange={(e) => updateDraft('animalFee', e.target.value)} className={inputClass()} /></Field>
-                <Field label="Дитяче крісло €"><input type="number" step="0.01" value={draft.childSeatFee} onChange={(e) => updateDraft('childSeatFee', e.target.value)} className={inputClass()} /></Field>
-                <Field label="Діти дозволені"><input type="checkbox" checked={draft.allowsChildren} onChange={(e) => updateDraft('allowsChildren', e.target.checked)} className="h-5 w-5 accent-[#e9c349]" /></Field>
-                <Field label="Тварини дозволені"><input type="checkbox" checked={draft.allowsAnimals} onChange={(e) => updateDraft('allowsAnimals', e.target.checked)} className="h-5 w-5 accent-[#e9c349]" /></Field>
-                <Field label="Базове місто"><input value={draft.baseCity || ''} onChange={(e) => updateDraft('baseCity', e.target.value)} className={inputClass()} /></Field>
-                <Field label="Base lat"><input value={draft.baseLat || ''} onChange={(e) => updateDraft('baseLat', e.target.value)} className={inputClass()} /></Field>
-                <Field label="Base lng"><input value={draft.baseLng || ''} onChange={(e) => updateDraft('baseLng', e.target.value)} className={inputClass()} /></Field>
+                <Field label="Бак / батарея" hint="Обʼєм бака або умовна ємність батареї. Використовується у внутрішньому розрахунку витрат."><input type="number" value={draft.fuelTankVolume} onChange={(e) => updateDraft('fuelTankVolume', e.target.value)} className={inputClass()} /></Field>
+                <Field label="Внутр. норма місто" hint="Витрата у місті для собівартості. Клієнту це поле не показується."><input type="number" step="0.1" value={draft.fuelConsumptionCity} onChange={(e) => updateDraft('fuelConsumptionCity', e.target.value)} className={inputClass()} /></Field>
+                <Field label="Внутр. норма траса" hint="Витрата на трасі для собівартості. Впливає на пальне і прибуток."><input type="number" step="0.1" value={draft.fuelConsumptionHighway} onChange={(e) => updateDraft('fuelConsumptionHighway', e.target.value)} className={inputClass()} /></Field>
+                <Field label="Дод. пасажир / багаж €" hint="Доплата, якщо людей більше ніж включено або потрібна додаткова багажна логіка."><input type="number" step="0.01" value={draft.pricePerPerson} onChange={(e) => updateDraft('pricePerPerson', e.target.value)} className={inputClass()} /></Field>
+                <Field label="Амортизація €/км" hint="Внутрішня витрата авто на кожен кілометр повного пробігу. Зменшує прибуток."><input type="number" step="0.01" value={draft.amortizationPerKm} onChange={(e) => updateDraft('amortizationPerKm', e.target.value)} className={inputClass()} /></Field>
+                <Field label="Базова подача €" hint="Фіксована доплата/витрата за подачу саме цього авто до клієнта."><input type="number" step="0.01" value={draft.deliveryBaseFee} onChange={(e) => updateDraft('deliveryBaseFee', e.target.value)} className={inputClass()} /></Field>
+                <Field label="Кордон €" hint="Надбавка для міжнародного рейсу. Клієнт не ставить галочку: система визначає кордон по маршруту."><input type="number" step="0.01" value={draft.crossBorderFee} onChange={(e) => updateDraft('crossBorderFee', e.target.value)} className={inputClass()} /></Field>
+                <Field label="Зустріч з табличкою €" hint="Опція meet & greet, яку клієнт може обрати в калькуляторі."><input type="number" step="0.01" value={draft.meetAndGreetFee} onChange={(e) => updateDraft('meetAndGreetFee', e.target.value)} className={inputClass()} /></Field>
+                <Field label="Тварини €" hint="Доплата за одну тварину, якщо авто дозволяє перевезення тварин."><input type="number" step="0.01" value={draft.animalFee} onChange={(e) => updateDraft('animalFee', e.target.value)} className={inputClass()} /></Field>
+                <Field label="Дитяче крісло €" hint="Доплата за одне дитяче крісло."><input type="number" step="0.01" value={draft.childSeatFee} onChange={(e) => updateDraft('childSeatFee', e.target.value)} className={inputClass()} /></Field>
+                <Field label="Діти дозволені" hint="Якщо вимкнено, калькулятор не покаже це авто для поїздки з дітьми."><input type="checkbox" checked={draft.allowsChildren} onChange={(e) => updateDraft('allowsChildren', e.target.checked)} className="h-5 w-5 accent-[#e9c349]" /></Field>
+                <Field label="Тварини дозволені" hint="Якщо вимкнено, калькулятор не покаже це авто для поїздки з тваринами."><input type="checkbox" checked={draft.allowsAnimals} onChange={(e) => updateDraft('allowsAnimals', e.target.checked)} className="h-5 w-5 accent-[#e9c349]" /></Field>
+                <Field label="Базове місто" hint="Звідки авто зазвичай стартує. Видно адмінам і використовується для логіки подачі."><input value={draft.baseCity || ''} onChange={(e) => updateDraft('baseCity', e.target.value)} className={inputClass()} /></Field>
+                <Field label="Широта бази" hint="Координата бази авто для розрахунку подачі до клієнта."><input value={draft.baseLat || ''} onChange={(e) => updateDraft('baseLat', e.target.value)} className={inputClass()} /></Field>
+                <Field label="Довгота бази" hint="Координата бази авто для розрахунку подачі до клієнта."><input value={draft.baseLng || ''} onChange={(e) => updateDraft('baseLng', e.target.value)} className={inputClass()} /></Field>
               </div>
             )}
 
@@ -716,7 +716,7 @@ export default function AdminFleetPage() {
                 <div className="flex flex-col gap-3 rounded-lg border border-white/10 bg-[#080818] p-4 md:flex-row md:items-center md:justify-between">
                   <div>
                     <div className="text-sm font-bold text-white">Медіа-галерея авто</div>
-                    <div className="text-xs text-[#8a8a93]">Cover, alt, caption і порядок потрібні для Google та красивої публічної галереї.</div>
+                    <div className="text-xs text-[#8a8a93]">Обкладинка, опис, роль і порядок керують галереєю, сторінкою авто і картками на сайті.</div>
                   </div>
                   <div className="flex gap-2">
                     <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-bold text-white hover:bg-white/10">
@@ -737,23 +737,23 @@ export default function AdminFleetPage() {
                         {media.type === 'video' ? <video src={media.url} className="h-full w-full object-cover" muted /> : <img src={media.url} alt={media.alt || ''} className="h-full w-full object-cover" />}
                       </div>
                       <div className="grid gap-3 lg:grid-cols-2">
-                        <Field label="Alt"><input value={media.alt || ''} onChange={(e) => updateMediaDraft(index, { alt: e.target.value })} className={inputClass()} /></Field>
-                        <Field label="Title"><input value={media.title || ''} onChange={(e) => updateMediaDraft(index, { title: e.target.value })} className={inputClass()} /></Field>
-                        <Field label="Role">
+                        <Field label="Опис для зображення" hint="Коротко що на фото. Потрібно для доступності, пошуку і порядку в медіа."><input value={media.alt || ''} onChange={(e) => updateMediaDraft(index, { alt: e.target.value })} className={inputClass()} /></Field>
+                        <Field label="Назва медіа" hint="Внутрішня назва для адмінки або підпису, якщо потрібно."><input value={media.title || ''} onChange={(e) => updateMediaDraft(index, { title: e.target.value })} className={inputClass()} /></Field>
+                        <Field label="Роль фото" hint="Обкладинка, салон, зовнішній вигляд, багаж або загальна галерея.">
                           <select value={media.role} onChange={(e) => updateMediaDraft(index, { role: e.target.value })} className={inputClass()}>
-                            <option value="cover">Cover</option>
-                            <option value="exterior">Exterior</option>
-                            <option value="interior">Interior</option>
-                            <option value="luggage">Luggage</option>
-                            <option value="gallery">Gallery</option>
+                            <option value="cover">Обкладинка</option>
+                            <option value="exterior">Екстерʼєр</option>
+                            <option value="interior">Салон</option>
+                            <option value="luggage">Багаж</option>
+                            <option value="gallery">Галерея</option>
                           </select>
                         </Field>
-                        <Field label="Порядок"><input type="number" value={media.order} onChange={(e) => updateMediaDraft(index, { order: Number(e.target.value) })} className={inputClass()} /></Field>
-                        <Field label="Caption"><textarea rows={2} value={media.caption || ''} onChange={(e) => updateMediaDraft(index, { caption: e.target.value })} className={`${inputClass()} resize-y lg:col-span-2`} /></Field>
+                        <Field label="Порядок" hint="Менше число показується раніше. Обкладинка все одно має пріоритет."><input type="number" value={media.order} onChange={(e) => updateMediaDraft(index, { order: Number(e.target.value) })} className={inputClass()} /></Field>
+                        <Field label="Підпис" hint="Текст під фото або у великому перегляді галереї."><textarea rows={2} value={media.caption || ''} onChange={(e) => updateMediaDraft(index, { caption: e.target.value })} className={`${inputClass()} resize-y lg:col-span-2`} /></Field>
                       </div>
                       <div className="flex flex-row gap-2 xl:flex-col">
-                        <button onClick={() => updateMediaDraft(index, { isCover: !media.isCover })} className={`rounded-lg px-3 py-2 text-sm font-bold ${media.isCover ? 'bg-[#e9c349] text-black' : 'bg-white/5 text-white hover:bg-white/10'}`}>Cover</button>
-                        <button onClick={() => updateMediaDraft(index, { active: !media.active })} className={`rounded-lg px-3 py-2 text-sm font-bold ${media.active ? 'bg-green-500/15 text-green-300' : 'bg-white/5 text-[#8a8a93]'}`}>{media.active ? 'Visible' : 'Hidden'}</button>
+                        <button onClick={() => updateMediaDraft(index, { isCover: !media.isCover })} className={`rounded-lg px-3 py-2 text-sm font-bold ${media.isCover ? 'bg-[#e9c349] text-black' : 'bg-white/5 text-white hover:bg-white/10'}`}>Обкладинка</button>
+                        <button onClick={() => updateMediaDraft(index, { active: !media.active })} className={`rounded-lg px-3 py-2 text-sm font-bold ${media.active ? 'bg-green-500/15 text-green-300' : 'bg-white/5 text-[#8a8a93]'}`}>{media.active ? 'Видиме' : 'Сховане'}</button>
                         <button onClick={() => deleteMedia(media)} className="rounded-lg bg-red-500/10 p-2 text-red-300 hover:bg-red-500/20"><Trash2 size={16} /></button>
                       </div>
                     </div>
@@ -775,17 +775,17 @@ export default function AdminFleetPage() {
             {activeTab === 'seo' && (
               <div className="space-y-5">
                 <div className="grid gap-5 lg:grid-cols-2">
-                  <Field label="SEO title"><input value={draft.seoTitle || ''} onChange={(e) => updateDraft('seoTitle', e.target.value)} className={inputClass()} /></Field>
-                  <Field label="Slug"><input value={draft.slug || ''} onChange={(e) => updateDraft('slug', e.target.value)} className={inputClass()} /></Field>
+                  <Field label="Meta title" hint="Заголовок сторінки у браузері та пошуку. Якщо пусто, система збере з марки, моделі і року."><input value={draft.seoTitle || ''} onChange={(e) => updateDraft('seoTitle', e.target.value)} className={inputClass()} /></Field>
+                  <Field label="Адреса сторінки" hint="URL сторінки авто. Має бути коротким і стабільним."><input value={draft.slug || ''} onChange={(e) => updateDraft('slug', e.target.value)} className={inputClass()} /></Field>
                 </div>
-                <Field label="SEO description"><textarea rows={4} value={draft.seoDescription || ''} onChange={(e) => updateDraft('seoDescription', e.target.value)} className={`${inputClass()} resize-y`} /></Field>
+                <Field label="Meta description" hint="Короткий опис для пошуку і превʼю. Не показується як основний текст сторінки."><textarea rows={4} value={draft.seoDescription || ''} onChange={(e) => updateDraft('seoDescription', e.target.value)} className={`${inputClass()} resize-y`} /></Field>
                 <div className="rounded-lg border border-white/10 bg-[#080818] p-4">
-                  <div className="mb-3 text-sm font-bold text-white">Preview features</div>
+                  <div className="mb-3 text-sm font-bold text-white">Попередній перегляд переваг</div>
                   <div className="grid gap-2 sm:grid-cols-2">
                     {features.map((feature, index) => (
                       <div key={index} className="flex items-center gap-2 text-sm text-[#c7c6ca]">
                         <DynamicIcon name={feature.icon} size={18} className="text-[#e9c349]" />
-                        {feature.text || 'Feature text'}
+                        {feature.text || 'Текст переваги'}
                       </div>
                     ))}
                   </div>

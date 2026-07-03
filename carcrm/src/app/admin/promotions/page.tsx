@@ -1,14 +1,58 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Percent } from 'lucide-react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { CalendarDays, CarFront, MapPin, Percent, Plus, Route, Tag } from 'lucide-react';
+
+type Promo = {
+  id: string;
+  title: string;
+  routeFrom?: string | null;
+  routeTo?: string | null;
+  discount: number;
+  dateStart?: string | null;
+  active: boolean;
+  car?: {
+    make: string;
+    model: string;
+    year?: number | null;
+  } | null;
+};
+
+type CarOption = {
+  id: string;
+  make: string;
+  model: string;
+  year?: number | null;
+};
+
+function fieldClass() {
+  return 'h-11 w-full rounded-lg border border-white/10 bg-[#080818] px-3 text-sm text-white outline-none transition-colors placeholder:text-[#56565f] focus:border-[#e9c349]/60';
+}
+
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint: string;
+  children: ReactNode;
+}) {
+  return (
+    <label className="grid gap-2">
+      <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#8a8a93]">{label}</span>
+      {children}
+      <span className="text-xs leading-5 text-[#6f6f78]">{hint}</span>
+    </label>
+  );
+}
 
 export default function PromotionsPage() {
-  const [promos, setPromos] = useState<any[]>([]);
-  const [cars, setCars] = useState<any[]>([]);
+  const [promos, setPromos] = useState<Promo[]>([]);
+  const [cars, setCars] = useState<CarOption[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  // Form state
   const [title, setTitle] = useState('');
   const [routeFrom, setRouteFrom] = useState('');
   const [routeTo, setRouteTo] = useState('');
@@ -20,106 +64,146 @@ export default function PromotionsPage() {
     try {
       const [promosRes, carsRes] = await Promise.all([
         fetch('/api/promotions'),
-        fetch('/api/cars')
+        fetch('/api/cars'),
       ]);
       const promosData = await promosRes.json();
       const carsData = await carsRes.json();
-      
-      setPromos(promosData);
-      setCars(carsData);
+
+      setPromos(Array.isArray(promosData) ? promosData : []);
+      setCars(Array.isArray(carsData) ? carsData : []);
+    } catch (error) {
+      console.error(error);
+    } finally {
       setLoading(false);
-    } catch (e) { console.error(e); setLoading(false); }
+    }
   };
 
   useEffect(() => {
     fetchData();
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setSaving(true);
     await fetch('/api/promotions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, routeFrom, routeTo, discount, carId, dateStart })
+      body: JSON.stringify({ title, routeFrom, routeTo, discount, carId, dateStart }),
     });
-    setTitle(''); setRouteFrom(''); setRouteTo(''); setDiscount(''); setCarId(''); setDateStart('');
+    setTitle('');
+    setRouteFrom('');
+    setRouteTo('');
+    setDiscount('');
+    setCarId('');
+    setDateStart('');
+    setSaving(false);
     fetchData();
   };
 
-  if (loading) return <div className="admin-page-container"><p>Завантаження...</p></div>;
+  if (loading) {
+    return <div className="p-8 text-white">Завантаження...</div>;
+  }
 
   return (
-    <div className="admin-page-container">
-      <div className="admin-page-header">
-        <h1>Знижки (Empty Legs)</h1>
-        <p style={{ color: 'var(--text-secondary)' }}>Керуйте знижками на конкретні маршрути (порожні рейси).</p>
+    <div className="min-h-screen bg-[#080818] p-4 text-[#e4e2e3] md:p-8">
+      <div className="mb-6 flex items-start gap-3 border-b border-white/10 pb-6">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#e9c349]/10 text-[#e9c349]">
+          <Tag size={22} />
+        </div>
+        <div>
+          <h1 className="m-0 text-2xl font-bold text-white md:text-3xl">Empty Legs</h1>
+          <p className="m-0 mt-1 max-w-3xl text-sm leading-6 text-[#8a8a93]">
+            Знижки на порожні або планові рейси. Тут задаємо зрозумілу назву, маршрут, дату, опціональне авто і відсоток знижки для клієнта.
+          </p>
+        </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '32px', marginTop: '24px' }}>
-        {/* Form */}
-        <div className="glass-panel" style={{ padding: '24px', borderRadius: '12px', alignSelf: 'start' }}>
-          <h3 style={{ fontSize: '18px', color: 'var(--accent-gold)', marginBottom: '16px' }}>Створити нову знижку</h3>
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Назва акції</label>
-              <input required value={title} onChange={e => setTitle(e.target.value)} type="text" style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '4px' }} placeholder="Порожній рейс до Києва" />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Автомобіль (опціонально)</label>
-              <select value={carId} onChange={e => setCarId(e.target.value)} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '4px' }}>
-                <option value="">-- Будь-який --</option>
-                {cars.map(c => <option key={c.id} value={c.id}>{c.make} {c.model} ({c.year})</option>)}
+      <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
+        <section className="h-fit rounded-xl border border-white/10 bg-[#13131a] p-5">
+          <div className="mb-5 flex items-center gap-2 text-lg font-bold text-white">
+            <Plus size={19} className="text-[#e9c349]" /> Нова пропозиція
+          </div>
+          <form onSubmit={handleSubmit} className="grid gap-4">
+            <Field label="Назва акції" hint="Короткий зрозумілий заголовок для менеджера і клієнта.">
+              <input required value={title} onChange={(event) => setTitle(event.target.value)} className={fieldClass()} placeholder="Порожній рейс до Києва" />
+            </Field>
+
+            <Field label="Автомобіль" hint="Якщо авто не вибране, пропозиція може бути застосована до будь-якої відповідної машини.">
+              <select value={carId} onChange={(event) => setCarId(event.target.value)} className={fieldClass()}>
+                <option value="">Будь-який автомобіль</option>
+                {cars.map((car) => (
+                  <option key={car.id} value={car.id}>
+                    {car.make} {car.model} {car.year ? `(${car.year})` : ''}
+                  </option>
+                ))}
               </select>
+            </Field>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Звідки" hint="Місто або точка старту порожнього рейсу.">
+                <input required value={routeFrom} onChange={(event) => setRouteFrom(event.target.value)} className={fieldClass()} placeholder="Варшава" />
+              </Field>
+              <Field label="Куди" hint="Напрямок, куди авто має їхати або повертатись.">
+                <input required value={routeTo} onChange={(event) => setRouteTo(event.target.value)} className={fieldClass()} placeholder="Київ" />
+              </Field>
             </div>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <div style={{ flex: 1 }}>
-                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Звідки</label>
-                <input required value={routeFrom} onChange={e => setRouteFrom(e.target.value)} type="text" style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '4px' }} placeholder="Варшава" />
-              </div>
-              <div style={{ flex: 1 }}>
-                <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Куди</label>
-                <input required value={routeTo} onChange={e => setRouteTo(e.target.value)} type="text" style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '4px' }} placeholder="Київ" />
-              </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Дата рейсу" hint="День, коли пропозиція доступна для бронювання.">
+                <input required value={dateStart} onChange={(event) => setDateStart(event.target.value)} type="date" className={fieldClass()} />
+              </Field>
+              <Field label="Знижка, %" hint="Відсоток знижки від стандартної ціни маршруту.">
+                <input required value={discount} onChange={(event) => setDiscount(event.target.value)} type="number" min="1" max="100" className={fieldClass()} placeholder="30" />
+              </Field>
             </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Дата відправлення</label>
-              <input required value={dateStart} onChange={e => setDateStart(e.target.value)} type="date" style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '4px' }} />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Знижка (%)</label>
-              <input required value={discount} onChange={e => setDiscount(e.target.value)} type="number" min="1" max="100" style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '4px' }} placeholder="30" />
-            </div>
-            <button type="submit" style={{ padding: '12px', backgroundColor: 'var(--accent-gold)', color: '#000', border: 'none', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', marginTop: '8px' }}>
-              Додати знижку
+
+            <button type="submit" disabled={saving} className="mt-2 inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-[#e9c349] px-5 text-sm font-bold text-black transition-transform hover:scale-[1.01] disabled:opacity-60">
+              <Plus size={17} /> {saving ? 'Збереження...' : 'Додати знижку'}
             </button>
           </form>
-        </div>
+        </section>
 
-        {/* List */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {promos.map(promo => (
-            <div key={promo.id} className="glass-panel" style={{ padding: '24px', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <h3 style={{ fontSize: '18px', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Percent size={18} color="var(--accent-gold)" />
-                  {promo.title}
-                </h3>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginTop: '8px' }}>
-                  <strong>Авто:</strong> {promo.car ? `${promo.car.make} ${promo.car.model}` : 'Будь-яке'} <br/>
-                  <strong>Маршрут:</strong> {promo.routeFrom || 'Будь-яке місто'} ➔ {promo.routeTo || 'Будь-яке місто'} <br/>
-                  <strong>Дата:</strong> {promo.dateStart ? new Date(promo.dateStart).toLocaleDateString('uk-UA') : 'Без дати'}
-                </p>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '32px', fontWeight: 'bold', color: 'var(--accent-gold)' }}>-{promo.discount}%</div>
-                <div style={{ fontSize: '12px', color: promo.active ? '#4ade80' : '#f87171' }}>
-                  {promo.active ? 'Активна' : 'Неактивна'}
-                </div>
-              </div>
+        <section className="rounded-xl border border-white/10 bg-[#13131a] p-5">
+          <div className="mb-5 flex items-center justify-between gap-4">
+            <div>
+              <h2 className="m-0 text-xl font-bold text-white">Активні пропозиції</h2>
+              <p className="m-0 mt-1 text-sm text-[#8a8a93]">Список рейсів, які можна показати як вигідні напрямки.</p>
             </div>
-          ))}
-          {promos.length === 0 && <p style={{ color: 'var(--text-secondary)' }}>Немає активних акцій.</p>}
-        </div>
+            <div className="rounded-lg border border-[#e9c349]/20 bg-[#e9c349]/10 px-3 py-2 text-sm font-bold text-[#e9c349]">
+              {promos.length} шт.
+            </div>
+          </div>
+
+          <div className="grid gap-3">
+            {promos.map((promo) => (
+              <article key={promo.id} className="rounded-xl border border-white/10 bg-[#080818] p-4">
+                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-[#e9c349]/25 bg-[#e9c349]/10 px-3 py-1 text-xs font-bold text-[#e9c349]">
+                      <Percent size={14} /> -{Number(promo.discount || 0)}%
+                    </div>
+                    <h3 className="m-0 text-lg font-bold text-white">{promo.title}</h3>
+                    <div className="mt-3 grid gap-2 text-sm text-[#c7c6ca]">
+                      <div className="flex items-center gap-2"><Route size={15} className="text-[#e9c349]" /> {promo.routeFrom || 'Будь-яке місто'} {'->'} {promo.routeTo || 'Будь-яке місто'}</div>
+                      <div className="flex items-center gap-2"><CarFront size={15} className="text-[#e9c349]" /> {promo.car ? `${promo.car.make} ${promo.car.model}` : 'Будь-який відповідний автомобіль'}</div>
+                      <div className="flex items-center gap-2"><CalendarDays size={15} className="text-[#e9c349]" /> {promo.dateStart ? new Date(promo.dateStart).toLocaleDateString('uk-UA') : 'Без дати'}</div>
+                    </div>
+                  </div>
+                  <div className={`rounded-lg px-3 py-2 text-sm font-bold ${promo.active ? 'bg-emerald-400/10 text-emerald-300' : 'bg-red-400/10 text-red-300'}`}>
+                    {promo.active ? 'Активна' : 'Неактивна'}
+                  </div>
+                </div>
+              </article>
+            ))}
+
+            {promos.length === 0 && (
+              <div className="rounded-xl border border-dashed border-white/10 bg-[#080818] p-8 text-center text-sm text-[#8a8a93]">
+                <MapPin className="mx-auto mb-3 text-[#e9c349]" />
+                Поки немає активних Empty Legs. Додай першу пропозицію зліва.
+              </div>
+            )}
+          </div>
+        </section>
       </div>
     </div>
   );

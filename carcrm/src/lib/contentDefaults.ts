@@ -125,7 +125,7 @@ export const SITE_CONTENT_DEFAULTS: Record<string, string> = {
   admin_nav_feedback: "Зворотний зв'язок",
   admin_nav_feedback_desc: 'Форми з сайту',
   admin_nav_cms: 'Редактор сайту',
-  admin_nav_cms_desc: 'Сторінки, блоки, SEO',
+  admin_nav_cms_desc: 'Сторінки, блоки, тексти',
   admin_nav_invoices: 'Рахунки',
   admin_nav_invoices_desc: 'Інвойси і оплати',
   admin_nav_settings: 'Налаштування CRM',

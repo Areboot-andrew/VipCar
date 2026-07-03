@@ -37,7 +37,7 @@ export default function AdminBookingsPage() {
           <CalendarDays className="text-[#e9c349]" size={30} />
           <div>
             <h1>Заявки і календар</h1>
-            <p style={{ color: 'var(--text-secondary)' }}>Рейси, статуси, водії, час подачі, нотатки і чат з клієнтом.</p>
+            <p className="m-0 mt-1 text-sm text-[#8a8a93]">Рейси, статуси, водії, час подачі, нотатки і чат з клієнтом.</p>
           </div>
         </div>
       </div>

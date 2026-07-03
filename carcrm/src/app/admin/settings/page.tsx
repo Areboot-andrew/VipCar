@@ -83,6 +83,7 @@ function Field({
   placeholder,
   type = 'text',
   secret = false,
+  hint,
 }: {
   label: string;
   value: string;
@@ -90,6 +91,7 @@ function Field({
   placeholder?: string;
   type?: string;
   secret?: boolean;
+  hint?: string;
 }) {
   return (
     <label className="flex flex-col gap-2">
@@ -101,6 +103,7 @@ function Field({
         placeholder={placeholder}
         className="h-11 w-full rounded-lg border border-white/10 bg-[#080818] px-3 text-sm text-white outline-none transition-colors placeholder:text-[#56565f] focus:border-[#e9c349]/60"
       />
+      {hint && <span className="text-xs leading-5 text-[#6f6f78]">{hint}</span>}
     </label>
   );
 }
@@ -109,14 +112,19 @@ function Toggle({
   checked,
   onChange,
   label,
+  hint,
 }: {
   checked: boolean;
   onChange: (checked: boolean) => void;
   label: string;
+  hint?: string;
 }) {
   return (
-    <label className="flex items-center justify-between gap-4 rounded-lg border border-white/10 bg-black/20 p-3">
-      <span className="text-sm font-semibold text-white">{label}</span>
+    <label className="flex items-start justify-between gap-4 rounded-lg border border-white/10 bg-black/20 p-3">
+      <span>
+        <span className="block text-sm font-semibold text-white">{label}</span>
+        {hint && <span className="mt-1 block text-xs leading-5 text-[#6f6f78]">{hint}</span>}
+      </span>
       <input
         type="checkbox"
         checked={checked}
@@ -266,9 +274,9 @@ export default function SettingsPage() {
               <Building2 className="text-[#e9c349]" /> Основні дані
             </h2>
             <div className="grid gap-4">
-              <Field label="Назва бренду" value={contentSettings.brand_name} onChange={(value) => updateSetting('brand_name', value)} placeholder="First Line Transfer" />
-              <Field label="Основний телефон" value={contentSettings.contact_phone} onChange={(value) => updateSetting('contact_phone', value)} placeholder="+380..." />
-              <Field label="Основний email" value={contentSettings.contact_email} onChange={(value) => updateSetting('contact_email', value)} placeholder="info@example.com" />
+              <Field label="Назва бренду" value={contentSettings.brand_name} onChange={(value) => updateSetting('brand_name', value)} placeholder="First Line Transfer" hint="Показується в шапці, метаданих, повідомленнях і системних підписах." />
+              <Field label="Основний телефон" value={contentSettings.contact_phone} onChange={(value) => updateSetting('contact_phone', value)} placeholder="+380..." hint="Контакт для сайту, заявок і ручної комунікації з клієнтом." />
+              <Field label="Основний email" value={contentSettings.contact_email} onChange={(value) => updateSetting('contact_email', value)} placeholder="info@example.com" hint="Публічний email компанії та резервний контакт для повідомлень." />
             </div>
           </div>
 
@@ -278,7 +286,7 @@ export default function SettingsPage() {
             </h2>
             <div className="space-y-3 text-sm leading-6 text-[#c7c6ca]">
               <p>Сюди логічно додамо глобальні дефолти сервісу: мови, країни роботи, податки, сервісні збори, дефолтне місто бази та правила бронювання.</p>
-              <p>Технічні ключі більше не треба змішувати з редактором сторінок у CMS.</p>
+              <p>Технічні ключі, тарифи і тексти сайту розділені, щоб редактор сторінок не перетворювався на склад випадкових полів.</p>
             </div>
           </div>
         </section>
@@ -291,16 +299,16 @@ export default function SettingsPage() {
               <BadgeEuro className="text-[#e9c349]" /> Правила калькулятора
             </h2>
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-              <Field label="Подача €/км" type="number" value={contentSettings.pricing_delivery_rate} onChange={(value) => updateSetting('pricing_delivery_rate', value)} />
-              <Field label="Базова подача €" type="number" value={contentSettings.pricing_delivery_base_fee} onChange={(value) => updateSetting('pricing_delivery_base_fee', value)} />
-              <Field label="Митниця, год" type="number" value={contentSettings.pricing_customs_wait_hours} onChange={(value) => updateSetting('pricing_customs_wait_hours', value)} />
-              <Field label="Ручне очікування, год" type="number" value={contentSettings.pricing_manual_waiting_hours} onChange={(value) => updateSetting('pricing_manual_waiting_hours', value)} />
-              <Field label="Буфер підготовки, хв" type="number" value={contentSettings.pricing_prep_buffer_mins} onChange={(value) => updateSetting('pricing_prep_buffer_mins', value)} />
-              <Field label="Запас по часу, %" type="number" value={contentSettings.pricing_traffic_buffer_percent} onChange={(value) => updateSetting('pricing_traffic_buffer_percent', value)} />
-              <Field label="Клієнтська ставка €/год" type="number" value={contentSettings.pricing_time_rate_per_hour} onChange={(value) => updateSetting('pricing_time_rate_per_hour', value)} />
-              <Field label="Нічліг після годин" type="number" value={contentSettings.pricing_hotel_after_hours} onChange={(value) => updateSetting('pricing_hotel_after_hours', value)} />
-              <Field label="Нічліг €" type="number" value={contentSettings.pricing_hotel_cost_per_night} onChange={(value) => updateSetting('pricing_hotel_cost_per_night', value)} />
-              <Field label="Мін. маржа 0.25 = 25%" type="number" value={contentSettings.pricing_min_margin_percent} onChange={(value) => updateSetting('pricing_min_margin_percent', value)} />
+              <Field label="Подача €/км" type="number" value={contentSettings.pricing_delivery_rate} onChange={(value) => updateSetting('pricing_delivery_rate', value)} hint="Вартість кілометра від бази авто до клієнта. Впливає на внутрішню собівартість і фінальний розрахунок." />
+              <Field label="Базова подача €" type="number" value={contentSettings.pricing_delivery_base_fee} onChange={(value) => updateSetting('pricing_delivery_base_fee', value)} hint="Фіксована частина подачі авто до клієнта перед маршрутом." />
+              <Field label="Митниця, год" type="number" value={contentSettings.pricing_customs_wait_hours} onChange={(value) => updateSetting('pricing_customs_wait_hours', value)} hint="Автоматично додається, коли маршрут проходить між країнами." />
+              <Field label="Ручне очікування, год" type="number" value={contentSettings.pricing_manual_waiting_hours} onChange={(value) => updateSetting('pricing_manual_waiting_hours', value)} hint="Глобальний запас очікування, який додається до робочого часу водія." />
+              <Field label="Буфер підготовки, хв" type="number" value={contentSettings.pricing_prep_buffer_mins} onChange={(value) => updateSetting('pricing_prep_buffer_mins', value)} hint="Час до виїзду з бази: підготовка, мийка, перевірка авто." />
+              <Field label="Запас по часу, %" type="number" value={contentSettings.pricing_traffic_buffer_percent} onChange={(value) => updateSetting('pricing_traffic_buffer_percent', value)} hint="Зменшує середню швидкість у розрахунку часу, щоб врахувати затори." />
+              <Field label="Клієнтська ставка €/год" type="number" value={contentSettings.pricing_time_rate_per_hour} onChange={(value) => updateSetting('pricing_time_rate_per_hour', value)} hint="Додаткова ставка за тривалий робочий час, якщо потрібно монетизувати години." />
+              <Field label="Нічліг після годин" type="number" value={contentSettings.pricing_hotel_after_hours} onChange={(value) => updateSetting('pricing_hotel_after_hours', value)} hint="Після скількох годин рейсу система додає витрати на нічліг водія." />
+              <Field label="Нічліг €" type="number" value={contentSettings.pricing_hotel_cost_per_night} onChange={(value) => updateSetting('pricing_hotel_cost_per_night', value)} hint="Орієнтовна вартість ночівлі водія, якщо рейс довгий." />
+              <Field label="Мін. маржа 0.25 = 25%" type="number" value={contentSettings.pricing_min_margin_percent} onChange={(value) => updateSetting('pricing_min_margin_percent', value)} hint="Мінімальний прибуток поверх внутрішніх витрат. 0.25 означає 25%." />
             </div>
           </div>
 
@@ -329,6 +337,7 @@ export default function SettingsPage() {
                 <Plus size={16} /> Додати
               </button>
             </form>
+            <p className="mb-4 text-xs leading-5 text-[#6f6f78]">Курс потрібен для відображення і майбутніх рахунків у різних валютах. Базова валюта розрахунків - EUR.</p>
             <div className="space-y-2">
               {currencies.map((currency) => (
                 <div key={currency.id} className="flex items-center justify-between rounded-lg border border-white/5 bg-black/25 p-3">
@@ -379,6 +388,7 @@ export default function SettingsPage() {
                 <Plus size={16} /> Додати
               </button>
             </form>
+            <p className="mb-4 text-xs leading-5 text-[#6f6f78]">Ціни використовуються тільки для внутрішньої собівартості маршруту: пальне або зарядка по країнах, через які проходить рейс.</p>
             <div className="max-h-[520px] space-y-2 overflow-y-auto pr-1 custom-scrollbar">
               {sortedFuelPrices.map((fuel) => (
                 <div key={fuel.id} className="flex items-center justify-between rounded-lg border border-white/5 bg-black/25 p-3">
@@ -403,19 +413,19 @@ export default function SettingsPage() {
           <div className="rounded-xl border border-white/10 bg-white/5 p-6">
             <h2 className="mb-5 text-xl font-bold text-white">Telegram</h2>
             <div className="grid gap-4">
-              <Toggle checked={contentSettings.telegram_enabled === 'true'} onChange={(checked) => updateSetting('telegram_enabled', String(checked))} label="Увімкнути Telegram" />
-              <Field label="API ID" value={contentSettings.telegram_api_id} onChange={(value) => updateSetting('telegram_api_id', value)} placeholder="my.telegram.org API ID" />
-              <Field label="API Hash" value={contentSettings.telegram_api_hash} onChange={(value) => updateSetting('telegram_api_hash', value)} secret placeholder="my.telegram.org API Hash" />
-              <Field label="String Session" value={contentSettings.telegram_string_session} onChange={(value) => updateSetting('telegram_string_session', value)} secret placeholder="Після авторизації MTProto" />
+              <Toggle checked={contentSettings.telegram_enabled === 'true'} onChange={(checked) => updateSetting('telegram_enabled', String(checked))} label="Увімкнути Telegram" hint="Дозволяє CRM використовувати Telegram для повідомлень і привʼязки чатів." />
+              <Field label="API ID" value={contentSettings.telegram_api_id} onChange={(value) => updateSetting('telegram_api_id', value)} placeholder="my.telegram.org API ID" hint="Числовий API ID з my.telegram.org для MTProto-авторизації." />
+              <Field label="API Hash" value={contentSettings.telegram_api_hash} onChange={(value) => updateSetting('telegram_api_hash', value)} secret placeholder="my.telegram.org API Hash" hint="Секретний API Hash з my.telegram.org. Не показується відкритим текстом." />
+              <Field label="String Session" value={contentSettings.telegram_string_session} onChange={(value) => updateSetting('telegram_string_session', value)} secret placeholder="Після авторизації MTProto" hint="Збережена сесія Telegram-акаунта/бота після авторизації. Без неї інтеграція не стартує." />
             </div>
           </div>
 
           <div className="rounded-xl border border-white/10 bg-white/5 p-6">
             <h2 className="mb-5 text-xl font-bold text-white">Facebook Messenger</h2>
             <div className="grid gap-4">
-              <Toggle checked={contentSettings.facebook_enabled === 'true'} onChange={(checked) => updateSetting('facebook_enabled', String(checked))} label="Увімкнути Messenger" />
-              <Field label="Page Access Token" value={contentSettings.facebook_page_token} onChange={(value) => updateSetting('facebook_page_token', value)} secret />
-              <Field label="Verify Token" value={contentSettings.facebook_verify_token} onChange={(value) => updateSetting('facebook_verify_token', value)} secret />
+              <Toggle checked={contentSettings.facebook_enabled === 'true'} onChange={(checked) => updateSetting('facebook_enabled', String(checked))} label="Увімкнути Messenger" hint="Вмикає обробку Facebook Messenger через webhook." />
+              <Field label="Page Access Token" value={contentSettings.facebook_page_token} onChange={(value) => updateSetting('facebook_page_token', value)} secret hint="Токен сторінки Facebook, яким CRM відповідає клієнтам." />
+              <Field label="Verify Token" value={contentSettings.facebook_verify_token} onChange={(value) => updateSetting('facebook_verify_token', value)} secret hint="Секретна фраза для підтвердження webhook у Meta." />
               <div className="rounded-lg border border-white/10 bg-black/20 p-3 text-xs leading-5 text-[#8a8a93]">
                 Webhook: <span className="text-[#c7c6ca]">/api/webhooks/messenger</span>
               </div>
@@ -425,11 +435,11 @@ export default function SettingsPage() {
           <div className="rounded-xl border border-white/10 bg-white/5 p-6">
             <h2 className="mb-5 text-xl font-bold text-white">WhatsApp Business</h2>
             <div className="grid gap-4">
-              <Toggle checked={contentSettings.whatsapp_enabled === 'true'} onChange={(checked) => updateSetting('whatsapp_enabled', String(checked))} label="Увімкнути WhatsApp" />
-              <Field label="Phone Number ID" value={contentSettings.whatsapp_phone_number_id} onChange={(value) => updateSetting('whatsapp_phone_number_id', value)} />
-              <Field label="Business Account ID" value={contentSettings.whatsapp_business_account_id} onChange={(value) => updateSetting('whatsapp_business_account_id', value)} />
-              <Field label="Access Token" value={contentSettings.whatsapp_access_token} onChange={(value) => updateSetting('whatsapp_access_token', value)} secret />
-              <Field label="Verify Token" value={contentSettings.whatsapp_verify_token} onChange={(value) => updateSetting('whatsapp_verify_token', value)} secret />
+              <Toggle checked={contentSettings.whatsapp_enabled === 'true'} onChange={(checked) => updateSetting('whatsapp_enabled', String(checked))} label="Увімкнути WhatsApp" hint="Вмикає WhatsApp Business API для заявок і переписки." />
+              <Field label="Phone Number ID" value={contentSettings.whatsapp_phone_number_id} onChange={(value) => updateSetting('whatsapp_phone_number_id', value)} hint="ID номера WhatsApp Business у Meta." />
+              <Field label="Business Account ID" value={contentSettings.whatsapp_business_account_id} onChange={(value) => updateSetting('whatsapp_business_account_id', value)} hint="ID WhatsApp Business Account у Meta." />
+              <Field label="Access Token" value={contentSettings.whatsapp_access_token} onChange={(value) => updateSetting('whatsapp_access_token', value)} secret hint="Токен доступу для відправки і читання повідомлень." />
+              <Field label="Verify Token" value={contentSettings.whatsapp_verify_token} onChange={(value) => updateSetting('whatsapp_verify_token', value)} secret hint="Секрет для підтвердження WhatsApp webhook." />
             </div>
           </div>
         </section>
@@ -442,8 +452,8 @@ export default function SettingsPage() {
               <CreditCard className="text-[#e9c349]" /> Реквізити для оплат
             </h2>
             <div className="grid gap-4">
-              <Field label="Картка / IBAN" value={contentSettings.payment_card} onChange={(value) => updateSetting('payment_card', value)} placeholder="IBAN або номер картки" />
-              <Field label="USDT / Crypto" value={contentSettings.payment_usdt} onChange={(value) => updateSetting('payment_usdt', value)} placeholder="TRC20/ERC20 адреса" />
+              <Field label="Картка / IBAN" value={contentSettings.payment_card} onChange={(value) => updateSetting('payment_card', value)} placeholder="IBAN або номер картки" hint="Реквізити, які менеджер може відправити клієнту для оплати." />
+              <Field label="USDT / Crypto" value={contentSettings.payment_usdt} onChange={(value) => updateSetting('payment_usdt', value)} placeholder="TRC20/ERC20 адреса" hint="Крипто-реквізити для альтернативної оплати." />
             </div>
           </div>
           <div className="rounded-xl border border-white/10 bg-white/5 p-6">

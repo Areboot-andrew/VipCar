@@ -54,31 +54,31 @@ const tabs = [
   { id: 'home', label: 'Головна', desc: 'Hero, меню, переваги', icon: LayoutTemplate },
   { id: 'blocks', label: 'Блоки', desc: 'Конструктор секцій', icon: Blocks },
   { id: 'contacts', label: 'Контакти', desc: 'Форма, footer, CTA', icon: Mail },
-  { id: 'seo', label: 'SEO', desc: 'Meta і schema', icon: Search },
+  { id: 'seo', label: 'Meta', desc: 'Пошук і schema', icon: Search },
   { id: 'technical', label: 'Технічні', desc: 'Решта ключів', icon: Settings2 },
 ] as const;
 
 const homeFields: FieldConfig[] = [
-  { key: 'brand_name', label: 'Назва бренду' },
-  { key: 'logo_url', label: 'Логотип', type: 'media' },
-  { key: 'menu_services', label: 'Меню: послуги' },
-  { key: 'menu_fleet', label: 'Меню: автопарк' },
-  { key: 'menu_gallery', label: 'Меню: галерея' },
-  { key: 'menu_contact', label: 'Меню: контакти' },
-  { key: 'menu_login', label: 'Меню: вхід' },
-  { key: 'menu_profile', label: 'Меню: профіль' },
-  { key: 'menu_driver_cabinet', label: 'Меню: кабінет водія' },
-  { key: 'menu_logout', label: 'Меню: вихід' },
-  { key: 'btn_book_now', label: 'Кнопка в шапці' },
-  { key: 'btn_hero_cta', label: 'Головна CTA-кнопка' },
+  { key: 'brand_name', label: 'Назва бренду', hint: 'Використовується у шапці, footer і службових підписах.' },
+  { key: 'logo_url', label: 'Логотип', type: 'media', hint: 'Основний логотип сайту. Краще PNG/WebP з прозорим або темним фоном.' },
+  { key: 'menu_services', label: 'Меню: послуги', hint: 'Текст пункту навігації у шапці.' },
+  { key: 'menu_fleet', label: 'Меню: автопарк', hint: 'Текст пункту, який веде до автомобілів.' },
+  { key: 'menu_gallery', label: 'Меню: галерея', hint: 'Текст пункту, який веде до галереї автопарку.' },
+  { key: 'menu_contact', label: 'Меню: контакти', hint: 'Текст пункту контактного блоку.' },
+  { key: 'menu_login', label: 'Меню: вхід', hint: 'Показується неавторизованому користувачу.' },
+  { key: 'menu_profile', label: 'Меню: профіль', hint: 'Показується авторизованому клієнту.' },
+  { key: 'menu_driver_cabinet', label: 'Меню: кабінет водія', hint: 'Показується користувачу з роллю водія.' },
+  { key: 'menu_logout', label: 'Меню: вихід', hint: 'Текст кнопки виходу з акаунта.' },
+  { key: 'btn_book_now', label: 'Кнопка в шапці', hint: 'Головна кнопка швидкого переходу до бронювання.' },
+  { key: 'btn_hero_cta', label: 'Головна CTA-кнопка', hint: 'Кнопка в першому екрані головної сторінки.' },
   { key: 'hero_title', label: 'Hero заголовок', type: 'textarea', preview: true, hint: 'Золотий акцент: *текст*. Новий рядок теж підтримується.' },
   { key: 'hero_subtitle', label: 'Hero підзаголовок', type: 'textarea', hint: 'Можна виділяти слова через *зірочки*.' },
-  { key: 'hero_bg_image', label: 'Hero фон', type: 'media' },
-  { key: 'hero_bg_video', label: 'Hero відео', type: 'media' },
+  { key: 'hero_bg_image', label: 'Hero фон', type: 'media', hint: 'Фонове зображення першого екрана, якщо відео не задане або не завантажилось.' },
+  { key: 'hero_bg_video', label: 'Hero відео', type: 'media', hint: 'Відеофон першого екрана. Має бути коротким і оптимізованим.' },
   { key: 'services_title', label: 'Заголовок переваг', preview: true, hint: 'Наприклад: Чому обирають *нас*?' },
-  { key: 'gallery_title', label: 'Заголовок галереї', preview: true },
-  { key: 'gallery_subtitle', label: 'Опис галереї', type: 'textarea' },
-  { key: 'loading_calculator', label: 'Текст завантаження калькулятора' },
+  { key: 'gallery_title', label: 'Заголовок галереї', preview: true, hint: 'Заголовок блоку галереї на головній сторінці.' },
+  { key: 'gallery_subtitle', label: 'Опис галереї', type: 'textarea', hint: 'Короткий клієнтський опис автопарку, без технічних приміток.' },
+  { key: 'loading_calculator', label: 'Текст завантаження калькулятора', hint: 'Показується, поки форма бронювання підтягує дані.' },
 ];
 
 const contactFields: FieldConfig[] = [
@@ -108,19 +108,19 @@ const contactFields: FieldConfig[] = [
 ];
 
 const seoFields: FieldConfig[] = [
-  { key: 'site_meta_title', label: 'Meta title' },
-  { key: 'site_meta_description', label: 'Meta description', type: 'textarea' },
-  { key: 'site_meta_keywords', label: 'Meta keywords', type: 'textarea' },
-  { key: 'site_og_title', label: 'OpenGraph title' },
-  { key: 'site_og_description', label: 'OpenGraph description', type: 'textarea' },
-  { key: 'site_url', label: 'URL сайту' },
-  { key: 'schema_description', label: 'Schema description', type: 'textarea' },
-  { key: 'schema_price_range', label: 'Schema price range' },
-  { key: 'schema_address_city', label: 'Schema місто' },
-  { key: 'schema_address_country', label: 'Schema країна' },
+  { key: 'site_meta_title', label: 'Meta title', hint: 'Заголовок сайту для браузера і пошукової видачі.' },
+  { key: 'site_meta_description', label: 'Meta description', type: 'textarea', hint: 'Короткий опис для пошукової видачі. Це не текст у hero.' },
+  { key: 'site_meta_keywords', label: 'Meta keywords', type: 'textarea', hint: 'Додаткові ключові фрази через кому, якщо треба підтримати стару пошукову логіку.' },
+  { key: 'site_og_title', label: 'OpenGraph title', hint: 'Заголовок для превʼю у месенджерах і соцмережах.' },
+  { key: 'site_og_description', label: 'OpenGraph description', type: 'textarea', hint: 'Опис для превʼю посилання у месенджерах і соцмережах.' },
+  { key: 'site_url', label: 'URL сайту', hint: 'Основний домен без зайвих шляхів. Потрібен для canonical і schema.' },
+  { key: 'schema_description', label: 'Schema description', type: 'textarea', hint: 'Службовий опис компанії для структурованих даних.' },
+  { key: 'schema_price_range', label: 'Schema price range', hint: 'Діапазон цін для Google schema, наприклад €€€.' },
+  { key: 'schema_address_city', label: 'Schema місто', hint: 'Місто базової адреси компанії у structured data.' },
+  { key: 'schema_address_country', label: 'Schema країна', hint: 'Країна базової адреси компанії у structured data.' },
   { key: 'schema_area_served', label: 'Країни обслуговування', hint: 'Через кому: UA,PL,DE...' },
-  { key: 'gallery_seo_title', label: 'Gallery SEO title' },
-  { key: 'gallery_seo_description', label: 'Gallery SEO description', type: 'textarea' },
+  { key: 'gallery_seo_title', label: 'Meta title галереї', hint: 'Окремий заголовок сторінки галереї для браузера і пошуку.' },
+  { key: 'gallery_seo_description', label: 'Meta description галереї', type: 'textarea', hint: 'Короткий опис сторінки галереї для пошуку. Не показуємо як hero-текст.' },
 ];
 
 const explicitKeys = new Set([
@@ -237,7 +237,7 @@ function CmsField({
       {field.hint && <p className="m-0 text-xs text-[#6f6f78]">{field.hint}</p>}
       {field.preview && value && (
         <div className="rounded-lg border border-white/10 bg-[#080818] p-3">
-          <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#6f6f78]">Preview</div>
+          <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#6f6f78]">Попередній перегляд</div>
           <HighlightedTitle text={value} as="div" className="text-xl font-bold text-white" />
         </div>
       )}
@@ -418,7 +418,7 @@ export default function CMSPage() {
             </div>
             <div>
               <h1 className="m-0 text-2xl font-bold text-white md:text-3xl">Редактор сайту</h1>
-              <p className="m-0 mt-1 text-sm text-[#8a8a93]">Тексти, секції, медіа, SEO і структура головної без сирого хаосу.</p>
+              <p className="m-0 mt-1 text-sm text-[#8a8a93]">Тексти, секції, медіа, metadata і структура головної без сирого хаосу.</p>
             </div>
           </div>
         </div>
@@ -668,7 +668,7 @@ export default function CMSPage() {
           )}
 
           {activeTab === 'seo' && (
-            <SectionShell icon={Search} title="SEO і structured data" desc="Ці поля впливають на metadata сторінки і JSON-LD schema.">
+            <SectionShell icon={Search} title="Metadata і structured data" desc="Ці поля впливають на metadata сторінки і JSON-LD schema.">
               {renderFields(seoFields)}
             </SectionShell>
           )}
@@ -686,7 +686,12 @@ export default function CMSPage() {
                   return (
                     <CmsField
                       key={key}
-                      field={{ key, label: key, type: isMedia ? 'media' : defaultValue && defaultValue.length > 120 ? 'textarea' : 'text' }}
+                      field={{
+                        key,
+                        label: key,
+                        type: isMedia ? 'media' : defaultValue && defaultValue.length > 120 ? 'textarea' : 'text',
+                        hint: 'Legacy або новий технічний ключ без окремої секції. Якщо поле стало важливим для роботи, переносимо його у логічний розділ.',
+                      }}
                       value={content[key] || ''}
                       uploading={uploadingState[key]}
                       onChange={(value) => updateContent(key, value)}

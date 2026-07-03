@@ -143,6 +143,9 @@ export default function UsersAdminPage() {
 
   if (loading) return <div className="p-8 text-white">Завантаження...</div>;
 
+  const driverInputClass = "h-10 rounded-lg border border-white/10 bg-[#080818] px-3 text-white outline-none focus:border-[#e9c349]/60";
+  const driverHintClass = "mt-1 text-[11px] leading-4 text-[#6f6f78]";
+
   return (
     <div className="p-4 md:p-8">
       <div className="mb-6 flex items-center gap-3">
@@ -217,64 +220,91 @@ export default function UsersAdminPage() {
                   <td className="p-4">
                     {user.role === "DRIVER" ? (
                       <div className="grid gap-3">
+                        <div className="rounded-lg border border-[#e9c349]/20 bg-[#e9c349]/10 p-3 text-xs leading-5 text-[#c7c6ca]">
+                          Дані водія впливають на собівартість рейсу: ставка за км, ставка за години роботи, добові та нічліг потрапляють у фінансовий розрахунок і прибуток.
+                        </div>
                         <div className="grid grid-cols-2 gap-2">
-                          <input
-                            value={driverDraft.licenseNum}
-                            onChange={(event) => updateDriverDraft(user.id, "licenseNum", event.target.value)}
-                            className="h-10 rounded-lg border border-white/10 bg-[#080818] px-3 text-white outline-none focus:border-[#e9c349]/60"
-                            placeholder="Ліцензія"
-                          />
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={driverDraft.salaryPerKm}
-                            onChange={(event) => updateDriverDraft(user.id, "salaryPerKm", event.target.value)}
-                            className="h-10 rounded-lg border border-white/10 bg-[#080818] px-3 text-white outline-none focus:border-[#e9c349]/60"
-                            placeholder="EUR/км"
-                          />
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={driverDraft.salaryPerHour}
-                            onChange={(event) => updateDriverDraft(user.id, "salaryPerHour", event.target.value)}
-                            className="h-10 rounded-lg border border-white/10 bg-[#080818] px-3 text-white outline-none focus:border-[#e9c349]/60"
-                            placeholder="EUR/год"
-                          />
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={driverDraft.overnightAllowance}
-                            onChange={(event) => updateDriverDraft(user.id, "overnightAllowance", event.target.value)}
-                            className="h-10 rounded-lg border border-white/10 bg-[#080818] px-3 text-white outline-none focus:border-[#e9c349]/60"
-                            placeholder="Нічліг EUR"
-                          />
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={driverDraft.dailyAllowance}
-                            onChange={(event) => updateDriverDraft(user.id, "dailyAllowance", event.target.value)}
-                            className="h-10 rounded-lg border border-white/10 bg-[#080818] px-3 text-white outline-none focus:border-[#e9c349]/60"
-                            placeholder="Добові EUR"
-                          />
+                          <label>
+                            <span className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-[#8a8a93]">Посвідчення / ID</span>
+                            <input
+                              value={driverDraft.licenseNum}
+                              onChange={(event) => updateDriverDraft(user.id, "licenseNum", event.target.value)}
+                              className={driverInputClass}
+                              placeholder="Ліцензія"
+                            />
+                            <span className={driverHintClass}>Внутрішній номер або дані посвідчення водія.</span>
+                          </label>
+                          <label>
+                            <span className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-[#8a8a93]">ЗП €/км</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={driverDraft.salaryPerKm}
+                              onChange={(event) => updateDriverDraft(user.id, "salaryPerKm", event.target.value)}
+                              className={driverInputClass}
+                              placeholder="EUR/км"
+                            />
+                            <span className={driverHintClass}>Оплата водію за кожен км повного пробігу рейсу.</span>
+                          </label>
+                          <label>
+                            <span className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-[#8a8a93]">ЗП €/год</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={driverDraft.salaryPerHour}
+                              onChange={(event) => updateDriverDraft(user.id, "salaryPerHour", event.target.value)}
+                              className={driverInputClass}
+                              placeholder="EUR/год"
+                            />
+                            <span className={driverHintClass}>Оплата за час у дорозі, очікування, митницю і робочий час.</span>
+                          </label>
+                          <label>
+                            <span className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-[#8a8a93]">Нічліг €</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={driverDraft.overnightAllowance}
+                              onChange={(event) => updateDriverDraft(user.id, "overnightAllowance", event.target.value)}
+                              className={driverInputClass}
+                              placeholder="Нічліг EUR"
+                            />
+                            <span className={driverHintClass}>Витрата на готель, якщо рейс довший за глобальний ліміт годин.</span>
+                          </label>
+                          <label>
+                            <span className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-[#8a8a93]">Добові €</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={driverDraft.dailyAllowance}
+                              onChange={(event) => updateDriverDraft(user.id, "dailyAllowance", event.target.value)}
+                              className={driverInputClass}
+                              placeholder="Добові EUR"
+                            />
+                            <span className={driverHintClass}>Денна компенсація водію для майбутніх розширених розрахунків.</span>
+                          </label>
                         </div>
                         <div className="grid grid-cols-[1fr_auto] gap-2">
-                          <select
-                            className="h-10 rounded-lg border border-white/10 bg-[#080818] px-3 text-white outline-none focus:border-[#e9c349]/60"
-                            value={driverDraft.telegramId}
-                            onChange={(event) => updateDriverDraft(user.id, "telegramId", event.target.value)}
-                          >
-                            <option value="">Telegram не прив'язано</option>
-                            {chats.map((chat) => (
-                              <option key={chat.id} value={chat.externalId || ""}>
-                                {chat.clientName || chat.externalId}
-                              </option>
-                            ))}
-                          </select>
+                          <label>
+                            <span className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-[#8a8a93]">Telegram чат водія</span>
+                            <select
+                              className={driverInputClass}
+                              value={driverDraft.telegramId}
+                              onChange={(event) => updateDriverDraft(user.id, "telegramId", event.target.value)}
+                            >
+                              <option value="">Telegram не прив'язано</option>
+                              {chats.map((chat) => (
+                                <option key={chat.id} value={chat.externalId || ""}>
+                                  {chat.clientName || chat.externalId}
+                                </option>
+                              ))}
+                            </select>
+                            <span className={driverHintClass}>Куди CRM надсилатиме рейси, нотатки і зміни для цього водія.</span>
+                          </label>
                           <button
                             onClick={() => handleDriverSave(user.id)}
-                            className="inline-flex h-10 items-center gap-2 rounded-lg border border-[#e9c349]/40 px-3 text-sm font-bold text-[#e9c349] hover:bg-[#e9c349]/10"
+                            className="mt-5 inline-flex h-10 items-center gap-2 rounded-lg border border-[#e9c349]/40 px-3 text-sm font-bold text-[#e9c349] hover:bg-[#e9c349]/10"
                           >
-                            <Save size={14} /> Водій
+                            <Save size={14} /> Зберегти
                           </button>
                         </div>
                       </div>
