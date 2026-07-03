@@ -1,27 +1,48 @@
 import type { Metadata } from "next";
+import { PrismaClient } from "@prisma/client";
 import { Inter } from "next/font/google";
+import { AuthProvider } from "@/components/AuthProvider";
+import { withContentDefaults } from "@/lib/contentDefaults";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin", "cyrillic"], variable: "--font-inter" });
+const prisma = new PrismaClient();
 
-export const metadata: Metadata = {
-  title: "First Line Transfer — Преміум Трансфер Без Компромісів",
-  description: "Преміальні трансфери Європою та Україною на автомобілях VIP-класу. Mercedes S-Class, BMW 7 Series, Audi A8. Онлайн бронювання.",
-  keywords: "трансфер, VIP трансфер, оренда авто з водієм, преміум трансфер, Mercedes S-Class, Україна, Європа",
-  openGraph: {
-    title: "First Line Transfer — Преміум Трансфер",
-    description: "Ваш час. Ваші правила. Ідеальний сервіс від дверей до дверей.",
-    type: "website",
-  },
-};
+async function getLayoutContent() {
+  try {
+    const rows = await prisma.siteContent.findMany();
+    return withContentDefaults(rows.reduce((acc, row) => {
+      acc[row.key] = row.value;
+      return acc;
+    }, {} as Record<string, string>));
+  } catch {
+    return withContentDefaults();
+  }
+}
 
-import { AuthProvider } from "@/components/AuthProvider";
+export async function generateMetadata(): Promise<Metadata> {
+  const c = await getLayoutContent();
 
-export default function RootLayout({
+  return {
+    title: c['site_meta_title'],
+    description: c['site_meta_description'],
+    keywords: c['site_meta_keywords'],
+    openGraph: {
+      title: c['site_og_title'],
+      description: c['site_og_description'],
+      type: "website",
+      url: c['site_url'],
+    },
+  };
+}
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const c = await getLayoutContent();
+
   return (
     <html lang="uk" className={inter.variable}>
       <head>
@@ -32,18 +53,18 @@ export default function RootLayout({
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "AutoRental",
-              "name": "First Line Transfer",
-              "description": "Преміум трансфер на авто VIP-класу. Mercedes S-Class, BMW 7 Series, Audi A8.",
-              "url": "https://first-line-transfer.com",
-              "telephone": "+380000000000",
-              "priceRange": "€€€",
+              "name": c['brand_name'],
+              "description": c['schema_description'],
+              "url": c['site_url'],
+              "telephone": c['contact_phone'],
+              "priceRange": c['schema_price_range'],
               "address": {
                 "@type": "PostalAddress",
-                "addressLocality": "Kyiv",
-                "addressCountry": "UA"
+                "addressLocality": c['schema_address_city'],
+                "addressCountry": c['schema_address_country']
               },
               "sameAs": [],
-              "areaServed": ["UA", "PL", "DE", "CZ", "AT", "HU", "SK"]
+              "areaServed": c['schema_area_served'].split(',').map((country) => country.trim()).filter(Boolean)
             })
           }}
         />

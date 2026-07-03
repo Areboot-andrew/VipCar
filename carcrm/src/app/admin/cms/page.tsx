@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { Plus, Trash2, GripVertical, Save, ArrowUp, ArrowDown } from 'lucide-react';
+import IconPicker from '@/components/admin/IconPicker';
+import HighlightedTitle from '@/components/ui/HighlightedTitle';
 import 'react-quill-new/dist/quill.snow.css';
 
 const RichEditor = dynamic(() => import('react-quill-new'), {
@@ -202,6 +204,10 @@ export default function CMSPage() {
                       <div>
                         <label className="text-xs text-[#8a8a93] uppercase">Заголовок</label>
                         <input type="text" className="w-full bg-[#080818] border border-white/10 p-3 rounded text-white" value={(parsed as any).title || ''} onChange={e => updateBlockContent(index, { ...parsed, title: e.target.value })} />
+                        <p className="mt-2 text-xs text-[#8a8a93]">Виділення золотим: напишіть слово між *зірочками*.</p>
+                        {(parsed as any).title && (
+                          <HighlightedTitle text={(parsed as any).title} as="div" className="mt-3 text-2xl font-bold text-white" />
+                        )}
                       </div>
                       <div>
                         <label className="text-xs text-[#8a8a93] uppercase">Підзаголовок</label>
@@ -226,6 +232,7 @@ export default function CMSPage() {
                       <div>
                         <label className="text-xs text-[#8a8a93] uppercase">Заголовок блоку</label>
                         <input type="text" className="w-full bg-[#080818] border border-white/10 p-3 rounded text-white" value={(parsed as any).title || ''} onChange={e => updateBlockContent(index, { ...parsed, title: e.target.value })} />
+                        <p className="mt-2 text-xs text-[#8a8a93]">Виділення золотим: напишіть слово між *зірочками*.</p>
                       </div>
                       <div className="bg-white text-black rounded">
                         <RichEditor value={(parsed as any).text || ''} onChange={val => updateBlockContent(index, { ...parsed, text: val })} />
@@ -258,6 +265,7 @@ export default function CMSPage() {
                       <div>
                         <label className="text-xs text-[#8a8a93] uppercase">Заголовок галереї</label>
                         <input type="text" className="w-full bg-[#080818] border border-white/10 p-3 rounded text-white" value={(parsed as any).title || ''} onChange={e => updateBlockContent(index, { ...parsed, title: e.target.value })} />
+                        <p className="mt-2 text-xs text-[#8a8a93]">Виділення золотим: напишіть слово між *зірочками*.</p>
                       </div>
                       <div>
                         <label className="text-xs text-[#8a8a93] uppercase mb-2 block">Медіафайли галереї</label>
@@ -282,18 +290,21 @@ export default function CMSPage() {
                       <div>
                         <label className="text-xs text-[#8a8a93] uppercase">Заголовок блоку переваг</label>
                         <input type="text" className="w-full bg-[#080818] border border-white/10 p-3 rounded text-white" value={(parsed as any).title || ''} onChange={e => updateBlockContent(index, { ...parsed, title: e.target.value })} />
+                        <p className="mt-2 text-xs text-[#8a8a93]">Виділення золотим: напишіть слово між *зірочками*.</p>
+                        {(parsed as any).title && (
+                          <HighlightedTitle text={(parsed as any).title} as="div" className="mt-3 text-2xl font-bold text-white" />
+                        )}
                       </div>
                       <div className="space-y-2">
                         {((parsed as any).items || []).map((feat: any, i: number) => (
-                          <div key={i} className="flex gap-2 items-center bg-[#080818] p-3 rounded border border-white/10">
-                            <span className="material-symbols-outlined text-[#e9c349]">{feat.icon || 'star'}</span>
-                            <input type="text" placeholder="Іконка (material id)" className="w-32 bg-transparent text-white border-b border-white/20 p-1" value={feat.icon || ''} onChange={e => { const items = [...(parsed as any).items]; items[i].icon = e.target.value; updateBlockContent(index, { ...parsed, items }); }} />
-                            <input type="text" placeholder="Назва" className="w-48 bg-transparent text-white border-b border-white/20 p-1" value={feat.title || ''} onChange={e => { const items = [...(parsed as any).items]; items[i].title = e.target.value; updateBlockContent(index, { ...parsed, items }); }} />
-                            <input type="text" placeholder="Опис" className="flex-1 bg-transparent text-white border-b border-white/20 p-1" value={feat.desc || ''} onChange={e => { const items = [...(parsed as any).items]; items[i].desc = e.target.value; updateBlockContent(index, { ...parsed, items }); }} />
+                          <div key={i} className="grid gap-3 bg-[#080818] p-3 rounded border border-white/10 md:grid-cols-[180px_1fr_2fr_auto] md:items-center">
+                            <IconPicker value={feat.icon || 'Star'} onChange={value => { const items = [...(parsed as any).items]; items[i].icon = value; updateBlockContent(index, { ...parsed, items }); }} />
+                            <input type="text" placeholder="Назва" className="bg-transparent text-white border-b border-white/20 p-2 outline-none focus:border-[#e9c349]" value={feat.title || ''} onChange={e => { const items = [...(parsed as any).items]; items[i].title = e.target.value; updateBlockContent(index, { ...parsed, items }); }} />
+                            <input type="text" placeholder="Опис" className="bg-transparent text-white border-b border-white/20 p-2 outline-none focus:border-[#e9c349]" value={feat.desc || ''} onChange={e => { const items = [...(parsed as any).items]; items[i].desc = e.target.value; updateBlockContent(index, { ...parsed, items }); }} />
                             <button onClick={() => { const items = [...(parsed as any).items]; items.splice(i, 1); updateBlockContent(index, { ...parsed, items }); }} className="text-red-400 p-2 hover:bg-red-400/20 rounded"><Trash2 size={16}/></button>
                           </div>
                         ))}
-                        <button onClick={() => { const items = [...((parsed as any).items || [])]; items.push({ icon: 'check', title: '', desc: '' }); updateBlockContent(index, { ...parsed, items }); }} className="text-sm text-[#e9c349] hover:underline">+ Додати перевагу</button>
+                        <button onClick={() => { const items = [...((parsed as any).items || [])]; items.push({ icon: 'CircleCheck', title: '', desc: '' }); updateBlockContent(index, { ...parsed, items }); }} className="text-sm text-[#e9c349] hover:underline">+ Додати перевагу</button>
                       </div>
                     </div>
                   )}

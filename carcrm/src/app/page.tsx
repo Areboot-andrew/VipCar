@@ -7,6 +7,9 @@ import MarqueeGallery from '../components/MarqueeGallery';
 import NavAuth from '../components/NavAuth';
 import MobileMenu from '../components/MobileMenu';
 import EmptyLegsBanner from '../components/EmptyLegsBanner';
+import HighlightedTitle from '../components/ui/HighlightedTitle';
+import DynamicIcon from '../components/ui/DynamicIcon';
+import { withContentDefaults } from '../lib/contentDefaults';
 
 const prisma = new PrismaClient();
 export const dynamic = 'force-dynamic';
@@ -15,6 +18,16 @@ const parseAccent = (text: string | undefined, defaultText: string = '') => {
   const t = text || defaultText;
   if (!t) return '';
   return t.replace(/\*(.*?)\*/g, '<span class="text-[#e9c349] font-bold">$1</span>');
+};
+
+const toHighlightedText = (text: string | undefined, defaultText: string = '') => {
+  const t = text || defaultText;
+  if (!t) return '';
+
+  return t
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<span[^>]*>(.*?)<\/span>/gi, '*$1*')
+    .replace(/<[^>]+>/g, '');
 };
 
 export default async function Home() {
@@ -26,10 +39,10 @@ export default async function Home() {
   const globalFuelPrices = await prisma.fuelPrice.findMany();
   
   const contentRows = await prisma.siteContent.findMany();
-  const c = contentRows.reduce((acc, row) => {
+  const c = withContentDefaults(contentRows.reduce((acc, row) => {
     acc[row.key] = row.value;
     return acc;
-  }, {} as Record<string, string>);
+  }, {} as Record<string, string>));
 
   const blocks = await prisma.pageBlock.findMany({
     where: { active: true },
@@ -52,17 +65,17 @@ export default async function Home() {
       <header className="fixed top-0 left-0 w-full z-50 bg-[#080818]/90 backdrop-blur-md border-b border-white/10">
         <nav className="flex justify-between items-center px-[24px] md:px-[64px] py-[12px] max-w-[1280px] mx-auto w-full">
           <Link href="/" className="flex items-center gap-3 cursor-pointer flex-1">
-            <img src={c['logo_url'] || '/logo.png'} alt={c['brand_name'] || 'First Line Transfer'} className="h-[40px] md:h-[50px] object-contain" />
+            <img src={c['logo_url']} alt={c['brand_name']} className="h-[40px] md:h-[50px] object-contain" />
           </Link>
           <div className="hidden md:flex flex-none gap-[32px] items-center justify-center">
-            <Link href="#services" className="text-[#c7c6ca] hover:text-[#e4e2e3] font-label-caps text-[12px] uppercase transition-colors">{c['menu_services'] || 'Послуги'}</Link>
-            <Link href="/gallery" className="text-[#c7c6ca] hover:text-[#e4e2e3] font-label-caps text-[12px] uppercase transition-colors">{c['menu_gallery'] || 'Галерея'}</Link>
-            <Link href="#contact" className="text-[#c7c6ca] hover:text-[#e4e2e3] font-label-caps text-[12px] uppercase transition-colors">{c['menu_contact'] || 'Контакти'}</Link>
-            <NavAuth loginText={c['menu_login'] || 'Увійти'} />
+            <Link href="#services" className="text-[#c7c6ca] hover:text-[#e4e2e3] font-label-caps text-[12px] uppercase transition-colors">{c['menu_services']}</Link>
+            <Link href="/gallery" className="text-[#c7c6ca] hover:text-[#e4e2e3] font-label-caps text-[12px] uppercase transition-colors">{c['menu_gallery']}</Link>
+            <Link href="#contact" className="text-[#c7c6ca] hover:text-[#e4e2e3] font-label-caps text-[12px] uppercase transition-colors">{c['menu_contact']}</Link>
+            <NavAuth loginText={c['menu_login']} driverCabinetText={c['menu_driver_cabinet']} profileText={c['menu_profile']} logoutText={c['menu_logout']} />
           </div>
           <div className="flex items-center gap-4 flex-1 justify-end">
             <Link href="#calculator" className="hidden md:block gold-button text-[12px] uppercase px-6 py-2.5 rounded-xl font-bold tracking-wider">
-              {c['btn_book_now'] || 'Бронювати'}
+              {c['btn_book_now']}
             </Link>
             <MobileMenu c={c} />
           </div>
@@ -90,10 +103,10 @@ export default async function Home() {
                       <div className="absolute inset-0 bg-gradient-to-b from-[#080818]/80 via-[#080818]/60 to-[#080818] z-10"></div>
                     </div>
                     <div className="relative z-20 max-w-4xl text-center flex flex-col items-center pt-20 px-4">
-                      <h1 className="font-display-lg text-[36px] md:text-[80px] text-white mb-6 drop-shadow-2xl leading-[1.2] md:leading-[1.1]" dangerouslySetInnerHTML={{__html: parseAccent(parsed.title || c['hero_title'])}}></h1>
+                      <HighlightedTitle text={toHighlightedText(parsed.title || c['hero_title'])} as="h1" className="font-display-lg text-[36px] md:text-[80px] text-white mb-6 drop-shadow-2xl leading-[1.2] md:leading-[1.1]" />
                       <p className="font-body-lg text-[16px] md:text-[22px] text-[#c7c6ca] mb-10 max-w-2xl drop-shadow-md" dangerouslySetInnerHTML={{ __html: parseAccent(parsed.subtitle || c['hero_subtitle']) }}></p>
                       <Link href="#calculator" className="gold-button font-button text-[14px] md:text-[16px] uppercase px-6 py-4 md:px-10 md:py-5 rounded-xl font-bold tracking-widest shadow-[0_10px_30px_rgba(212,175,55,0.2)] hover:scale-105 transition-all w-full md:w-auto">
-                        Розрахувати вартість
+                        {c['btn_hero_cta']}
                       </Link>
                     </div>
                   </section>
@@ -105,7 +118,7 @@ export default async function Home() {
                   <section key={block.id} className="max-w-[1280px] mx-auto px-[24px] md:px-[64px] my-16">
                     <div className={`flex flex-col gap-12 items-center ${parsed.imagePosition === 'right' ? 'md:flex-row' : 'md:flex-row-reverse'}`}>
                       <div className="flex-1 space-y-6">
-                        {parsed.title && <h2 className="font-headline-lg text-4xl text-[#e4e2e3]" dangerouslySetInnerHTML={{__html: parseAccent(parsed.title)}}></h2>}
+                        <HighlightedTitle text={toHighlightedText(parsed.title)} as="h2" className="font-headline-lg text-4xl text-[#e4e2e3]" />
                         <div className="prose prose-invert prose-lg text-[#c7c6ca]" dangerouslySetInnerHTML={{__html: parsed.text || ''}}></div>
                       </div>
                       {parsed.image && (
@@ -130,12 +143,12 @@ export default async function Home() {
               if (block.type === 'FEATURES') {
                 return (
                   <section key={block.id} className="max-w-[1280px] mx-auto px-[24px] md:px-[64px] my-16" id="services">
-                    <h2 className="font-headline-lg text-4xl text-center text-[#e4e2e3] mb-12" dangerouslySetInnerHTML={{__html: parseAccent(parsed.title)}}></h2>
+                    <HighlightedTitle text={toHighlightedText(parsed.title)} as="h2" className="font-headline-lg text-4xl text-center text-[#e4e2e3] mb-12" />
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                       {(parsed.items || []).map((feat: any, idx: number) => (
                         <div key={idx} className="glass-panel p-8 rounded-2xl hover-gold-border transition-all flex flex-col items-start group">
-                           <span className="material-symbols-outlined text-[#e9c349] text-5xl mb-6 group-hover:scale-110 transition-transform">{feat.icon || 'star'}</span>
-                           <h3 className="font-headline-md text-2xl text-white mb-4" dangerouslySetInnerHTML={{__html: parseAccent(feat.title)}}></h3>
+                           <DynamicIcon name={feat.icon || 'Star'} size={48} className="text-[#e9c349] mb-6 transition-transform group-hover:scale-110" />
+                           <HighlightedTitle text={toHighlightedText(feat.title)} as="h3" className="font-headline-md text-2xl text-white mb-4" />
                            <p className="text-[#c7c6ca] leading-relaxed">{feat.desc}</p>
                         </div>
                       ))}
@@ -160,29 +173,23 @@ export default async function Home() {
                 <div className="absolute inset-0 bg-gradient-to-b from-[#080818]/80 via-[#080818]/60 to-[#080818] z-10"></div>
               </div>
               <div className="relative z-20 max-w-4xl text-center flex flex-col items-center pt-20 px-4">
-                <h1 className="font-display-lg text-[36px] md:text-[80px] text-white mb-6 drop-shadow-2xl leading-[1.2] md:leading-[1.1]" dangerouslySetInnerHTML={{__html: c['hero_title'] || 'ПРЕМІУМ ТРАНСФЕР<br/><span style="color: #e9c349">БЕЗ КОМПРОМІСІВ</span>'}}></h1>
-                <p className="font-body-lg text-[16px] md:text-[22px] text-[#c7c6ca] mb-10 max-w-2xl drop-shadow-md" dangerouslySetInnerHTML={{ __html: parseAccent(c['hero_subtitle'], 'Ваш час. Ваші правила. Ідеальний сервіс від дверей до дверей з гарантованою пунктуальністю.') }}></p>
+                <HighlightedTitle text={toHighlightedText(c['hero_title'])} as="h1" className="font-display-lg text-[36px] md:text-[80px] text-white mb-6 drop-shadow-2xl leading-[1.2] md:leading-[1.1]" />
+                <p className="font-body-lg text-[16px] md:text-[22px] text-[#c7c6ca] mb-10 max-w-2xl drop-shadow-md" dangerouslySetInnerHTML={{ __html: parseAccent(c['hero_subtitle']) }}></p>
                 <Link href="#calculator" className="gold-button font-button text-[14px] md:text-[16px] uppercase px-6 py-4 md:px-10 md:py-5 rounded-xl font-bold tracking-widest shadow-[0_10px_30px_rgba(212,175,55,0.2)] hover:scale-105 transition-all w-full md:w-auto">
-                  {c['btn_hero_cta'] || 'Розрахувати вартість'}
+                  {c['btn_hero_cta']}
                 </Link>
               </div>
             </section>
 
             <section className="max-w-[1280px] mx-auto px-[24px] md:px-[64px] mb-[100px]" id="services">
-              <h2 className="font-headline-lg text-[40px] md:text-[56px] text-[#e4e2e3] mb-[64px] text-center" dangerouslySetInnerHTML={{ __html: parseAccent(c['services_title'], 'Чому обирають нас?') }}></h2>
+              <HighlightedTitle text={toHighlightedText(c['services_title'])} as="h2" className="font-headline-lg text-[40px] md:text-[56px] text-[#e4e2e3] mb-[64px] text-center" />
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-[32px] mb-[64px]">
                 {[1, 2, 3, 4].map((i) => {
-                  const defaults = [
-                    { t: 'Пунктуальність', d: 'Ми завжди прибуваємо за 15 хвилин до вказаного часу.', i: 'schedule' },
-                    { t: 'Преміум Автопарк', d: 'Тільки нові автомобілі в ідеальному технічному стані.', i: 'directions_car' },
-                    { t: 'Конфіденційність', d: 'Повна гарантія анонімності та безпеки ваших поїздок.', i: 'verified_user' },
-                    { t: 'Професійні Водії', d: 'Англомовні водії з багаторічним досвідом VIP-обслуговування.', i: 'workspace_premium' }
-                  ];
                   return (
                   <div key={i} className="glass-panel p-8 rounded-2xl hover-gold-border transition-all duration-300 flex flex-col items-start group">
-                    <span className="material-symbols-outlined text-[#e9c349] text-5xl mb-6 group-hover:scale-110 transition-transform">{c[`feature_${i}_icon`] || defaults[i-1].i}</span>
-                    <h3 className="font-headline-md text-2xl text-[#e4e2e3] mb-4" dangerouslySetInnerHTML={{ __html: parseAccent(c[`feature_${i}_title`], defaults[i-1].t) }}></h3>
-                    <p className="font-body-md text-[#c7c6ca] leading-relaxed" dangerouslySetInnerHTML={{ __html: parseAccent(c[`feature_${i}_desc`], defaults[i-1].d) }}></p>
+                    <DynamicIcon name={c[`feature_${i}_icon`]} size={48} className="text-[#e9c349] mb-6 group-hover:scale-110 transition-transform" />
+                    <HighlightedTitle text={toHighlightedText(c[`feature_${i}_title`])} as="h3" className="font-headline-md text-2xl text-[#e4e2e3] mb-4" />
+                    <p className="font-body-md text-[#c7c6ca] leading-relaxed" dangerouslySetInnerHTML={{ __html: parseAccent(c[`feature_${i}_desc`]) }}></p>
                   </div>
                 )})}
               </div>
@@ -190,20 +197,20 @@ export default async function Home() {
             
             <MarqueeGallery media={allMedia.length > 0 ? allMedia : [
               { type: 'image', url: 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80' }
-            ]} title={parseAccent(c['gallery_title'], 'Галерея')} />
+            ]} title={parseAccent(c['gallery_title'])} />
           </>
         )}
 
-        <EmptyLegsBanner />
+        <EmptyLegsBanner cmsSettings={c} />
 
         <div id="calculator" className="scroll-mt-24">
-          <Suspense fallback={<div className="text-center text-[#e9c349] py-12">Завантаження калькулятора...</div>}>
+          <Suspense fallback={<div className="text-center text-[#e9c349] py-12">{c['loading_calculator']}</div>}>
             <Calculator cars={cars} cmsSettings={c} siteSettings={siteSettings} globalCurrencies={globalCurrencies} globalFuelPrices={globalFuelPrices} />
           </Suspense>
         </div>
 
         <div id="contact" className="scroll-mt-24">
-           <ContactForm />
+           <ContactForm cmsSettings={c} />
         </div>
       </main>
 
@@ -216,28 +223,28 @@ export default async function Home() {
               ) : (
                 <div className="w-8 h-8 bg-white/10 rounded flex items-center justify-center font-bold text-white/50 text-xs">FLT</div>
               )}
-              <span className="font-display-lg text-white/70 text-[20px]">{c['brand_name'] || 'First Line Transfer'}</span>
+              <span className="font-display-lg text-white/70 text-[20px]">{c['brand_name']}</span>
             </div>
-            <p className="text-[#c7c6ca]/70 text-sm">{c['footer_text'] || 'Преміальні трансфери Європою та Україною. Комфорт, безпека та конфіденційність.'}</p>
+            <p className="text-[#c7c6ca]/70 text-sm">{c['footer_text']}</p>
           </div>
           <div>
-            <h4 className="text-white font-bold mb-6 uppercase tracking-widest text-sm">Меню</h4>
+            <h4 className="text-white font-bold mb-6 uppercase tracking-widest text-sm">{c['footer_menu_title']}</h4>
             <div className="flex flex-col gap-3 text-[#c7c6ca]/70 text-sm">
-              <Link href="#services" className="hover:text-[#e9c349] transition-colors">{c['menu_services'] || 'Послуги'}</Link>
-              <Link href="/gallery" className="hover:text-[#e9c349] transition-colors">{c['menu_gallery'] || 'Галерея'}</Link>
-              <Link href="#calculator" className="hover:text-[#e9c349] transition-colors">{c['menu_calculator'] || 'Бронювання'}</Link>
+              <Link href="#services" className="hover:text-[#e9c349] transition-colors">{c['menu_services']}</Link>
+              <Link href="/gallery" className="hover:text-[#e9c349] transition-colors">{c['menu_gallery']}</Link>
+              <Link href="#calculator" className="hover:text-[#e9c349] transition-colors">{c['menu_calculator']}</Link>
             </div>
           </div>
           <div>
-            <h4 className="text-white font-bold mb-6 uppercase tracking-widest text-sm">Контакти</h4>
+            <h4 className="text-white font-bold mb-6 uppercase tracking-widest text-sm">{c['footer_contacts_title']}</h4>
             <div className="flex flex-col gap-3 text-[#c7c6ca]/70 text-sm">
-              <a href={`tel:${c['contact_phone']}`} className="hover:text-[#e9c349] transition-colors flex items-center gap-2"><span className="material-symbols-outlined text-[18px]">call</span> {c['contact_phone'] || '+380 00 000 00 00'}</a>
-              <a href={`mailto:${c['contact_email']}`} className="hover:text-[#e9c349] transition-colors flex items-center gap-2"><span className="material-symbols-outlined text-[18px]">mail</span> {c['contact_email'] || 'info@firstline.com'}</a>
+              <a href={`tel:${c['contact_phone']}`} className="hover:text-[#e9c349] transition-colors flex items-center gap-2"><span className="material-symbols-outlined text-[18px]">call</span> {c['contact_phone']}</a>
+              <a href={`mailto:${c['contact_email']}`} className="hover:text-[#e9c349] transition-colors flex items-center gap-2"><span className="material-symbols-outlined text-[18px]">mail</span> {c['contact_email']}</a>
             </div>
           </div>
         </div>
         <div className="max-w-[1280px] mx-auto mt-16 pt-8 border-t border-white/5 text-center text-[#c7c6ca]/50 text-xs">
-          © {new Date().getFullYear()} {c['brand_name'] || 'First Line Transfer'}. Всі права захищено.
+          © {new Date().getFullYear()} {c['brand_name']}. {c['footer_rights']}
         </div>
       </footer>
     </div>

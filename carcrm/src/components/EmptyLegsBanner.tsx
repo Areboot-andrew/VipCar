@@ -4,8 +4,11 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Percent, Calendar, MapPin, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
+import HighlightedTitle from './ui/HighlightedTitle';
+import { withContentDefaults } from '../lib/contentDefaults';
 
-export default function EmptyLegsBanner() {
+export default function EmptyLegsBanner({ cmsSettings = {} }: { cmsSettings?: Record<string, string> }) {
+  const c = withContentDefaults(cmsSettings);
   const [promos, setPromos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -32,9 +35,7 @@ export default function EmptyLegsBanner() {
   return (
     <section className="max-w-[1280px] mx-auto px-[24px] md:px-[64px] mb-[100px]">
       <div className="flex items-center gap-4 mb-8">
-        <h2 className="font-headline-lg text-[32px] md:text-[40px] text-[#e4e2e3]">
-          Гарячі пропозиції <span className="text-[#e9c349]">Empty Legs</span>
-        </h2>
+        <HighlightedTitle text={c['empty_legs_title']} as="h2" className="font-headline-lg text-[32px] md:text-[40px] text-[#e4e2e3]" />
         <div className="h-[2px] flex-1 bg-gradient-to-r from-[#e9c349]/30 to-transparent"></div>
       </div>
       
@@ -59,7 +60,7 @@ export default function EmptyLegsBanner() {
             <div className="space-y-3 mb-6 z-10 relative">
               <div className="flex items-center gap-3 text-[#c7c6ca]">
                 <MapPin size={16} className="text-[#e9c349]" />
-                <span className="text-sm">{promo.routeFrom || 'Будь-яке'} <ArrowRight size={14} className="inline mx-1" /> {promo.routeTo || 'Будь-яке'}</span>
+                <span className="text-sm">{promo.routeFrom || c['empty_legs_anywhere']} <ArrowRight size={14} className="inline mx-1" /> {promo.routeTo || c['empty_legs_anywhere']}</span>
               </div>
               
               {promo.dateStart && (
@@ -78,7 +79,7 @@ export default function EmptyLegsBanner() {
             </div>
 
             <Link href={`/#calculator?promo=${promo.discount}&carId=${promo.carId || ''}`} className="block w-full text-center py-3 rounded-xl border border-[#e9c349] text-[#e9c349] hover:bg-[#e9c349] hover:text-black font-bold transition-all z-10 relative">
-              Забронювати зі знижкою
+              {c['empty_legs_book_button']}
             </Link>
           </motion.div>
         ))}
