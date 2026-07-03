@@ -51,10 +51,6 @@ export default function AdminLayout({
             <Settings size={20} className="text-[#e9c349]" />
             <span className="font-semibold text-sm">CMS Сайту</span>
           </Link>
-          <Link href="/admin/gallery" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-[#c7c6ca] hover:text-white transition-colors">
-            <Settings size={20} className="text-[#e9c349]" />
-            <span className="font-semibold text-sm">Галерея медіа</span>
-          </Link>
           <Link href="/admin/chat" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-[#c7c6ca] hover:text-white transition-colors">
             <MessageSquare size={20} className="text-[#e9c349]" />
             <span className="font-semibold text-sm">Месенджер (Чат)</span>

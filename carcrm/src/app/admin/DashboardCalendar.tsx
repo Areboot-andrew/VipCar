@@ -99,22 +99,26 @@ export default function DashboardCalendar({ cars, bookings }: { cars: Car[], boo
       {/* Calendar Area */}
       <div className="p-6 h-[700px] custom-calendar-wrapper">
         <style>{`
-          .rbc-calendar { font-family: inherit; color: #c7c6ca; }
+          .rbc-calendar { font-family: inherit; color: #e4e2e3; background: #080818; }
           .rbc-toolbar button { color: #fff; background: rgba(255,255,255,0.05); border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); transition: all 0.2s; margin-right: 8px; }
           .rbc-toolbar button:hover { background: rgba(233,195,73,0.1); color: #e9c349; border-color: rgba(233,195,73,0.3); }
           .rbc-toolbar button.rbc-active { background: #e9c349; color: #000; border-color: #d4af37; font-weight: bold; }
-          .rbc-header { padding: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; font-size: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); }
-          .rbc-month-view, .rbc-time-view, .rbc-agenda-view { border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; overflow: hidden; background: #080818; }
+          .rbc-header { padding: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; font-size: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); color: #e9c349; }
+          .rbc-month-view, .rbc-time-view, .rbc-agenda-view { border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; overflow: hidden; background: #13131a; }
           .rbc-day-bg + .rbc-day-bg { border-left: 1px solid rgba(255,255,255,0.05); }
           .rbc-month-row + .rbc-month-row { border-top: 1px solid rgba(255,255,255,0.05); }
           .rbc-off-range-bg { background: rgba(255,255,255,0.02); }
-          .rbc-today { background: rgba(233,195,73,0.05); }
-          .rbc-event { transition: transform 0.2s; }
+          .rbc-today { background: rgba(233,195,73,0.1); }
+          .rbc-event { transition: transform 0.2s; border-radius: 6px; padding: 2px 5px; }
           .rbc-event:hover { transform: scale(1.02); z-index: 10; }
           .rbc-time-content { border-top: 1px solid rgba(255,255,255,0.05); }
           .rbc-time-header-content { border-left: 1px solid rgba(255,255,255,0.05); }
-          .rbc-timeslot-group { border-bottom: 1px solid rgba(255,255,255,0.02); }
+          .rbc-timeslot-group { border-bottom: 1px solid rgba(255,255,255,0.05); }
           .rbc-time-view .rbc-allday-cell { border-bottom: 1px solid rgba(255,255,255,0.05); }
+          .rbc-day-bg { border-right: 1px solid rgba(255,255,255,0.05); }
+          .rbc-month-view .rbc-header + .rbc-header { border-left: 1px solid rgba(255,255,255,0.05); }
+          .rbc-date-cell { padding: 4px; font-weight: bold; }
+          .rbc-event-content { font-size: 11px; }
         `}</style>
 
         <Calendar
