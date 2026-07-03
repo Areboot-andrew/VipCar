@@ -11,7 +11,7 @@ import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 import 'swiper/css/effect-fade';
 import { useSession } from 'next-auth/react';
-import { ArrowLeft, Check, Users, Fuel, Calendar, Star, X } from 'lucide-react';
+import { ArrowLeft, Check, Users, BriefcaseBusiness, Calendar, Star, X, BadgeCheck, Car as CarIcon, MapPin } from 'lucide-react';
 import DynamicIcon from '@/components/ui/DynamicIcon';
 import HighlightedTitle from '@/components/ui/HighlightedTitle';
 
@@ -43,6 +43,7 @@ export default function CarDetailsPage() {
   const [car, setCar] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [reviews, setReviews] = useState<any[]>([]);
+  const [relatedCars, setRelatedCars] = useState<any[]>([]);
   const [canReview, setCanReview] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
@@ -52,13 +53,41 @@ export default function CarDetailsPage() {
   const [submittingReview, setSubmittingReview] = useState(false);
 
   useEffect(() => {
+    let active = true;
+    setLoading(true);
     fetch(`/api/cars/${params.id}`)
       .then(res => res.json())
       .then(data => {
+        if (!active) return;
         setCar(data);
         setReviews(data.reviews || []);
         setLoading(false);
+        fetch('/api/cars')
+          .then(res => res.json())
+          .then(cars => {
+            if (!active || !Array.isArray(cars)) return;
+            const score = (item: any) => {
+              const sameClass = item.comfortClass && item.comfortClass === data.comfortClass ? 4 : 0;
+              const sameBody = item.bodyType && item.bodyType === data.bodyType ? 2 : 0;
+              const capacityClose = Math.max(0, 2 - Math.abs((item.capacity || 0) - (data.capacity || 0)) * 0.25);
+              return sameClass + sameBody + capacityClose;
+            };
+            const related = cars
+              .filter((item: any) => item.id !== data.id)
+              .sort((a: any, b: any) => score(b) - score(a))
+              .slice(0, 3);
+            setRelatedCars(related);
+          })
+          .catch(console.error);
+      })
+      .catch(error => {
+        console.error(error);
+        if (active) setLoading(false);
       });
+
+    return () => {
+      active = false;
+    };
   }, [params.id]);
 
   useEffect(() => {
@@ -121,6 +150,17 @@ export default function CarDetailsPage() {
   const coverMedia = allMedia.find((item: any) => item.isCover) || allMedia[0];
   const features = car.features && car.features !== '[]' ? JSON.parse(car.features) : [];
   const pageBlocks = parseBlocks(car.pageBlocks);
+  const getCover = (item: any) => {
+    const media = item.media && item.media.length > 0
+      ? item.media
+      : (item.images || []).map((url: string, index: number) => ({
+          type: 'image',
+          url,
+          alt: `${item.make} ${item.model}`,
+          isCover: index === 0,
+        }));
+    return media.find((mediaItem: any) => mediaItem.isCover) || media[0];
+  };
   
   // Calculate average rating
   const avgRating = reviews.length > 0 ? (reviews.reduce((acc, curr) => acc + curr.rating, 0) / reviews.length).toFixed(1) : '5.0';
@@ -185,30 +225,41 @@ export default function CarDetailsPage() {
               <span className="text-white font-display-md text-2xl">{car.year}</span>
             </div>
             <div className="flex flex-col items-center justify-center text-center gap-2">
-              <Fuel className="text-[#e9c349]" size={28} />
-              <span className="text-[#c7c6ca] text-xs uppercase tracking-widest font-bold">Двигун</span>
-              <span className="text-white font-display-md text-xl">{car.fuelType}</span>
+              <BriefcaseBusiness className="text-[#e9c349]" size={28} />
+              <span className="text-[#c7c6ca] text-xs uppercase tracking-widest font-bold">Багаж</span>
+              <span className="text-white font-display-md text-2xl">{car.luggageCapacity || 2}</span>
             </div>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-[#13131a] border border-white/10 rounded-xl p-4">
-              <span className="text-[#8a8a93] text-xs uppercase tracking-widest font-bold">Багаж</span>
-              <div className="text-white text-xl font-bold mt-2">{car.luggageCapacity || 2} валіз</div>
+              <BadgeCheck className="mb-3 text-[#e9c349]" size={20} />
+              <span className="text-[#8a8a93] text-xs uppercase tracking-widest font-bold">Клас</span>
+              <div className="text-white text-xl font-bold mt-2">{car.comfortClass || 'Premium'}</div>
             </div>
             <div className="bg-[#13131a] border border-white/10 rounded-xl p-4">
-              <span className="text-[#8a8a93] text-xs uppercase tracking-widest font-bold">Місто</span>
-              <div className="text-white text-xl font-bold mt-2">{car.fuelConsumptionCity} л/100</div>
+              <CarIcon className="mb-3 text-[#e9c349]" size={20} />
+              <span className="text-[#8a8a93] text-xs uppercase tracking-widest font-bold">Кузов</span>
+              <div className="text-white text-xl font-bold mt-2">{car.bodyType || 'Premium'}</div>
             </div>
             <div className="bg-[#13131a] border border-white/10 rounded-xl p-4">
-              <span className="text-[#8a8a93] text-xs uppercase tracking-widest font-bold">Траса</span>
-              <div className="text-white text-xl font-bold mt-2">{car.fuelConsumptionHighway} л/100</div>
+              <BriefcaseBusiness className="mb-3 text-[#e9c349]" size={20} />
+              <span className="text-[#8a8a93] text-xs uppercase tracking-widest font-bold">Великі валізи</span>
+              <div className="text-white text-xl font-bold mt-2">{car.largeLuggageCapacity || 1}</div>
             </div>
             <div className="bg-[#13131a] border border-white/10 rounded-xl p-4">
-              <span className="text-[#8a8a93] text-xs uppercase tracking-widest font-bold">База</span>
+              <MapPin className="mb-3 text-[#e9c349]" size={20} />
+              <span className="text-[#8a8a93] text-xs uppercase tracking-widest font-bold">Подача</span>
               <div className="text-white text-xl font-bold mt-2">{car.baseCity || 'Львів'}</div>
             </div>
           </div>
+
+          {car.luggageNote && (
+            <div className="rounded-2xl border border-white/10 bg-[#13131a] p-5 text-sm leading-6 text-[#c7c6ca]">
+              <span className="mb-2 block text-xs font-bold uppercase tracking-widest text-[#e9c349]">Багаж і посадка</span>
+              {car.luggageNote}
+            </div>
+          )}
 
           {/* Description */}
           {pageBlocks.length > 0 ? (
@@ -293,10 +344,10 @@ export default function CarDetailsPage() {
             </div>
           )}
 
-          {/* Complete Gallery */}
+          {/* Media */}
           {allMedia.length > 0 && (
             <div>
-              <h3 className="font-headline-md text-2xl text-white mb-6">Галерея</h3>
+              <h3 className="font-headline-md text-2xl text-white mb-6">Фото та відео авто</h3>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {allMedia.map((item: any, i: number) => (
                   <div key={i} className="aspect-square rounded-xl overflow-hidden cursor-pointer group relative" onClick={() => openLightbox(i)}>
@@ -314,17 +365,52 @@ export default function CarDetailsPage() {
             </div>
           )}
 
+          {relatedCars.length > 0 && (
+            <div className="border-t border-white/10 pt-10">
+              <div className="mb-6">
+                <h3 className="font-headline-md text-2xl text-white">Схожий клас авто</h3>
+                <p className="mt-2 text-sm text-[#8a8a93]">Інші автомобілі з близькою місткістю, багажем і рівнем комфорту.</p>
+              </div>
+              <div className="grid gap-4 md:grid-cols-3">
+                {relatedCars.map((item) => {
+                  const relatedCover = getCover(item);
+                  return (
+                    <Link key={item.id} href={`/cars/${item.slug || item.id}`} className="group overflow-hidden rounded-2xl border border-white/10 bg-[#13131a] transition-colors hover:border-[#e9c349]/50">
+                      <div className="aspect-[4/3] overflow-hidden bg-[#080818]">
+                        {relatedCover ? (
+                          relatedCover.type === 'video' ? (
+                            <video src={relatedCover.url} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" muted loop playsInline />
+                          ) : (
+                            <img src={relatedCover.url} alt={relatedCover.alt || `${item.make} ${item.model}`} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                          )
+                        ) : (
+                          <div className="flex h-full items-center justify-center text-[#64646d]">
+                            <CarIcon size={28} />
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-4">
+                        <div className="font-bold text-white">{item.make} {item.model}</div>
+                        <div className="mt-2 text-xs leading-5 text-[#8a8a93]">{item.year} • {item.capacity} місць • {item.luggageCapacity || 2} валіз • {item.comfortClass || 'Premium'}</div>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
         </div>
 
         {/* Right Column: CTA & Reviews */}
         <div className="space-y-8">
           
           {/* Booking Card */}
-          <div className="bg-[#13131a] rounded-3xl p-8 border border-[#e9c349]/30 shadow-[0_0_40px_rgba(233,195,73,0.1)] sticky top-28">
-            <h3 className="font-headline-md text-2xl text-white mb-4">Бронювання</h3>
-            <p className="text-[#c7c6ca] mb-8 text-sm">Забронюйте цей {car.make} прямо зараз. Ми гарантуємо ідеальну чистоту та пунктуальність.</p>
-            <Link href={`/#calculator?carId=${car.id}`} className="block w-full text-center bg-[#D4AF37] hover:bg-[#e9c349] text-black font-bold py-4 rounded-xl transition-all uppercase tracking-wider text-sm shadow-[0_4px_15px_rgba(233,195,73,0.4)]">
-              Перейти до калькулятора
+          <div className="bg-[#13131a] rounded-3xl p-8 border border-[#e9c349]/30 shadow-[0_0_40px_rgba(233,195,73,0.1)]">
+            <h3 className="font-headline-md text-2xl text-white mb-4">Розрахунок поїздки</h3>
+            <p className="text-[#c7c6ca] mb-8 text-sm">Цей автомобіль подається з професійним водієм. У калькуляторі можна вибрати маршрут, час прибуття, пасажирів, дитячі крісла чи тварин.</p>
+            <Link href={`/?carId=${car.id}#calculator`} className="block w-full text-center bg-[#D4AF37] hover:bg-[#e9c349] text-black font-bold py-4 rounded-xl transition-all uppercase tracking-wider text-sm shadow-[0_4px_15px_rgba(233,195,73,0.4)]">
+              Розрахувати маршрут
             </Link>
           </div>
 

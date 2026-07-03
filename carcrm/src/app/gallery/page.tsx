@@ -56,7 +56,7 @@ export default async function GalleryPage() {
       ...item,
       carId: car.slug || car.id,
       carTitle: `${car.make} ${car.model}`,
-      carMeta: `${car.year} • ${car.capacity} місць • ${car.comfortClass}`,
+      carMeta: `${car.year} • ${car.capacity} місць • ${car.luggageCapacity} валіз • ${car.comfortClass}`,
     }));
   });
 
@@ -76,18 +76,18 @@ export default async function GalleryPage() {
       </header>
 
       <main className="pt-24">
-        <section className="mx-auto grid max-w-[1280px] gap-10 px-6 py-12 md:px-16 lg:grid-cols-[0.8fr_1.2fr] lg:items-end">
+        <section className="mx-auto grid max-w-[1280px] gap-10 px-6 py-12 md:px-16 lg:grid-cols-[0.8fr_1.2fr] lg:items-center">
           <div>
             <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[#e9c349]/25 bg-[#e9c349]/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-[#e9c349]">
               <Camera size={16} /> {c['menu_gallery']}
             </div>
             <HighlightedTitle
-              text={c['gallery_title'] || 'Галерея *автопарку*'}
+              text={c['gallery_title'] || 'Автопарк *для трансферу*'}
               as="h1"
               className="text-[40px] font-black leading-tight text-white md:text-[64px]"
             />
             <p className="mt-5 max-w-xl text-lg leading-relaxed text-[#c7c6ca]">
-              {c['gallery_subtitle'] || 'Реальні фото та відео автомобілів, які клієнт може обрати для трансферу.'}
+              {c['gallery_subtitle'] || 'Фото і відео автомобілів з водіями: клас, кількість місць, багаж і комплектація без зайвої технічної інформації.'}
             </p>
           </div>
 
@@ -120,8 +120,8 @@ export default async function GalleryPage() {
         <section className="mx-auto max-w-[1280px] px-6 pb-20 md:px-16">
           <div className="mb-8 flex flex-col gap-3 border-t border-white/10 pt-10 md:flex-row md:items-end md:justify-between">
             <div>
-              <h2 className="m-0 text-2xl font-bold text-white">Автомобілі в галереї</h2>
-              <p className="m-0 mt-2 text-sm text-[#8a8a93]">Кожен блок веде на SEO-сторінку конкретного авто.</p>
+              <h2 className="m-0 text-2xl font-bold text-white">Автомобілі для поїздок</h2>
+              <p className="m-0 mt-2 text-sm text-[#8a8a93]">Оберіть авто за класом, кількістю місць і багажем. Картка відкриває сторінку авто з фото, комплектацією і бронюванням.</p>
             </div>
             <div className="flex items-center gap-3 text-sm text-[#8a8a93]">
               <Images size={18} className="text-[#e9c349]" /> {galleryItems.length} медіафайлів
@@ -160,7 +160,7 @@ export default async function GalleryPage() {
                       <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                         <div>
                           <h3 className="m-0 text-2xl font-bold text-white">{car.make} {car.model}</h3>
-                          <p className="m-0 mt-2 text-sm text-[#8a8a93]">{car.year} • {car.capacity} місць • {car.luggageCapacity} валіз • {car.fuelType}</p>
+                          <p className="m-0 mt-2 text-sm text-[#8a8a93]">{car.year} • {car.capacity} місць • {car.luggageCapacity} валіз • {car.comfortClass || car.bodyType || 'Premium'}</p>
                         </div>
                         <Link href={`/cars/${car.slug || car.id}`} className="inline-flex items-center gap-2 rounded-lg border border-[#e9c349]/40 px-4 py-2 text-sm font-bold text-[#e9c349] transition-colors hover:bg-[#e9c349] hover:text-black">
                           Сторінка авто <ArrowRight size={16} />

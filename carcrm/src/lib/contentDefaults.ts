@@ -46,8 +46,8 @@ export const SITE_CONTENT_DEFAULTS: Record<string, string> = {
   feature_4_title: 'Професійні водії',
   feature_4_desc: 'Англомовні водії з багаторічним досвідом VIP-обслуговування.',
 
-  gallery_title: 'Галерея',
-  gallery_subtitle: 'Реальні фото та відео преміального автопарку для трансферів Європою та Україною.',
+  gallery_title: 'Автопарк *для трансферу*',
+  gallery_subtitle: 'Фото і відео автомобілів з водіями: клас, кількість місць, багаж і комплектація без зайвої технічної інформації.',
   gallery_seo_title: 'Галерея автопарку - First Line Transfer',
   gallery_seo_description: 'Фото і відео автомобілів First Line Transfer: Mercedes-Benz S-Class, V-Class, BMW 7 Series та інші авто для VIP-трансферів.',
   gallery_fallback_alt: 'Фото автопарку',

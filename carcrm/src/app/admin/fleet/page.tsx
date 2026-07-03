@@ -127,7 +127,7 @@ const emptyCar = (): CarRecord => ({
 const tabs = [
   { id: 'main', label: 'Основне', icon: CarFront },
   { id: 'page', label: 'Сторінка', icon: FileText },
-  { id: 'pricing', label: 'Розрахунки', icon: BadgeEuro },
+  { id: 'pricing', label: 'Тарифи', icon: BadgeEuro },
   { id: 'media', label: 'Медіа', icon: GalleryHorizontalEnd },
   { id: 'seo', label: 'SEO', icon: Search },
 ] as const;
@@ -446,7 +446,7 @@ export default function AdminFleetPage() {
           </div>
           <div>
             <h1 className="m-0 text-2xl font-bold text-white md:text-3xl">Автопарк і галерея</h1>
-            <p className="m-0 mt-1 text-sm text-[#8a8a93]">Дані авто для калькулятора, SEO-сторінок і медіа-галереї.</p>
+            <p className="m-0 mt-1 text-sm text-[#8a8a93]">Авто з водіями, сторінки авто, медіа, комплектація і тарифи для розрахунку.</p>
           </div>
         </div>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -539,20 +539,19 @@ export default function AdminFleetPage() {
                       <option value="IN_USE">У роботі</option>
                     </select>
                   </Field>
+                  <Field label="Водій">
+                    <select value={draft.defaultDriverId || ''} onChange={(e) => updateDraft('defaultDriverId', e.target.value)} className={inputClass()}>
+                      <option value="">Не призначено</option>
+                      {drivers.map((driver) => (
+                        <option key={driver.id} value={driver.id}>{driver.user.name} • €{driver.salaryPerKm}/км</option>
+                      ))}
+                    </select>
+                  </Field>
                   <Field label="Клас"><input value={draft.comfortClass} onChange={(e) => updateDraft('comfortClass', e.target.value)} className={inputClass()} /></Field>
                   <Field label="Кузов"><input value={draft.bodyType || ''} onChange={(e) => updateDraft('bodyType', e.target.value)} className={inputClass()} /></Field>
                   <Field label="Місць"><input type="number" value={draft.capacity} onChange={(e) => updateDraft('capacity', e.target.value)} className={inputClass()} /></Field>
                   <Field label="Валіз"><input type="number" value={draft.luggageCapacity} onChange={(e) => updateDraft('luggageCapacity', e.target.value)} className={inputClass()} /></Field>
                   <Field label="Великих валіз"><input type="number" value={draft.largeLuggageCapacity} onChange={(e) => updateDraft('largeLuggageCapacity', e.target.value)} className={inputClass()} /></Field>
-                  <Field label="Тип пального">
-                    <select value={draft.fuelType} onChange={(e) => updateDraft('fuelType', e.target.value)} className={inputClass()}>
-                      <option value="Бензин">Бензин</option>
-                      <option value="Дизель">Дизель</option>
-                      <option value="Газ">Газ</option>
-                      <option value="Електро">Електро</option>
-                    </select>
-                  </Field>
-                  <Field label="Бак / батарея"><input type="number" value={draft.fuelTankVolume} onChange={(e) => updateDraft('fuelTankVolume', e.target.value)} className={inputClass()} /></Field>
                 </div>
 
                 <Field label="Опис багажу"><textarea rows={2} value={draft.luggageNote || ''} onChange={(e) => updateDraft('luggageNote', e.target.value)} className={`${inputClass()} resize-y`} /></Field>
@@ -686,8 +685,17 @@ export default function AdminFleetPage() {
               <div className="grid gap-5 lg:grid-cols-3">
                 <Field label="Базова ставка €/км"><input type="number" step="0.01" value={draft.baseRate} onChange={(e) => updateDraft('baseRate', e.target.value)} className={inputClass()} /></Field>
                 <Field label="Пасажирів включено"><input type="number" step="1" value={draft.includedPassengers} onChange={(e) => updateDraft('includedPassengers', e.target.value)} className={inputClass()} /></Field>
-                <Field label="Витрата місто"><input type="number" step="0.1" value={draft.fuelConsumptionCity} onChange={(e) => updateDraft('fuelConsumptionCity', e.target.value)} className={inputClass()} /></Field>
-                <Field label="Витрата траса"><input type="number" step="0.1" value={draft.fuelConsumptionHighway} onChange={(e) => updateDraft('fuelConsumptionHighway', e.target.value)} className={inputClass()} /></Field>
+                <Field label="Тип енергії">
+                  <select value={draft.fuelType} onChange={(e) => updateDraft('fuelType', e.target.value)} className={inputClass()}>
+                    <option value="Бензин">Бензин</option>
+                    <option value="Дизель">Дизель</option>
+                    <option value="Газ">Газ</option>
+                    <option value="Електро">Електро</option>
+                  </select>
+                </Field>
+                <Field label="Бак / батарея"><input type="number" value={draft.fuelTankVolume} onChange={(e) => updateDraft('fuelTankVolume', e.target.value)} className={inputClass()} /></Field>
+                <Field label="Внутр. норма місто"><input type="number" step="0.1" value={draft.fuelConsumptionCity} onChange={(e) => updateDraft('fuelConsumptionCity', e.target.value)} className={inputClass()} /></Field>
+                <Field label="Внутр. норма траса"><input type="number" step="0.1" value={draft.fuelConsumptionHighway} onChange={(e) => updateDraft('fuelConsumptionHighway', e.target.value)} className={inputClass()} /></Field>
                 <Field label="Багаж / дод. особа €"><input type="number" step="0.01" value={draft.pricePerPerson} onChange={(e) => updateDraft('pricePerPerson', e.target.value)} className={inputClass()} /></Field>
                 <Field label="Амортизація €/км"><input type="number" step="0.01" value={draft.amortizationPerKm} onChange={(e) => updateDraft('amortizationPerKm', e.target.value)} className={inputClass()} /></Field>
                 <Field label="Базова подача €"><input type="number" step="0.01" value={draft.deliveryBaseFee} onChange={(e) => updateDraft('deliveryBaseFee', e.target.value)} className={inputClass()} /></Field>
@@ -700,14 +708,6 @@ export default function AdminFleetPage() {
                 <Field label="Базове місто"><input value={draft.baseCity || ''} onChange={(e) => updateDraft('baseCity', e.target.value)} className={inputClass()} /></Field>
                 <Field label="Base lat"><input value={draft.baseLat || ''} onChange={(e) => updateDraft('baseLat', e.target.value)} className={inputClass()} /></Field>
                 <Field label="Base lng"><input value={draft.baseLng || ''} onChange={(e) => updateDraft('baseLng', e.target.value)} className={inputClass()} /></Field>
-                <Field label="Водій за замовчуванням">
-                  <select value={draft.defaultDriverId || ''} onChange={(e) => updateDraft('defaultDriverId', e.target.value)} className={inputClass()}>
-                    <option value="">Не призначено</option>
-                    {drivers.map((driver) => (
-                      <option key={driver.id} value={driver.id}>{driver.user.name} • €{driver.salaryPerKm}/км</option>
-                    ))}
-                  </select>
-                </Field>
               </div>
             )}
 
