@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
-const demoSeedVersion = '2026-07-03-bookings-demo-v2';
+const demoSeedVersion = '2026-07-03-trip-pricing-demo-v3';
 const resetDemoCars = process.env.RESET_DEMO_CARS === 'true';
 const resetDemoData = process.env.RESET_DEMO_DATA === 'true';
 const forceDemoSeed = process.env.FORCE_DEMO_SEED === 'true';

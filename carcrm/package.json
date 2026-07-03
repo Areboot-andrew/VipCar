@@ -9,7 +9,9 @@
     "lint": "eslint",
     "migrate:deploy": "prisma migrate deploy",
     "seed": "npx ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts",
-    "demo:seed": "npm run seed"
+    "demo:seed": "npm run seed",
+    "demo:seed:server": "node scripts/demo-seed-server.mjs",
+    "demo:seed:reset": "node scripts/demo-seed-server.mjs --reset"
   },
   "prisma": {
     "seed": "npx ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
