@@ -12,6 +12,14 @@ type Car = {
   id: string; 
   make: string; 
   model: string; 
+  comfortClass?: string;
+  luggageCapacity?: number;
+  largeLuggageCapacity?: number;
+  allowsChildren?: boolean;
+  allowsAnimals?: boolean;
+  childSeatFee?: number;
+  animalFee?: number;
+  meetAndGreetFee?: number;
   baseRate: number;
   fuelType: string;
   fuelConsumptionCity: number;
@@ -32,9 +40,7 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
   const [distanceCity, setDistanceCity] = useState(50);
   const [distanceHighway, setDistanceHighway] = useState(50);
   const [durationMins, setDurationMins] = useState(0); 
-  const [directionsResponse, setDirectionsResponse] = useState<any>(null);
   const [selectedCarId, setSelectedCarId] = useState<string>(initCarId);
-  const [crossBorder, setCrossBorder] = useState(false);
   const [isWeekend, setIsWeekend] = useState(false);
   const [withDriver, setWithDriver] = useState(true);
   const [discountPercent, setDiscountPercent] = useState(initPromo);
@@ -110,36 +116,54 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [availabilityStatus, setAvailabilityStatus] = useState<'idle'|'checking'|'available'|'unavailable'>('idle');
-
-  const [excludeIntervals, setExcludeIntervals] = useState<{start: Date, end: Date}[]>([]);
+  const [vehicleAvailability, setVehicleAvailability] = useState<Record<string, boolean>>({});
+  const [checkingVehicleAvailability, setCheckingVehicleAvailability] = useState(false);
+  const [vehicleClass, setVehicleClass] = useState('all');
 
   const requiredCapacity = Number(passengers) + Number(children);
   const selectedCar = cars.find(c => c.id === selectedCarId);
+  const classOrder = ['VIP', 'Business', 'Premium', 'Executive'];
+  const luggageRequired = luggage.startsWith('Великий') ? 3 : luggage.startsWith('Середній') ? 2 : luggage.startsWith('Малий') ? 1 : 0;
+  const routeCountries = getRouteCountries();
+  const routeCountryKey = routeCountries.join('|');
+  const detectedCrossBorder = routeCountries.length > 1;
+  const hasTripBasics = Boolean(originObj && destObj && durationMins > 0 && arrivalDate);
+  const availableClasses = Array.from(new Set(cars.map((car) => car.comfortClass || 'Premium')))
+    .sort((a, b) => {
+      const ai = classOrder.indexOf(a);
+      const bi = classOrder.indexOf(b);
+      return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi) || a.localeCompare(b, 'uk');
+    });
+  const carMeetsCriteria = (car: any) => {
+    if (vehicleClass !== 'all' && (car.comfortClass || 'Premium') !== vehicleClass) return false;
+    if (car.capacity < requiredCapacity) return false;
+    if (Number(car.luggageCapacity || 0) < luggageRequired) return false;
+    if ((Number(children) > 0 || Number(childSeats) > 0) && car.allowsChildren === false) return false;
+    if (Number(petsCount) > 0 && car.allowsAnimals === false) return false;
+    return true;
+  };
+  const getCarCover = (car: any) => {
+    const media = Array.isArray(car.media) ? car.media : [];
+    return media.find((item: any) => item.isCover) || media[0] || (car.images?.[0] ? { type: 'image', url: car.images[0], alt: `${car.make} ${car.model}` } : null);
+  };
+  const filteredCars = cars
+    .filter(carMeetsCriteria)
+    .filter((car) => !hasTripBasics || vehicleAvailability[car.id] === true)
+    .sort((a, b) => {
+      const classDiff = (classOrder.indexOf(a.comfortClass || 'Premium') === -1 ? 99 : classOrder.indexOf(a.comfortClass || 'Premium')) -
+        (classOrder.indexOf(b.comfortClass || 'Premium') === -1 ? 99 : classOrder.indexOf(b.comfortClass || 'Premium'));
+      if (classDiff !== 0) return classDiff;
+      return Number(a.baseRate || 0) - Number(b.baseRate || 0);
+    });
 
   useEffect(() => {
     const currentCar = cars.find(c => c.id === selectedCarId);
-    if (currentCar && currentCar.capacity < requiredCapacity) {
-      const firstFitCar = cars.find(c => c.capacity >= requiredCapacity);
-      if (firstFitCar) setSelectedCarId(firstFitCar.id);
-      else setSelectedCarId('');
+    const currentIsUsable = currentCar && carMeetsCriteria(currentCar) && (!hasTripBasics || vehicleAvailability[currentCar.id] === true);
+    if (!currentIsUsable) {
+      const firstFitCar = filteredCars[0];
+      setSelectedCarId(firstFitCar?.id || '');
     }
-  }, [requiredCapacity, selectedCarId, cars]);
-
-  // Fetch booked dates for visual calendar
-  useEffect(() => {
-    if (!selectedCarId) return;
-    fetch(`/api/cars/${selectedCarId}/booked-dates`)
-      .then(res => res.json())
-      .then((data: any[]) => {
-        if (Array.isArray(data)) {
-          setExcludeIntervals(data.map(d => ({
-            start: new Date(d.dateStart),
-            end: new Date(d.dateEnd)
-          })));
-        }
-      })
-      .catch(console.error);
-  }, [selectedCarId]);
+  }, [requiredCapacity, luggage, children, childSeats, petsCount, vehicleClass, selectedCarId, cars, hasTripBasics, vehicleAvailability]);
 
   const searchNominatim = async (query: string, setter: (res: any[]) => void) => {
     if (query.length < 3) { setter([]); return; }
@@ -172,14 +196,14 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
     }
   }, [originObj, destObj]);
 
-  const getRouteCountries = () => {
+  function getRouteCountries() {
     const countries: string[] = [];
     if (originObj?.address?.country) countries.push(originObj.address.country);
     if (destObj?.address?.country && destObj.address.country !== originObj?.address?.country) {
       countries.push(destObj.address.country);
     }
     return countries;
-  };
+  }
 
   const getCarForPricing = (car: any) => ({
     ...car,
@@ -193,10 +217,10 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
     distanceCity,
     distanceHighway,
     durationMins,
-    routeCountries: getRouteCountries(),
+    routeCountries,
     origin: originObj ? { lat: originObj.lat, lng: originObj.lng } : null,
     arrivalDate,
-    crossBorder,
+    crossBorder: detectedCrossBorder,
     meetAndGreet,
     passengers: Number(passengers),
     children: Number(children),
@@ -257,7 +281,59 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
       totalExpenseDistance: pricing.totalExpenseDistance,
       pricingSnapshot: pricing.pricingSnapshot,
     });
-  }, [distanceCity, distanceHighway, distance, durationMins, selectedCarId, crossBorder, isWeekend, arrivalDate, withDriver, discountPercent, cars, fuelPricePetrol, fuelPriceDiesel, weekendCoeff, children, childSeats, petsCount, meetAndGreet, passengers, originObj, destObj, baseLocationLat, baseLocationLng, amortizationRate, deliveryRate, deliveryBaseFee, defaultCustomsWaitHours, manualWaitingHours, prepBufferMins, trafficBufferPercent, timeRatePerHour, hotelAfterHours, hotelCostPerNight, minMarginPercent, marginRate, globalFuelPrices]);
+  }, [distanceCity, distanceHighway, distance, durationMins, selectedCarId, detectedCrossBorder, isWeekend, arrivalDate, withDriver, discountPercent, cars, fuelPricePetrol, fuelPriceDiesel, weekendCoeff, children, childSeats, petsCount, meetAndGreet, passengers, originObj, destObj, routeCountryKey, baseLocationLat, baseLocationLng, amortizationRate, deliveryRate, deliveryBaseFee, defaultCustomsWaitHours, manualWaitingHours, prepBufferMins, trafficBufferPercent, timeRatePerHour, hotelAfterHours, hotelCostPerNight, minMarginPercent, marginRate, globalFuelPrices]);
+
+  useEffect(() => {
+    if (!hasTripBasics || !arrivalDate) {
+      setVehicleAvailability({});
+      setCheckingVehicleAvailability(false);
+      return;
+    }
+
+    const candidateChecks = cars
+      .filter(carMeetsCriteria)
+      .map((car) => {
+        const pricing = getPricingForCar(car);
+        if (!pricing.pickupAt) return null;
+        return {
+          carId: car.id,
+          dateStart: pricing.pickupAt.toISOString(),
+          dateEnd: arrivalDate.toISOString(),
+        };
+      })
+      .filter(Boolean);
+
+    if (candidateChecks.length === 0) {
+      setVehicleAvailability({});
+      setCheckingVehicleAvailability(false);
+      return;
+    }
+
+    let active = true;
+    setCheckingVehicleAvailability(true);
+    fetch('/api/cars/availability', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ checks: candidateChecks }),
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (!active) return;
+        setVehicleAvailability(data.results || {});
+        setCheckingVehicleAvailability(false);
+      })
+      .catch(error => {
+        console.error(error);
+        if (active) {
+          setVehicleAvailability({});
+          setCheckingVehicleAvailability(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [hasTripBasics, arrivalDate, durationMins, selectedCarId, vehicleClass, passengers, children, childSeats, luggage, petsCount, detectedCrossBorder, routeCountryKey, cars]);
 
   // manual distance change removed because the map auto-calculates it
 
@@ -289,7 +365,7 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
     };
 
     checkAvailability();
-  }, [arrivalDate, durationMins, crossBorder, selectedCarId, selectedCar, expenseSnapshot.customsWaitHours]);
+  }, [arrivalDate, durationMins, detectedCrossBorder, selectedCarId, selectedCar, expenseSnapshot.customsWaitHours]);
 
   const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -339,7 +415,7 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
           trafficBufferPercent: expenseSnapshot.trafficBufferPercent,
           billableHours: expenseSnapshot.billableHours,
           totalExpenseDistance: expenseSnapshot.totalExpenseDistance,
-          routeCountries: getRouteCountries(),
+          routeCountries,
           pricingSnapshot: expenseSnapshot.pricingSnapshot
         })
       });
@@ -450,6 +526,39 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
           </div>
         </div>
 
+        {/* Arrival Date */}
+        <div className="relative z-10 border-t border-white/10 pt-6 md:pt-8">
+          <div className="grid gap-4 rounded-2xl border border-white/10 bg-[#353536]/30 p-5 md:grid-cols-[1fr_1.2fr] md:items-center">
+            <div>
+              <h3 className="font-headline-md text-2xl text-[#e4e2e3] flex items-center gap-3">
+                <span className="material-symbols-outlined text-[#e9c349]">event_available</span> Час прибуття
+              </h3>
+              <p className="mt-2 text-sm leading-6 text-[#c7c6ca]">
+                Клієнт задає бажаний час прибуття, а система рахує подачу авто, виїзд з бази і доступність машин.
+              </p>
+            </div>
+            <div>
+              <label className="block text-xs text-[#c7c6ca] mb-2 font-label-caps uppercase">Бажане прибуття *</label>
+              <DatePicker
+                selected={arrivalDate}
+                onChange={(date: Date | null) => setArrivalDate(date)}
+                showTimeSelect
+                timeFormat="HH:mm"
+                timeIntervals={30}
+                dateFormat="d MMMM yyyy, HH:mm"
+                minDate={new Date()}
+                className="w-full rounded-xl border border-white/10 bg-[#080818] px-4 py-3 text-white outline-none focus:border-[#e9c349]"
+                placeholderText="Оберіть дату і час"
+              />
+              {detectedCrossBorder && (
+                <div className="mt-3 rounded-xl border border-[#e9c349]/25 bg-[#e9c349]/10 px-4 py-3 text-sm text-[#e4e2e3]">
+                  <span className="font-bold text-[#e9c349]">Міжнародний маршрут:</span> митниця і прикордонний час врахуються автоматично.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* Passenger & Luggage Options */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 md:gap-4 relative z-10 border-t border-white/10 pt-6 md:pt-8">
           <div className="bg-[#353536]/30 border border-white/10 rounded-xl p-4">
@@ -487,10 +596,17 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
         {/* Options Row */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 relative z-10 border-t border-white/10 pt-6 md:pt-8">
           <div className="space-y-4">
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input type="checkbox" checked={crossBorder} onChange={(e) => setCrossBorder(e.target.checked)} className="w-5 h-5 rounded border-gray-300 text-[#e9c349] focus:ring-[#e9c349]" />
-              <span className="text-[#e4e2e3] font-body-md">Перетин кордону (міжнародний рейс)</span>
-            </label>
+            <div className="rounded-xl border border-white/10 bg-[#353536]/30 p-4">
+              <div className="flex items-start gap-3">
+                <span className={`material-symbols-outlined mt-0.5 ${detectedCrossBorder ? 'text-[#e9c349]' : 'text-[#8a8a93]'}`}>public</span>
+                <div>
+                  <div className="font-bold text-white">{detectedCrossBorder ? 'Міжнародний рейс визначено' : 'Маршрут без перетину кордону'}</div>
+                  <div className="mt-1 text-sm text-[#c7c6ca]">
+                    {detectedCrossBorder ? 'Система сама додасть час митниці і прикордонну надбавку.' : 'Якщо оберете різні країни, прикордонна логіка увімкнеться автоматично.'}
+                  </div>
+                </div>
+              </div>
+            </div>
             <label className="flex items-center gap-3 cursor-pointer">
               <input type="checkbox" checked={isWeekend} onChange={(e) => setIsWeekend(e.target.checked)} className="w-5 h-5 rounded border-gray-300 text-[#e9c349] focus:ring-[#e9c349]" />
               <span className="text-[#e4e2e3] font-body-md">Поїздка у вихідний день (+{Math.round((weekendCoeff - 1) * 100)}%)</span>
@@ -513,31 +629,62 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
         </div>
 
         {/* Vehicle Selection Row */}
-        {distance > 0 && arrivalDate && (
-          <div className="space-y-6 relative z-10 border-t border-white/10 pt-6 md:pt-8 animate-fade-in">
-            <h3 className="font-headline-md text-2xl text-[#e4e2e3] flex items-center gap-3">
-              <span className="material-symbols-outlined text-[#e9c349]">diamond</span> Доступні Автомобілі
-            </h3>
+        <div className="space-y-6 relative z-10 border-t border-white/10 pt-6 md:pt-8 animate-fade-in">
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <h3 className="font-headline-md text-2xl text-[#e4e2e3] flex items-center gap-3">
+                <span className="material-symbols-outlined text-[#e9c349]">diamond</span> Доступні автомобілі
+              </h3>
+              <p className="mt-2 text-sm text-[#8a8a93]">
+                Показуємо тільки авто, які відповідають пасажирам, багажу, опціям і не зайняті на розрахований час.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={() => setVehicleClass('all')} className={`rounded-xl border px-4 py-2 text-sm font-bold transition-colors ${vehicleClass === 'all' ? 'border-[#e9c349] bg-[#e9c349] text-black' : 'border-white/10 bg-white/5 text-[#c7c6ca] hover:text-white'}`}>
+                Усі
+              </button>
+              {availableClasses.map((className) => (
+                <button key={className} type="button" onClick={() => setVehicleClass(className)} className={`rounded-xl border px-4 py-2 text-sm font-bold transition-colors ${vehicleClass === className ? 'border-[#e9c349] bg-[#e9c349] text-black' : 'border-white/10 bg-white/5 text-[#c7c6ca] hover:text-white'}`}>
+                  {className}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {!hasTripBasics ? (
+            <div className="rounded-2xl border border-dashed border-white/15 bg-[#353536]/20 p-6 text-center text-[#c7c6ca]">
+              Вкажіть маршрут і бажаний час прибуття, тоді система покаже доступні авто під ваші критерії.
+            </div>
+          ) : checkingVehicleAvailability ? (
+            <div className="rounded-2xl border border-white/10 bg-[#353536]/20 p-6 text-center text-[#c7c6ca]">
+              <span className="material-symbols-outlined mr-2 align-middle text-[#e9c349]">sync</span>
+              Перевіряємо зайнятість автопарку на цей час...
+            </div>
+          ) : filteredCars.length === 0 ? (
+            <div className="rounded-2xl border border-[#e9c349]/20 bg-[#e9c349]/10 p-6 text-center">
+              <div className="font-bold text-white">Немає доступних авто під ці умови</div>
+              <p className="m-0 mt-2 text-sm text-[#c7c6ca]">Спробуйте інший клас, менше багажу або інший час прибуття.</p>
+            </div>
+          ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-              {cars.map(car => {
-                const doesFit = car.capacity >= requiredCapacity;
+              {filteredCars.map(car => {
                 const priceForCar = calculatePriceForCar(car);
+                const cover = getCarCover(car);
                 return (
-                <label key={car.id} className={`cursor-pointer group ${!doesFit ? 'opacity-40 grayscale cursor-not-allowed' : ''}`}>
-                  <input type="radio" name="service_class" value={car.id} checked={selectedCarId === car.id} onChange={() => { if(doesFit) setSelectedCarId(car.id) }} disabled={!doesFit} className="peer sr-only" />
+                <label key={car.id} className="cursor-pointer group">
+                  <input type="radio" name="service_class" value={car.id} checked={selectedCarId === car.id} onChange={() => setSelectedCarId(car.id)} className="peer sr-only" />
                   <div className="glass-panel p-4 md:p-6 rounded-2xl border border-white/10 peer-checked:border-[#e9c349] peer-checked:bg-[#e9c349]/5 transition-all flex flex-col sm:flex-row items-center gap-4 md:gap-6 h-full relative overflow-hidden group-hover:border-white/30 peer-checked:shadow-[0_0_20px_rgba(233,195,73,0.15)]">
                     
                     <div className="w-full sm:w-40 h-32 rounded-xl overflow-hidden bg-[#1b1b1c] shrink-0 relative">
-                      {car.images && car.images[0] ? (
-                        <img src={car.images[0]} alt={car.model} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                      {cover ? (
+                        cover.type === 'video' ? (
+                          <video src={cover.url} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" muted loop playsInline />
+                        ) : (
+                          <img src={cover.url} alt={cover.alt || car.model} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                        )
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
                           <span className="material-symbols-outlined text-[#46474a] text-4xl">directions_car</span>
-                        </div>
-                      )}
-                      {!doesFit && (
-                        <div className="absolute inset-0 bg-red-900/60 flex items-center justify-center backdrop-blur-sm">
-                          <span className="text-white text-xs font-bold uppercase tracking-wider">Не вмістить</span>
                         </div>
                       )}
                     </div>
@@ -547,6 +694,7 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
                         <div>
                           <span className="block font-headline-md text-xl md:text-2xl mb-1 text-white">{car.make}</span>
                           <span className="text-sm font-bold text-[#e9c349]">{car.model}</span>
+                          <span className="mt-2 inline-flex rounded-full border border-[#e9c349]/25 bg-[#e9c349]/10 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-[#e9c349]">{car.comfortClass || 'Premium'}</span>
                         </div>
                         {selectedCarId === car.id && (
                           <span className="material-symbols-outlined text-3xl text-[#e9c349] drop-shadow-[0_0_8px_rgba(233,195,73,0.5)]">check_circle</span>
@@ -557,6 +705,9 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
                         <div className="flex items-center gap-4 text-xs text-[#c7c6ca] uppercase tracking-widest font-bold">
                           <div className="flex items-center gap-1" title="Пасажирських місць">
                             <span className="material-symbols-outlined text-lg">person</span> {car.capacity}
+                          </div>
+                          <div className="flex items-center gap-1" title="Валіз">
+                            <span className="material-symbols-outlined text-lg">business_center</span> {car.luggageCapacity || 0}
                           </div>
                           <div className="flex items-center gap-1" title="Рік випуску">
                             <span className="material-symbols-outlined text-lg">calendar_month</span> {car.year}
@@ -577,8 +728,8 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
                 );
               })}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Bottom Row */}
         <div className="pt-6 md:pt-8 border-t border-white/10 relative z-10">
@@ -587,14 +738,15 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
               <h4 className="font-label-caps text-[12px] text-[#c7c6ca] mb-2 uppercase tracking-widest">Орієнтовна вартість</h4>
               <div className="relative inline-block">
                 <div className="text-5xl md:text-7xl font-display-lg text-white tracking-tight drop-shadow-2xl">
-                  € {price}
+                  € {selectedCar && hasTripBasics ? price : 0}
                 </div>
               </div>
             </div>
             <div className="w-full md:w-auto">
               <button 
                 onClick={() => setIsModalOpen(true)}
-                className="gold-button font-button text-[14px] px-6 py-4 md:px-12 md:py-6 rounded-2xl hover:scale-[0.98] transition-all md:text-lg shadow-[0_10px_30px_rgba(212,175,55,0.2)] uppercase tracking-wider font-semibold w-full md:w-auto"
+                disabled={!selectedCar || !hasTripBasics || availabilityStatus === 'unavailable'}
+                className="gold-button font-button text-[14px] px-6 py-4 md:px-12 md:py-6 rounded-2xl hover:scale-[0.98] transition-all md:text-lg shadow-[0_10px_30px_rgba(212,175,55,0.2)] uppercase tracking-wider font-semibold w-full md:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Продовжити бронювання
               </button>
@@ -626,34 +778,33 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
                 <p className="text-[#c7c6ca] text-sm mb-6">Будь ласка, заповніть всі деталі для завершення бронювання.</p>
                 <form onSubmit={handleBookingSubmit} className="space-y-6">
                   
-                  {/* Visual Calendar */}
+                  {/* Trip Summary */}
                   <div className="bg-[#080818] p-5 rounded-xl border border-white/5">
-                    <label className="block text-sm text-[#e9c349] mb-3 font-bold uppercase tracking-widest">
-                      Бажаний час прибуття {destObj?.display_name ? `в ${destObj.display_name.split(',')[0]}` : (destSearch ? `в ${destSearch.split(',')[0]}` : '')} *
-                    </label>
-                    <DatePicker
-                      selected={arrivalDate}
-                      onChange={(date: Date | null) => setArrivalDate(date)}
-                      showTimeSelect
-                      timeFormat="HH:mm"
-                      timeIntervals={30}
-                      dateFormat="d MMMM yyyy, HH:mm"
-                      excludeDateIntervals={excludeIntervals}
-                      minDate={new Date()}
-                      className="w-full bg-transparent border-b border-white/20 p-2 text-white focus:border-[#e9c349] outline-none"
-                      placeholderText="Оберіть вільну дату та час"
-                      required
-                    />
-                    
-                    {pickupTime && (
-                      <div className="mt-4 pt-4 border-t border-white/10 relative">
-                        <div className="flex justify-between text-sm mb-1">
-                          <span className="text-[#c7c6ca]">Час подачі авто:</span>
-                          <span className="text-white font-bold">{pickupTime.toLocaleString('uk-UA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                    <div className="mb-4 flex items-start justify-between gap-4">
+                      <div>
+                        <div className="text-sm font-bold uppercase tracking-widest text-[#e9c349]">Підтвердження маршруту</div>
+                        <div className="mt-2 text-white">{selectedCar?.make} {selectedCar?.model}</div>
+                        <div className="text-sm text-[#c7c6ca]">{selectedCar?.comfortClass || 'Premium'} • {requiredCapacity} пас. • {luggage}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs uppercase tracking-widest text-[#8a8a93]">Ціна</div>
+                        <div className="text-2xl font-display-lg text-[#e9c349]">€ {price}</div>
+                      </div>
+                    </div>
+
+                    {pickupTime && arrivalDate && (
+                      <div className="grid gap-2 text-sm">
+                        <div className="flex justify-between gap-4">
+                          <span className="text-[#c7c6ca]">Бажане прибуття:</span>
+                          <span className="text-right font-bold text-white">{arrivalDate.toLocaleString('uk-UA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
                         </div>
-                        <div className="flex justify-between text-sm mb-1">
+                        <div className="flex justify-between gap-4">
+                          <span className="text-[#c7c6ca]">Час подачі авто:</span>
+                          <span className="text-right font-bold text-white">{pickupTime.toLocaleString('uk-UA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
+                        <div className="flex justify-between gap-4">
                           <span className="text-[#c7c6ca]">Виїзд авто з бази:</span>
-                          <span className="text-white font-bold">
+                          <span className="text-right font-bold text-white">
                             {new Date(pickupTime.getTime() - (expenseSnapshot.deliveryDurationMins + expenseSnapshot.prepBufferMins) * 60000).toLocaleString('uk-UA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </div>
@@ -667,10 +818,6 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
                             <strong className="text-[#e9c349]">{expenseSnapshot.billableHours} год</strong>
                           </div>
                         </div>
-                        
-                        {availabilityStatus === 'checking' && <div className="text-xs text-blue-400 mt-2 flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">sync</span> Перевірка доступності...</div>}
-                        {availabilityStatus === 'available' && <div className="text-xs text-green-400 mt-2 flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">check_circle</span> Автомобіль доступний</div>}
-                        {availabilityStatus === 'unavailable' && <div className="text-xs text-red-400 mt-2 flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">cancel</span> Автомобіль зайнятий у розрахований час подачі</div>}
                       </div>
                     )}
                   </div>

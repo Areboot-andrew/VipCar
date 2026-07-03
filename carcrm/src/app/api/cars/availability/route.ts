@@ -5,7 +5,36 @@ const prisma = new PrismaClient();
 
 export async function POST(request: Request) {
   try {
-    const { carId, dateStart, dateEnd } = await request.json();
+    const { carId, dateStart, dateEnd, checks } = await request.json();
+
+    if (Array.isArray(checks)) {
+      const results: Record<string, boolean> = {};
+      await Promise.all(checks.map(async (check: { carId: string; dateStart: string; dateEnd: string }) => {
+        const start = new Date(check.dateStart);
+        const end = new Date(check.dateEnd);
+        if (!check.carId || Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+          results[check.carId] = false;
+          return;
+        }
+
+        const conflictingBookings = await prisma.booking.findFirst({
+          where: {
+            carId: check.carId,
+            status: { in: ['CONFIRMED', 'PENDING'] },
+            OR: [
+              { dateStart: { lte: start }, dateEnd: { gte: start } },
+              { dateStart: { lte: end }, dateEnd: { gte: end } },
+              { dateStart: { gte: start }, dateEnd: { lte: end } },
+            ]
+          },
+          select: { id: true },
+        });
+
+        results[check.carId] = !conflictingBookings;
+      }));
+
+      return NextResponse.json({ results });
+    }
 
     const start = new Date(dateStart);
     const end = new Date(dateEnd);

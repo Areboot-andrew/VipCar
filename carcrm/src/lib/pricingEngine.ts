@@ -81,10 +81,7 @@ const haversineRoadKm = (from: LatLng, to: LatLng) => {
   return Math.ceil(radius * c * 1.3);
 };
 
-const hasUkraineBorderCrossing = (routeCountries: string[]) => {
-  const normalized = routeCountries.map((country) => country.toLowerCase());
-  return normalized.some((country) => country.includes('укра') || country.includes('ukraine')) && routeCountries.length > 1;
-};
+const hasBorderCrossing = (routeCountries: string[]) => routeCountries.length > 1;
 
 export function calculateTripPricing(input: TripPricingInput): TripPricingResult {
   const {
@@ -117,8 +114,8 @@ export function calculateTripPricing(input: TripPricingInput): TripPricingResult
   const trafficBufferPercent = settings.trafficBufferPercent ?? 10;
   const speedFactor = Math.max(0.5, 1 - trafficBufferPercent / 100);
   const adjustedRouteMins = Math.ceil(durationMins / speedFactor);
-  const isUkraineBorder = hasUkraineBorderCrossing(routeCountries) || crossBorder;
-  const customsWaitHours = isUkraineBorder ? (settings.defaultCustomsWaitHours ?? 1.5) : 0;
+  const isBorderCrossing = hasBorderCrossing(routeCountries) || crossBorder;
+  const customsWaitHours = isBorderCrossing ? (settings.defaultCustomsWaitHours ?? 1.5) : 0;
   const manualWaitingHours = settings.manualWaitingHours ?? 0;
   const prepBufferMins = settings.prepBufferMins ?? 30;
   const billableHours = roundMoney((adjustedRouteMins / 60) + customsWaitHours + manualWaitingHours);
@@ -164,7 +161,7 @@ export function calculateTripPricing(input: TripPricingInput): TripPricingResult
   const includedPassengers = Number(car?.includedPassengers ?? 1);
   const extraPassengers = Math.max(0, passengers - includedPassengers);
   const optionCost =
-    (isUkraineBorder ? Number(car?.crossBorderFee || 0) : 0) +
+    (isBorderCrossing ? Number(car?.crossBorderFee || 0) : 0) +
     (meetAndGreet ? Number(car?.meetAndGreetFee || 0) : 0) +
     childSeats * Number(car?.childSeatFee || 0) +
     (petsCount > 0 ? petsCount * Number(car?.animalFee || 0) : 0) +
@@ -223,7 +220,7 @@ export function calculateTripPricing(input: TripPricingInput): TripPricingResult
       children,
       childSeats,
       petsCount,
-      crossBorder: isUkraineBorder,
+      crossBorder: isBorderCrossing,
       meetAndGreet,
       withDriver,
       discountPercent,
