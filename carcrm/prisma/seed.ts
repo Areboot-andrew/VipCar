@@ -3,10 +3,12 @@ import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
-const demoSeedVersion = '2026-07-03-gallery-demo-v1';
+const demoSeedVersion = '2026-07-03-bookings-demo-v2';
 const resetDemoCars = process.env.RESET_DEMO_CARS === 'true';
+const resetDemoData = process.env.RESET_DEMO_DATA === 'true';
 const forceDemoSeed = process.env.FORCE_DEMO_SEED === 'true';
 const autoDemoSeed = process.env.AUTO_DEMO_SEED === 'true';
+const demoBookingMarker = '[DEMO_BOOKING]';
 
 function slugify(input: string) {
   return input
@@ -21,6 +23,21 @@ function slugify(input: string) {
 
 function carSlug(make: string, model: string, year?: number | string) {
   return slugify([make, model, year].filter(Boolean).join(' '));
+}
+
+function addDays(days: number, hour = 10, minutes = 0) {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  date.setHours(hour, minutes, 0, 0);
+  return date;
+}
+
+function addHours(date: Date, hours: number) {
+  return new Date(date.getTime() + hours * 60 * 60 * 1000);
+}
+
+function money(value: number) {
+  return Math.round(value * 100) / 100;
 }
 
 const demoContent: Record<string, string> = {
@@ -319,6 +336,7 @@ const demoCars = [
 async function ensureUsers() {
   const adminPassword = await bcrypt.hash('admin123', 10);
   const driverPassword = await bcrypt.hash('driver123', 10);
+  const clientPassword = await bcrypt.hash('client123', 10);
 
   const admin = await prisma.user.upsert({
     where: { email: 'admin@firstline.com' },
@@ -332,40 +350,100 @@ async function ensureUsers() {
     },
   });
 
-  const driverUser = await prisma.user.upsert({
-    where: { email: 'driver@firstline.com' },
-    update: {
-      name: 'Олександр Петренко',
-      phone: '+380671112233',
-      role: 'DRIVER',
-    },
-    create: {
+  const driverSeeds = [
+    {
       email: 'driver@firstline.com',
-      password: driverPassword,
       name: 'Олександр Петренко',
       phone: '+380671112233',
-      role: 'DRIVER',
+      licenseNum: 'BXR123456',
+      salaryPerKm: 0.18,
+      telegramId: '100100100',
     },
-  });
+    {
+      email: 'driver.ivan@firstline.com',
+      name: 'Іван Коваль',
+      phone: '+380672224466',
+      licenseNum: 'KVL778899',
+      salaryPerKm: 0.16,
+      telegramId: '200200200',
+    },
+    {
+      email: 'driver.marek@firstline.com',
+      name: 'Marek Nowak',
+      phone: '+48501112233',
+      licenseNum: 'PL554433',
+      salaryPerKm: 0.22,
+      telegramId: '300300300',
+    },
+  ];
 
-  const driver = await prisma.driver.upsert({
-    where: { userId: driverUser.id },
-    update: {
-      licenseNum: 'BXR123456',
-      salaryPerKm: 0.18,
-      status: 'ACTIVE',
-    },
-    create: {
-      userId: driverUser.id,
-      licenseNum: 'BXR123456',
-      salaryPerKm: 0.18,
-      status: 'ACTIVE',
-    },
-  });
+  const drivers = [];
+  for (const item of driverSeeds) {
+    const driverUser = await prisma.user.upsert({
+      where: { email: item.email },
+      update: {
+        name: item.name,
+        phone: item.phone,
+        role: 'DRIVER',
+      },
+      create: {
+        email: item.email,
+        password: driverPassword,
+        name: item.name,
+        phone: item.phone,
+        role: 'DRIVER',
+      },
+    });
+
+    const driver = await prisma.driver.upsert({
+      where: { userId: driverUser.id },
+      update: {
+        licenseNum: item.licenseNum,
+        salaryPerKm: item.salaryPerKm,
+        telegramId: item.telegramId,
+        status: 'ACTIVE',
+      },
+      create: {
+        userId: driverUser.id,
+        licenseNum: item.licenseNum,
+        salaryPerKm: item.salaryPerKm,
+        telegramId: item.telegramId,
+        status: 'ACTIVE',
+      },
+    });
+    drivers.push(driver);
+  }
+
+  const clientSeeds = [
+    { email: 'client.olena@example.com', name: 'Олена Савчук', phone: '+380501112233' },
+    { email: 'client.andriy@example.com', name: 'Андрій Мельник', phone: '+380631234567' },
+    { email: 'client.marta@example.com', name: 'Marta Zielinska', phone: '+48500111222' },
+  ];
+
+  const clients = [];
+  for (const item of clientSeeds) {
+    const client = await prisma.user.upsert({
+      where: { email: item.email },
+      update: {
+        name: item.name,
+        phone: item.phone,
+        role: 'CLIENT',
+      },
+      create: {
+        email: item.email,
+        password: clientPassword,
+        name: item.name,
+        phone: item.phone,
+        role: 'CLIENT',
+      },
+    });
+    clients.push(client);
+  }
 
   console.log(`Admin ready: ${admin.email}`);
-  console.log(`Driver ready: ${driverUser.email}`);
-  return driver;
+  console.log(`Drivers ready: ${drivers.length}`);
+  console.log(`Clients ready: ${clients.length}`);
+  return { admin, drivers, clients };
 }
 
 async function seedContent() {
@@ -380,7 +458,7 @@ async function seedContent() {
   console.log(`CMS demo content updated: ${entries.length} keys`);
 }
 
-async function seedCars(defaultDriverId: string) {
+async function seedCars(drivers: { id: string }[]) {
   const demoSlugs = demoCars.map((car) => carSlug(car.make, car.model, car.year));
 
   if (resetDemoCars) {
@@ -394,10 +472,12 @@ async function seedCars(defaultDriverId: string) {
     console.log('RESET_DEMO_CARS=true: removed old cars without bookings/promotions');
   }
 
-  for (const demoCar of demoCars) {
+  const seededCars = [];
+  for (const [carIndex, demoCar] of demoCars.entries()) {
     const slug = carSlug(demoCar.make, demoCar.model, demoCar.year);
     const images = demoCar.media.filter((item) => !item.url.includes('.mp4')).map((item) => item.url);
     const videos = demoCar.media.filter((item) => item.url.includes('.mp4')).map((item) => item.url);
+    const defaultDriverId = drivers[carIndex % drivers.length]?.id || null;
 
     const car = await prisma.car.upsert({
       where: { slug },
@@ -498,7 +578,10 @@ async function seedCars(defaultDriverId: string) {
     });
 
     console.log(`Demo car updated: ${car.make} ${car.model}`);
+    seededCars.push(car);
   }
+
+  return seededCars;
 }
 
 async function seedFinanceDefaults() {
@@ -534,17 +617,251 @@ async function seedFinanceDefaults() {
   console.log('Currency and fuel demo defaults updated');
 }
 
+async function resetDemoOperationalData() {
+  if (!resetDemoData) return;
+
+  await prisma.message.deleteMany({});
+  await prisma.chatRoom.deleteMany({});
+  await prisma.invoice.deleteMany({});
+  await prisma.booking.deleteMany({});
+  await prisma.settlement.deleteMany({});
+  await prisma.promotion.deleteMany({});
+  await prisma.feedback.deleteMany({});
+  await prisma.carReview.deleteMany({});
+  await prisma.carMedia.deleteMany({});
+  await prisma.car.deleteMany({});
+  console.log('RESET_DEMO_DATA=true: operational demo data removed');
+}
+
+async function clearDemoBookings() {
+  const demoBookings = await prisma.booking.findMany({
+    where: { notes: { contains: demoBookingMarker } },
+    select: { id: true },
+  });
+  const bookingIds = demoBookings.map((booking) => booking.id);
+  if (bookingIds.length === 0) return;
+
+  await prisma.message.deleteMany({ where: { chatRoom: { bookingId: { in: bookingIds } } } });
+  await prisma.chatRoom.deleteMany({ where: { bookingId: { in: bookingIds } } });
+  await prisma.invoice.deleteMany({ where: { bookingId: { in: bookingIds } } });
+  await prisma.booking.deleteMany({ where: { id: { in: bookingIds } } });
+  console.log(`Removed old demo bookings: ${bookingIds.length}`);
+}
+
+function calculateDemoCosts(car: any, driver: any, distance: number, deliveryDistance: number, options: { children?: number; animals?: boolean; crossBorder?: boolean; meet?: boolean; extraPassengers?: number }) {
+  const cityKm = distance * 0.3;
+  const highwayKm = distance * 0.7;
+  const liters = (cityKm / 100) * car.fuelConsumptionCity + (highwayKm / 100) * car.fuelConsumptionHighway;
+  const fuelPrice = car.fuelType === 'Дизель' ? 1.58 : car.fuelType === 'Електро' ? 0.48 : 1.55;
+  const fuelCost = money(liters * fuelPrice);
+  const driverSalary = money((distance + deliveryDistance) * (driver.salaryPerKm || 0.18));
+  const deliveryCost = money(deliveryDistance * 1.1);
+  const amortization = money(distance * 0.08);
+  const optionCost =
+    (options.children || 0) * car.childSeatFee +
+    (options.animals ? car.animalFee : 0) +
+    (options.crossBorder ? car.crossBorderFee : 0) +
+    (options.meet ? car.meetAndGreetFee : 0) +
+    (options.extraPassengers || 0) * car.pricePerPerson;
+  const netProfit = money(distance * car.baseRate * 0.28);
+  const price = money(fuelCost + driverSalary + deliveryCost + amortization + optionCost + netProfit);
+
+  return { fuelCost, driverSalary, deliveryCost, amortization, netProfit, price };
+}
+
+async function seedBookings(cars: any[], drivers: any[], clients: any[]) {
+  await clearDemoBookings();
+
+  const bySlug = new Map(cars.map((car) => [car.slug, car]));
+  const bookings = [
+    {
+      client: clients[0],
+      driver: drivers[0],
+      car: bySlug.get(carSlug('Mercedes-Benz', 'S-Class W223 Long', 2024)) || cars[0],
+      routeFrom: 'Львів, Україна',
+      routeTo: 'Краків, Польща',
+      routeCountries: ['Україна', 'Польща'],
+      distance: 330,
+      deliveryDistance: 12,
+      dateStart: addDays(1, 9, 30),
+      durationHours: 5.5,
+      passengers: 2,
+      children: 0,
+      luggage: '2 валізи + ручна поклажа',
+      animals: false,
+      status: 'CONFIRMED' as const,
+      invoiceStatus: 'UNPAID' as const,
+      options: { crossBorder: true, meet: true, extraPassengers: 1 },
+      driverNotes: 'Зустріти біля головного входу, допомогти з багажем.',
+    },
+    {
+      client: clients[1],
+      driver: drivers[1],
+      car: bySlug.get(carSlug('Mercedes-Benz', 'V-Class VIP', 2024)) || cars[1],
+      routeFrom: 'Бориспіль, Terminal D',
+      routeTo: 'Київ, Hyatt Regency',
+      routeCountries: ['Україна'],
+      distance: 38,
+      deliveryDistance: 8,
+      dateStart: addDays(2, 18, 0),
+      durationHours: 1.25,
+      passengers: 5,
+      children: 1,
+      luggage: '5 валіз',
+      animals: false,
+      status: 'PENDING' as const,
+      invoiceStatus: 'UNPAID' as const,
+      options: { children: 1, meet: true, extraPassengers: 4 },
+      driverNotes: 'Табличка First Line Transfer, дитяче крісло в салоні.',
+    },
+    {
+      client: clients[2],
+      driver: drivers[2],
+      car: bySlug.get(carSlug('BMW', '7 Series G70', 2024)) || cars[2],
+      routeFrom: 'Warszawa, Centrum',
+      routeTo: 'Berlin Brandenburg Airport',
+      routeCountries: ['Польща', 'Німеччина'],
+      distance: 575,
+      deliveryDistance: 18,
+      dateStart: addDays(4, 7, 45),
+      durationHours: 6.5,
+      passengers: 1,
+      children: 0,
+      luggage: '1 валіза',
+      animals: true,
+      status: 'CONFIRMED' as const,
+      invoiceStatus: 'PAID' as const,
+      options: { animals: true, crossBorder: true },
+      driverNotes: 'Клієнт їде з маленькою собакою, підготувати плед.',
+    },
+    {
+      client: clients[0],
+      driver: drivers[0],
+      car: bySlug.get(carSlug('Mercedes-Benz', 'Sprinter VIP', 2024)) || cars[4] || cars[0],
+      routeFrom: 'Львів, Opera Hotel',
+      routeTo: 'Буковель',
+      routeCountries: ['Україна'],
+      distance: 245,
+      deliveryDistance: 15,
+      dateStart: addDays(7, 8, 0),
+      durationHours: 4.5,
+      passengers: 10,
+      children: 2,
+      luggage: '10 великих валіз + лижі',
+      animals: false,
+      status: 'PENDING' as const,
+      invoiceStatus: 'UNPAID' as const,
+      options: { children: 2, extraPassengers: 9 },
+      driverNotes: 'Група з лижами. Перевірити багажний простір перед подачею.',
+    },
+    {
+      client: clients[1],
+      driver: drivers[1],
+      car: bySlug.get(carSlug('Audi', 'A8 L', 2023)) || cars[3] || cars[0],
+      routeFrom: 'Київ, InterContinental',
+      routeTo: 'Одеса, Морський вокзал',
+      routeCountries: ['Україна'],
+      distance: 475,
+      deliveryDistance: 5,
+      dateStart: addDays(-2, 10, 0),
+      durationHours: 6,
+      passengers: 2,
+      children: 0,
+      luggage: '2 валізи',
+      animals: false,
+      status: 'COMPLETED' as const,
+      invoiceStatus: 'PAID' as const,
+      options: { extraPassengers: 1 },
+      driverNotes: 'Поїздку завершено, клієнт просив такий самий клас авто наступного разу.',
+    },
+  ];
+
+  for (const item of bookings) {
+    const costs = calculateDemoCosts(item.car, item.driver, item.distance, item.deliveryDistance, item.options);
+    const dateEnd = addHours(item.dateStart, item.durationHours);
+    const booking = await prisma.booking.create({
+      data: {
+        clientId: item.client.id,
+        driverId: item.driver.id,
+        carId: item.car.id,
+        routeFrom: item.routeFrom,
+        routeTo: item.routeTo,
+        routeCountries: item.routeCountries,
+        distance: item.distance,
+        price: costs.price,
+        dateStart: item.dateStart,
+        dateEnd,
+        fuelCost: costs.fuelCost,
+        driverSalary: costs.driverSalary,
+        deliveryCost: costs.deliveryCost,
+        deliveryDistance: item.deliveryDistance,
+        amortization: costs.amortization,
+        netProfit: costs.netProfit,
+        passengers: item.passengers,
+        children: item.children,
+        luggage: item.luggage,
+        animals: item.animals,
+        status: item.status,
+        notes: `${demoBookingMarker} Demo route for calculator/calendar testing.`,
+        driverNotes: item.driverNotes,
+        carStartLocation: item.car.baseCity || 'Львів',
+        expenseDeliveryDistance: item.deliveryDistance,
+        totalExpenseDistance: item.distance + item.deliveryDistance,
+        isEndingAtBase: false,
+        returnToBaseDistance: Math.round(item.distance * 0.12),
+      },
+    });
+
+    await prisma.invoice.create({
+      data: {
+        bookingId: booking.id,
+        amount: costs.price,
+        status: item.invoiceStatus,
+      },
+    });
+
+    const chatRoom = await prisma.chatRoom.create({
+      data: {
+        bookingId: booking.id,
+        platform: 'WEB',
+        clientName: item.client.name,
+        clientPhone: item.client.phone,
+      },
+    });
+
+    await prisma.message.createMany({
+      data: [
+        {
+          chatRoomId: chatRoom.id,
+          senderId: item.client.id,
+          isFromAdmin: false,
+          content: `Доброго дня. Потрібен трансфер: ${item.routeFrom} → ${item.routeTo}.`,
+        },
+        {
+          chatRoomId: chatRoom.id,
+          isFromAdmin: true,
+          content: `Дякуємо, маршрут внесено. Орієнтовна ціна: €${costs.price}.`,
+        },
+      ],
+    });
+  }
+
+  console.log(`Demo bookings created: ${bookings.length}`);
+}
+
 async function main() {
   console.log('Starting production-safe demo seed...');
   const existingVersion = await prisma.siteContent.findUnique({ where: { key: '_demo_seed_version' } });
-  if (autoDemoSeed && !forceDemoSeed && existingVersion?.value === demoSeedVersion) {
+  if (autoDemoSeed && !forceDemoSeed && !resetDemoData && !resetDemoCars && existingVersion?.value === demoSeedVersion) {
     console.log(`Demo seed ${demoSeedVersion} already applied. Skipping. Set FORCE_DEMO_SEED=true to reapply.`);
     return;
   }
 
-  const driver = await ensureUsers();
+  await resetDemoOperationalData();
+  const { drivers, clients } = await ensureUsers();
   await seedContent();
-  await seedCars(driver.id);
+  const cars = await seedCars(drivers);
+  await seedBookings(cars, drivers, clients);
   await seedFinanceDefaults();
   await prisma.siteContent.upsert({
     where: { key: '_demo_seed_version' },
@@ -553,7 +870,8 @@ async function main() {
   });
   console.log('Demo seed complete.');
   console.log('Admin: admin@firstline.com / admin123 (only created if missing)');
-  console.log('Driver: driver@firstline.com / driver123 (only created if missing)');
+  console.log('Drivers: driver@firstline.com / driver123, driver.ivan@firstline.com / driver123, driver.marek@firstline.com / driver123');
+  console.log('Clients: client.olena@example.com / client123, client.andriy@example.com / client123, client.marta@example.com / client123');
 }
 
 main()
