@@ -89,6 +89,7 @@ model Car {
   fuelType               String   @default("Бензин")
   fuelConsumptionCity    Float    @default(10.0) // L/100km
   fuelConsumptionHighway Float    @default(7.0)  // L/100km
+  fuelTankVolume         Float    @default(60.0) // L or kWh
   status                 String   @default("AVAILABLE") // AVAILABLE, MAINTENANCE, IN_USE
   
   // Per-Car Pricing Coefficients
@@ -138,6 +139,7 @@ model Booking {
   
   routeFrom   String
   routeTo     String
+  routeCountries String[]   @default([])
   distance    Float         // in km
   price       Float         // calculated price
   dateStart   DateTime
@@ -292,4 +294,21 @@ model PageBlock {
   type      String   // 'HERO', 'GALLERY', 'TEXT_IMAGE', 'FEATURES', 'CTA'
   content   String   @db.Text // JSON string containing block settings
   active    Boolean  @default(true)
+}
+
+model CurrencyRate {
+  id        String   @id @default(uuid())
+  currency  String   @unique // e.g., 'UAH', 'PLN', 'USD'
+  rateToEur Float    // How much of this currency equals 1 EUR (e.g., UAH: 42.5)
+  updatedAt DateTime @updatedAt
+}
+
+model FuelPrice {
+  id        String   @id @default(uuid())
+  country   String   // e.g., 'Україна', 'Польща'
+  fuelType  String   // e.g., 'Бензин', 'Дизель', 'Газ', 'Електро'
+  priceEur  Float    // Price in EUR per Liter or kWh
+  updatedAt DateTime @updatedAt
+
+  @@unique([country, fuelType])
 }

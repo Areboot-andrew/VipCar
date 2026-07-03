@@ -22,6 +22,9 @@ export default async function Home() {
   
   const siteSettings = await prisma.siteSettings.findUnique({ where: { id: 'global' } });
   
+  const globalCurrencies = await prisma.currencyRate.findMany();
+  const globalFuelPrices = await prisma.fuelPrice.findMany();
+  
   const contentRows = await prisma.siteContent.findMany();
   const c = contentRows.reduce((acc, row) => {
     acc[row.key] = row.value;
@@ -195,7 +198,7 @@ export default async function Home() {
 
         <div id="calculator" className="scroll-mt-24">
           <Suspense fallback={<div className="text-center text-[#e9c349] py-12">Завантаження калькулятора...</div>}>
-            <Calculator cars={cars} cmsSettings={c} />
+            <Calculator cars={cars} cmsSettings={c} siteSettings={siteSettings} globalCurrencies={globalCurrencies} globalFuelPrices={globalFuelPrices} />
           </Suspense>
         </div>
 

@@ -59,7 +59,10 @@ export default function AdminLayout({
             <MessageSquare size={20} className="text-[#e9c349]" />
             <span className="font-semibold text-sm">Месенджер (Чат)</span>
           </Link>
-          
+          <Link href="/admin/settings" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-[#c7c6ca] hover:text-white transition-colors">
+            <Settings size={20} className="text-[#e9c349]" />
+            <span className="font-semibold text-sm">Глобальні Налаштування</span>
+          </Link>
           <hr className="border-white/10 my-2" />
           
           <Link href="/" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-[#e9c349]/10 text-[#e9c349] transition-colors" target="_blank">

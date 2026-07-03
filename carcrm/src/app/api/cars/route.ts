@@ -21,7 +21,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { 
       make, model, year, capacity, baseRate, fuelType, 
-      fuelConsumptionCity, fuelConsumptionHighway, status, 
+      fuelConsumptionCity, fuelConsumptionHighway, fuelTankVolume, status, 
       images, videos, description, features, baseCity,
       pricePerPerson, crossBorderFee, meetAndGreetFee, animalFee, childSeatFee
     } = body;
@@ -36,6 +36,7 @@ export async function POST(request: Request) {
         fuelType,
         fuelConsumptionCity: parseFloat(fuelConsumptionCity),
         fuelConsumptionHighway: parseFloat(fuelConsumptionHighway),
+        fuelTankVolume: fuelTankVolume ? parseFloat(fuelTankVolume) : 60.0,
         
         pricePerPerson: pricePerPerson ? parseFloat(pricePerPerson) : 10.0,
         crossBorderFee: crossBorderFee ? parseFloat(crossBorderFee) : 150.0,

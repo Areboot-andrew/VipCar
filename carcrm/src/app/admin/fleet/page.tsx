@@ -25,6 +25,7 @@ type Car = {
   fuelType: string;
   fuelConsumptionCity: number;
   fuelConsumptionHighway: number;
+  fuelTankVolume: number;
   status: string;
   images: string[];
   videos: string[];
@@ -48,7 +49,7 @@ export default function AdminFleetPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     make: '', model: '', year: new Date().getFullYear().toString(),
-    capacity: '4', baseRate: '0', fuelType: 'Бензин', fuelConsumptionCity: '0', fuelConsumptionHighway: '0',
+    capacity: '4', baseRate: '0', fuelType: 'Бензин', fuelConsumptionCity: '0', fuelConsumptionHighway: '0', fuelTankVolume: '60',
     description: '', features: '[]', baseCity: 'Львів',
     pricePerPerson: '10', crossBorderFee: '150', meetAndGreetFee: '20', animalFee: '30', childSeatFee: '15'
   });
@@ -88,7 +89,7 @@ export default function AdminFleetPage() {
       });
       if (res.ok) {
         setIsModalOpen(false);
-        setFormData({ make: '', model: '', year: new Date().getFullYear().toString(), capacity: '4', baseRate: '0', fuelType: 'Бензин', fuelConsumptionCity: '0', fuelConsumptionHighway: '0', description: '', features: '[]', baseCity: 'Львів', pricePerPerson: '10', crossBorderFee: '150', meetAndGreetFee: '20', animalFee: '30', childSeatFee: '15' });
+        setFormData({ make: '', model: '', year: new Date().getFullYear().toString(), capacity: '4', baseRate: '0', fuelType: 'Бензин', fuelConsumptionCity: '0', fuelConsumptionHighway: '0', fuelTankVolume: '60', description: '', features: '[]', baseCity: 'Львів', pricePerPerson: '10', crossBorderFee: '150', meetAndGreetFee: '20', animalFee: '30', childSeatFee: '15' });
         setFeaturesList([]);
         fetchCars();
       }
@@ -191,7 +192,8 @@ export default function AdminFleetPage() {
       meetAndGreetFee: car.meetAndGreetFee || 20,
       animalFee: car.animalFee || 30,
       childSeatFee: car.childSeatFee || 15,
-      baseCity: car.baseCity || 'Львів'
+      baseCity: car.baseCity || 'Львів',
+      fuelTankVolume: car.fuelTankVolume || 60
     });
     try {
       setEditFeaturesList(car.features ? JSON.parse(car.features) : []);
@@ -254,10 +256,14 @@ export default function AdminFleetPage() {
 
                 {editingCarId === car.id ? (
                   <div className="space-y-6">
-                    <div className="grid grid-cols-2 md:grid-cols-6 gap-4 bg-white/5 p-4 rounded-xl border border-white/10">
+                    <div className="grid grid-cols-2 md:grid-cols-7 gap-4 bg-white/5 p-4 rounded-xl border border-white/10">
                       <div>
                         <label className="block text-xs uppercase text-gray-400 mb-1">База Авто (Місто)</label>
                         <input type="text" value={editFormData.baseCity || ''} onChange={e => setEditFormData({...editFormData, baseCity: e.target.value})} className="w-full bg-black/50 border border-white/20 rounded p-2 text-white text-sm" placeholder="напр. Львів" />
+                      </div>
+                      <div>
+                        <label className="block text-xs uppercase text-gray-400 mb-1">Об'єм баку</label>
+                        <input type="number" value={editFormData.fuelTankVolume} onChange={e => setEditFormData({...editFormData, fuelTankVolume: parseFloat(e.target.value)})} className="w-full bg-black/50 border border-white/20 rounded p-2 text-white text-sm" />
                       </div>
                       <div>
                         <label className="block text-xs uppercase text-gray-400 mb-1">Багаж / Особа (€)</label>
@@ -464,6 +470,10 @@ export default function AdminFleetPage() {
                   <option value="Газ">Газ</option>
                   <option value="Електро">Електро</option>
                 </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '12px', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>Об'єм баку (л або кВт)</label>
+                <input type="number" required value={formData.fuelTankVolume} onChange={e => setFormData({...formData, fuelTankVolume: e.target.value})} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'white', borderRadius: '6px' }} />
               </div>
               
               <div className="col-span-2 border-b border-white/10 pb-2 mt-4 mb-2">

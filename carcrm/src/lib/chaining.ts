@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { calculateSmartFuelCost } from './fuelCalculator';
 
 const prisma = new PrismaClient();
 
@@ -9,7 +10,7 @@ async function geocode(city: string) {
   if (!city) return null;
   await sleep(1000); // Nominatim requirement
   try {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city)}&limit=1`;
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city)}&limit=1&accept-language=uk`;
     const res = await fetch(url, { headers: { 'User-Agent': 'CarCRM-App/1.0' } });
     const data = await res.json();
     if (data && data.length > 0) return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
@@ -85,10 +86,25 @@ export async function recalculateChain(carId: string) {
     if (b.driverId && b.driver) {
        newDriverSalary = totalExpenseDistance * b.driver.salaryPerKm;
     } else {
-       // Just update to default estimate if no driver assigned
        newDriverSalary = totalExpenseDistance * 0.15;
     }
+
+    const globalFuelPrices = await prisma.fuelPrice.findMany();
     
+    // Average consumption
+    const avgConsumption = (b.car.fuelConsumptionCity + b.car.fuelConsumptionHighway) / 2;
+
+    const fuelCalc = calculateSmartFuelCost({
+      totalDistance: totalExpenseDistance,
+      fuelConsumption: avgConsumption || 8.0,
+      fuelTankVolume: b.car.fuelTankVolume || 60.0,
+      fuelType: b.car.fuelType,
+      routeCountries: b.routeCountries || [],
+      globalFuelPrices: globalFuelPrices
+    });
+
+    let newFuelCost = fuelCalc.totalFuelCostEur > 0 ? fuelCalc.totalFuelCostEur : (totalExpenseDistance / 100) * avgConsumption * 1.6;
+
     await prisma.booking.update({
       where: { id: b.id },
       data: {
@@ -96,7 +112,8 @@ export async function recalculateChain(carId: string) {
          expenseDeliveryDistance,
          returnToBaseDistance,
          totalExpenseDistance,
-         driverSalary: newDriverSalary
+         driverSalary: newDriverSalary,
+         fuelCost: newFuelCost
       }
     });
     

@@ -21,8 +21,9 @@ type Car = {
   images: string[];
 };
 
+import { calculateSmartFuelCost } from '../lib/fuelCalculator';
 
-export default function Calculator({ cars, cmsSettings, siteSettings }: { cars: any[], cmsSettings?: Record<string, string>, siteSettings?: any }) {
+export default function Calculator({ cars, cmsSettings, siteSettings, globalCurrencies = [], globalFuelPrices = [] }: { cars: any[], cmsSettings?: Record<string, string>, siteSettings?: any, globalCurrencies?: any[], globalFuelPrices?: any[] }) {
   const searchParams = useSearchParams();
   const initCarId = searchParams.get('carId') || (cars[0]?.id || '');
   const initPromo = searchParams.get('promo') ? parseFloat(searchParams.get('promo')!) : 0;
@@ -68,11 +69,11 @@ export default function Calculator({ cars, cmsSettings, siteSettings }: { cars: 
 
   const [originSearch, setOriginSearch] = useState('');
   const [originResults, setOriginResults] = useState<any[]>([]);
-  const [originObj, setOriginObj] = useState<{lat: number, lng: number, display_name: string} | null>(null);
+  const [originObj, setOriginObj] = useState<{lat: number, lng: number, display_name: string, address?: any} | null>(null);
 
   const [destSearch, setDestSearch] = useState('');
   const [destResults, setDestResults] = useState<any[]>([]);
-  const [destObj, setDestObj] = useState<{lat: number, lng: number, display_name: string} | null>(null);
+  const [destObj, setDestObj] = useState<{lat: number, lng: number, display_name: string, address?: any} | null>(null);
 
   const [routeGeometry, setRouteGeometry] = useState<any>(null);
 
@@ -122,7 +123,7 @@ export default function Calculator({ cars, cmsSettings, siteSettings }: { cars: 
   const searchNominatim = async (query: string, setter: (res: any[]) => void) => {
     if (query.length < 3) { setter([]); return; }
     try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`);
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1&accept-language=uk`);
       const data = await res.json();
       setter(data);
     } catch (e) { console.error(e); }
@@ -211,11 +212,27 @@ export default function Calculator({ cars, cmsSettings, siteSettings }: { cars: 
     const selectedCar = cars.find(c => c.id === selectedCarId);
     if (!selectedCar) return;
 
-    const litersCity = (distanceCity / 100) * selectedCar.fuelConsumptionCity;
-    const litersHighway = (distanceHighway / 100) * selectedCar.fuelConsumptionHighway;
-    const totalLiters = litersCity + litersHighway;
-    const fuelPrice = selectedCar.fuelType === 'Дизель' ? fuelPriceDiesel : fuelPricePetrol;
-    const fuelCostEur = totalLiters * fuelPrice;
+    const routeCountries = [];
+    if (originObj?.address?.country) routeCountries.push(originObj.address.country);
+    if (destObj?.address?.country && destObj.address.country !== originObj?.address?.country) {
+      routeCountries.push(destObj.address.country);
+    }
+
+    const avgConsumption = ((distanceCity / distance) * selectedCar.fuelConsumptionCity) + ((distanceHighway / distance) * selectedCar.fuelConsumptionHighway);
+
+    const fuelCalc = calculateSmartFuelCost({
+      totalDistance: distance,
+      fuelConsumption: avgConsumption || 8.0,
+      fuelTankVolume: selectedCar.fuelTankVolume || 60.0,
+      fuelType: selectedCar.fuelType,
+      routeCountries: routeCountries,
+      globalFuelPrices: globalFuelPrices
+    });
+
+    // Fallback if no prices found for route
+    const fuelCostEur = fuelCalc.totalFuelCostEur > 0 
+      ? fuelCalc.totalFuelCostEur 
+      : ((distanceCity / 100) * selectedCar.fuelConsumptionCity + (distanceHighway / 100) * selectedCar.fuelConsumptionHighway) * (selectedCar.fuelType === 'Дизель' ? fuelPriceDiesel : fuelPricePetrol);
 
     // Calculate delivery distance
     let calcDeliveryDist = 0;
@@ -385,7 +402,7 @@ export default function Calculator({ cars, cmsSettings, siteSettings }: { cars: 
                     <div className="absolute top-full left-0 w-full mt-2 bg-[#1b1b1c] border border-white/10 rounded-xl shadow-2xl z-40 max-h-60 overflow-y-auto">
                       {originResults.map(r => (
                         <div key={r.place_id} className="p-3 hover:bg-white/5 cursor-pointer text-sm text-[#c7c6ca] border-b border-white/5 last:border-0" onClick={() => {
-                          setOriginObj({ lat: parseFloat(r.lat), lng: parseFloat(r.lon), display_name: r.display_name });
+                          setOriginObj({ lat: parseFloat(r.lat), lng: parseFloat(r.lon), display_name: r.display_name, address: r.address });
                           setOriginSearch(r.display_name);
                           setOriginResults([]);
                         }}>
@@ -415,7 +432,7 @@ export default function Calculator({ cars, cmsSettings, siteSettings }: { cars: 
                     <div className="absolute top-full left-0 w-full mt-2 bg-[#1b1b1c] border border-white/10 rounded-xl shadow-2xl z-40 max-h-60 overflow-y-auto">
                       {destResults.map(r => (
                         <div key={r.place_id} className="p-3 hover:bg-white/5 cursor-pointer text-sm text-[#c7c6ca] border-b border-white/5 last:border-0" onClick={() => {
-                          setDestObj({ lat: parseFloat(r.lat), lng: parseFloat(r.lon), display_name: r.display_name });
+                          setDestObj({ lat: parseFloat(r.lat), lng: parseFloat(r.lon), display_name: r.display_name, address: r.address });
                           setDestSearch(r.display_name);
                           setDestResults([]);
                         }}>
