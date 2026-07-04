@@ -114,6 +114,7 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
   
   const [arrivalDate, setArrivalDate] = useState<Date | null>(null);
   const [pickupTime, setPickupTime] = useState<Date | null>(null);
+  const [arrivalPickerOpen, setArrivalPickerOpen] = useState(false);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -523,7 +524,7 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
         </div>
 
         {/* Arrival Date */}
-        <div className="relative z-10 border-t border-white/10 pt-6 md:pt-8">
+        <div className={`relative border-t border-white/10 pt-6 md:pt-8 ${arrivalPickerOpen ? 'z-50' : 'z-10'}`}>
           <div className="grid gap-4 rounded-2xl border border-white/10 bg-[#353536]/30 p-5 md:grid-cols-[1fr_1.2fr] md:items-center">
             <div>
               <h3 className="font-headline-md text-2xl text-[#e4e2e3] flex items-center gap-3">
@@ -538,12 +539,18 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
               <DatePicker
                 selected={arrivalDate}
                 onChange={(date: Date | null) => setArrivalDate(date)}
+                onCalendarOpen={() => setArrivalPickerOpen(true)}
+                onCalendarClose={() => setArrivalPickerOpen(false)}
                 showTimeSelect
                 timeFormat="HH:mm"
                 timeIntervals={30}
                 dateFormat="d MMMM yyyy, HH:mm"
                 minDate={new Date()}
                 className="w-full rounded-xl border border-white/10 bg-[#080818] px-4 py-3 text-white outline-none focus:border-[#e9c349]"
+                wrapperClassName="block w-full"
+                popperClassName="booking-datepicker-popper"
+                calendarClassName="booking-datepicker-calendar"
+                popperPlacement="bottom-start"
                 placeholderText="Оберіть дату і час"
               />
               {detectedCrossBorder && (
