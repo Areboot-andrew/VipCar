@@ -43,7 +43,6 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
   const [distanceHighway, setDistanceHighway] = useState(50);
   const [durationMins, setDurationMins] = useState(0); 
   const [selectedCarId, setSelectedCarId] = useState<string>(initCarId);
-  const [isWeekend, setIsWeekend] = useState(false);
   const [withDriver, setWithDriver] = useState(true);
   const [discountPercent, setDiscountPercent] = useState(initPromo);
   const [discountCode, setDiscountCode] = useState(initPromoCode);
@@ -95,6 +94,7 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
   const [luggage, setLuggage] = useState('Немає');
   const [petsCount, setPetsCount] = useState('0');
   const [meetAndGreet, setMeetAndGreet] = useState(false);
+  const [meetAndGreetText, setMeetAndGreetText] = useState('');
 
   const [originSearch, setOriginSearch] = useState('');
   const [originResults, setOriginResults] = useState<any[]>([]);
@@ -248,7 +248,6 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
       hotelCostPerNight,
       minMarginPercent,
       weekendCoeff,
-      forceWeekend: isWeekend,
     },
   });
 
@@ -284,7 +283,7 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
       totalExpenseDistance: pricing.totalExpenseDistance,
       pricingSnapshot: pricing.pricingSnapshot,
     });
-  }, [distanceCity, distanceHighway, distance, durationMins, selectedCarId, detectedCrossBorder, isWeekend, arrivalDate, withDriver, discountPercent, cars, fuelPricePetrol, fuelPriceDiesel, weekendCoeff, children, childSeats, petsCount, meetAndGreet, passengers, originObj, destObj, routeCountryKey, baseLocationLat, baseLocationLng, amortizationRate, deliveryRate, deliveryBaseFee, defaultCustomsWaitHours, manualWaitingHours, prepBufferMins, trafficBufferPercent, timeRatePerHour, hotelAfterHours, hotelCostPerNight, minMarginPercent, marginRate, globalFuelPrices]);
+  }, [distanceCity, distanceHighway, distance, durationMins, selectedCarId, detectedCrossBorder, arrivalDate, withDriver, discountPercent, cars, fuelPricePetrol, fuelPriceDiesel, weekendCoeff, children, childSeats, petsCount, meetAndGreet, passengers, originObj, destObj, routeCountryKey, baseLocationLat, baseLocationLng, amortizationRate, deliveryRate, deliveryBaseFee, defaultCustomsWaitHours, manualWaitingHours, prepBufferMins, trafficBufferPercent, timeRatePerHour, hotelAfterHours, hotelCostPerNight, minMarginPercent, marginRate, globalFuelPrices]);
 
   useEffect(() => {
     if (!hasTripBasics || !arrivalDate) {
@@ -378,6 +377,10 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
     e.preventDefault();
     if (availabilityStatus === 'unavailable' || !pickupTime || !arrivalDate) return;
 
+    const serviceNote = meetAndGreet
+      ? `Зустріч з табличкою та допомога з багажем${meetAndGreetText.trim() ? `: ${meetAndGreetText.trim()}` : ''}`
+      : '';
+
     setIsSubmitting(true);
     try {
       const res = await fetch('/api/bookings', {
@@ -408,6 +411,7 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
           animals: Number(petsCount) > 0,
           petsCount: Number(petsCount),
           meetAndGreet,
+          notes: serviceNote || null,
           promoCode: discountCode || null,
           promotionId: initPromotionId,
           discountPercent,
@@ -596,36 +600,26 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
           </div>
         </div>
 
-        {/* Options Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 relative z-10 border-t border-white/10 pt-6 md:pt-8">
-          <div className="space-y-4">
-            <div className="rounded-xl border border-white/10 bg-[#353536]/30 p-4">
+        {/* Route state and promo */}
+        <div className="relative z-10 border-t border-white/10 pt-6 md:pt-8">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            {detectedCrossBorder && (
+              <div className="rounded-xl border border-[#e9c349]/30 bg-[#e9c349]/10 p-4">
               <div className="flex items-start gap-3">
-                <span className={`material-symbols-outlined mt-0.5 ${detectedCrossBorder ? 'text-[#e9c349]' : 'text-[#8a8a93]'}`}>public</span>
+                  <span className="material-symbols-outlined mt-0.5 text-[#e9c349]">public</span>
                 <div>
-                  <div className="font-bold text-white">{detectedCrossBorder ? 'Міжнародний рейс визначено' : 'Маршрут без перетину кордону'}</div>
-                  <div className="mt-1 text-sm text-[#c7c6ca]">
-                    {detectedCrossBorder ? 'Система сама додасть час митниці і прикордонну надбавку.' : 'Якщо оберете різні країни, прикордонна логіка увімкнеться автоматично.'}
-                  </div>
+                    <div className="font-bold text-white">Маршрут включає перетин кордону</div>
+                    <div className="mt-1 text-sm text-[#c7c6ca]">Час митниці і міжнародну логіку враховано автоматично.</div>
                 </div>
               </div>
             </div>
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input type="checkbox" checked={isWeekend} onChange={(e) => setIsWeekend(e.target.checked)} className="w-5 h-5 rounded border-gray-300 text-[#e9c349] focus:ring-[#e9c349]" />
-              <span className="text-[#e4e2e3] font-body-md">Поїздка у вихідний день (+{Math.round((weekendCoeff - 1) * 100)}%)</span>
-            </label>
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input type="checkbox" checked={meetAndGreet} onChange={(e) => setMeetAndGreet(e.target.checked)} className="w-5 h-5 rounded border-gray-300 text-[#e9c349] focus:ring-[#e9c349]" />
-              <span className="text-[#e4e2e3] font-body-md">Зустріч з табличкою (+{selectedCar?.meetAndGreetFee || 20}€)</span>
-            </label>
-          </div>
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
+            )}
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <input type="text" placeholder="Промокод" value={discountCode} onChange={(e) => {
                 setDiscountCode(e.target.value);
                 if (e.target.value.toLowerCase() === 'vip10') setDiscountPercent(10);
                 else setDiscountPercent(0);
-              }} className="bg-[#353536]/30 border border-white/10 rounded-xl px-4 py-2 text-[#e4e2e3] focus:border-[#e9c349] outline-none w-full max-w-[200px]" />
+              }} className="w-full rounded-xl border border-white/10 bg-[#353536]/30 px-4 py-3 text-[#e4e2e3] outline-none focus:border-[#e9c349] sm:w-[220px]" />
               {discountPercent > 0 && <span className="text-[#e9c349] text-sm">-{discountPercent}% Активовано!</span>}
             </div>
           </div>
@@ -821,6 +815,40 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
                             <strong className="text-[#e9c349]">{expenseSnapshot.billableHours} год</strong>
                           </div>
                         </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+                    <label className="flex cursor-pointer items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={meetAndGreet}
+                        onChange={(e) => {
+                          setMeetAndGreet(e.target.checked);
+                          if (!e.target.checked) setMeetAndGreetText('');
+                        }}
+                        className="mt-1 h-5 w-5 rounded border-gray-300 text-[#e9c349] focus:ring-[#e9c349]"
+                      />
+                      <span>
+                        <span className="block font-bold text-white">
+                          Зустріч з табличкою та допомога з багажем (+{selectedCar?.meetAndGreetFee || 20}€)
+                        </span>
+                        <span className="mt-1 block text-sm text-[#c7c6ca]">
+                          Водій зустріне клієнта у точці прибуття і допоможе з валізами.
+                        </span>
+                      </span>
+                    </label>
+                    {meetAndGreet && (
+                      <div className="mt-4">
+                        <label className="mb-2 block text-xs font-label-caps uppercase tracking-widest text-[#8a8a93]">Текст на табличці</label>
+                        <input
+                          type="text"
+                          value={meetAndGreetText}
+                          onChange={(e) => setMeetAndGreetText(e.target.value)}
+                          placeholder="Наприклад: Mr. Smith"
+                          className="w-full rounded-xl border border-white/10 bg-[#080818] px-4 py-3 text-white outline-none focus:border-[#e9c349]/60"
+                        />
                       </div>
                     )}
                   </div>

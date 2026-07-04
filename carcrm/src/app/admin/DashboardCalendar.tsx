@@ -92,6 +92,7 @@ type Booking = {
   returnToBaseAt?: string | null;
   carStartLocation?: string | null;
   driverNotes?: string | null;
+  notes?: string | null;
   client: { name: string; phone: string | null; email?: string | null };
   driver?: { id?: string; user?: { name: string } } | null;
   car?: Car;
@@ -495,6 +496,12 @@ export default function DashboardCalendar({ cars, bookings, drivers = [], onOpen
                     <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Дитячі крісла</span><strong className="text-white">{selectedBooking.childSeats || 0}</strong></div>
                     <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Багаж</span><strong className="text-right text-white">{selectedBooking.luggage || 'Немає'}</strong></div>
                     <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Тварини</span><strong className="text-white">{selectedBooking.petsCount || 0}</strong></div>
+                    {selectedBooking.notes && (
+                      <div className="rounded-lg border border-[#e9c349]/20 bg-[#e9c349]/10 p-3 sm:col-span-2">
+                        <span className="block text-xs uppercase tracking-widest text-[#b9a35b]">Сервісна опція</span>
+                        <strong className="mt-1 block text-white">{selectedBooking.notes}</strong>
+                      </div>
+                    )}
                   </div>
                 </div>
 

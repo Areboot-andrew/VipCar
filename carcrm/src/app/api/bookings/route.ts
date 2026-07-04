@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { 
       name, phone, email, password, routeFrom, routeTo, routeCountries, distance, carId,
-      passengers, children, childSeats, luggage, animals, petsCount, meetAndGreet,
+      passengers, children, childSeats, luggage, animals, petsCount, meetAndGreet, notes,
       desiredArrivalAt, dateStart, dateEnd, isEndingAtBase, promoCode, promotionId, discountPercent,
       routeDurationMins, distanceCity, distanceHighway, originLat, originLng, destinationLat, destinationLng
     } = body;
@@ -121,7 +121,8 @@ export async function POST(request: Request) {
         returnToBaseDistance: pricing.returnToBaseDistance,
         returnToBaseAt: pricing.returnToBaseAt,
         pricingSnapshot: pricing.pricingSnapshot as Prisma.InputJsonValue,
-        status: 'PENDING'
+        status: 'PENDING',
+        notes: notes || null
       }
     });
 

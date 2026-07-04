@@ -18,6 +18,7 @@ type Booking = {
   distance: number;
   deliveryDistance: number;
   driverNotes?: string;
+  notes?: string;
   client: { name: string; phone: string };
   car: { make: string; model: string };
 };
@@ -137,6 +138,11 @@ export default function DriverPortal() {
                 {b.driverNotes && (
                   <div className="mt-4 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl text-yellow-300 text-sm">
                     <strong>Вказівки адміна:</strong> {b.driverNotes}
+                  </div>
+                )}
+                {b.notes && (
+                  <div className="mt-4 rounded-xl border border-[#e9c349]/20 bg-[#e9c349]/10 p-4 text-sm text-[#f2d86b]">
+                    <strong>Сервіс:</strong> {b.notes}
                   </div>
                 )}
               </div>
