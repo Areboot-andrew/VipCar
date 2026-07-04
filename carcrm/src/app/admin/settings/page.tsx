@@ -63,7 +63,9 @@ const defaultContentSettings: Record<string, string> = {
   facebook_enabled: 'false',
   facebook_page_token: '',
   facebook_verify_token: '',
+  facebook_app_secret: '',
   whatsapp_enabled: 'false',
+  whatsapp_app_secret: '',
   whatsapp_phone_number_id: '',
   whatsapp_business_account_id: '',
   whatsapp_access_token: '',
@@ -183,6 +185,7 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState('');
   const [telegramNotice, setTelegramNotice] = useState('');
+  const [botNotice, setBotNotice] = useState('');
   const [telegramAuth, setTelegramAuth] = useState({ phoneNumber: '', phoneCodeHash: '', code: '', password: '' });
   const [newCurrency, setNewCurrency] = useState({ currency: 'UAH', rateToEur: 42.5 });
   const [newFuel, setNewFuel] = useState({ country: 'Україна', fuelType: 'Дизель', priceEur: 1.1 });
@@ -251,6 +254,28 @@ export default function SettingsPage() {
       return false;
     } finally {
       setSaving(false);
+    }
+  };
+
+  const activateBotWebhook = async () => {
+    setBotNotice('');
+    if (!contentSettings.telegram_bot_token) {
+      setBotNotice('Спочатку заповни Bot Token.');
+      return;
+    }
+    const saved = await saveContentSettings();
+    if (!saved) return;
+
+    const res = await fetch('/api/telegram/bot/set-webhook', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ origin: publicOrigin }),
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      setBotNotice(`Вебхук активовано: ${data.webhookUrl}. Тепер повідомлення боту з'являться у «Повідомленнях».`);
+    } else {
+      setBotNotice(data.error || 'Не вдалося активувати вебхук.');
     }
   };
 
@@ -536,6 +561,19 @@ export default function SettingsPage() {
               <StatusLine settingKey="telegram_last_event_at" />
               <Field label="Bot Token (сповіщення)" value={contentSettings.telegram_bot_token} onChange={(value) => updateSetting('telegram_bot_token', value)} secret placeholder="123456:ABC..." hint="Токен бота з @BotFather. Через нього CRM шле сповіщення про нові заявки і бронювання." />
               <Field label="Chat ID для сповіщень" value={contentSettings.telegram_admin_chat_id} onChange={(value) => updateSetting('telegram_admin_chat_id', value)} placeholder="123456789" hint="Твій chat id (дізнайся у @userinfobot). Сюди прилітають сповіщення. Спочатку напиши своєму боту /start." />
+              <div className="rounded-lg border border-white/10 bg-black/20 p-3">
+                <button
+                  type="button"
+                  onClick={activateBotWebhook}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[#2AABEE]/40 bg-[#2AABEE]/10 px-4 py-3 text-sm font-bold text-[#2AABEE] hover:bg-[#2AABEE]/20"
+                >
+                  <Send size={15} /> Активувати вебхук бота
+                </button>
+                <p className="mb-0 mt-2 text-xs leading-5 text-[#6f6f78]">
+                  Після активації клієнти зможуть писати боту, а їхні повідомлення з'являтимуться у «Повідомленнях» — відповіді підуть від імені бота.
+                </p>
+                {botNotice && <div className="mt-2 rounded-lg border border-[#e9c349]/25 bg-[#e9c349]/10 px-3 py-2 text-xs leading-5 text-[#e9c349]">{botNotice}</div>}
+              </div>
               <Field label="API ID" value={contentSettings.telegram_api_id} onChange={(value) => updateSetting('telegram_api_id', value)} placeholder="my.telegram.org API ID" hint="Числовий API ID з my.telegram.org для MTProto-авторизації." />
               <Field label="API Hash" value={contentSettings.telegram_api_hash} onChange={(value) => updateSetting('telegram_api_hash', value)} secret placeholder="my.telegram.org API Hash" hint="Секретний API Hash з my.telegram.org. Не показується відкритим текстом." />
               <Field label="String Session" value={contentSettings.telegram_string_session} onChange={(value) => updateSetting('telegram_string_session', value)} secret placeholder="Після авторизації MTProto" hint="Збережена сесія Telegram-акаунта/бота після авторизації. Без неї інтеграція не стартує." />
@@ -580,6 +618,7 @@ export default function SettingsPage() {
               <StatusLine settingKey="messenger_last_event_at" />
               <Field label="Page Access Token" value={contentSettings.facebook_page_token} onChange={(value) => updateSetting('facebook_page_token', value)} secret hint="Токен сторінки Facebook, яким CRM відповідає клієнтам." />
               <Field label="Verify Token" value={contentSettings.facebook_verify_token} onChange={(value) => updateSetting('facebook_verify_token', value)} secret hint="Секретна фраза для підтвердження webhook у Meta." />
+              <Field label="App Secret (підпис вебхука)" value={contentSettings.facebook_app_secret} onChange={(value) => updateSetting('facebook_app_secret', value)} secret hint="App Secret додатка Meta. Якщо заповнено — CRM перевіряє підпис X-Hub-Signature-256 і відкидає підроблені запити." />
               <CopyBox label="Callback URL для Meta webhook" value={`${publicOrigin || 'https://your-domain.com'}/api/webhooks/messenger`} hint="У Meta додай цей URL і той самий Verify Token. Підписки: messages, messaging_postbacks за потреби." />
             </div>
           </div>
@@ -599,6 +638,7 @@ export default function SettingsPage() {
               <Field label="Business Account ID" value={contentSettings.whatsapp_business_account_id} onChange={(value) => updateSetting('whatsapp_business_account_id', value)} hint="ID WhatsApp Business Account у Meta." />
               <Field label="Access Token" value={contentSettings.whatsapp_access_token} onChange={(value) => updateSetting('whatsapp_access_token', value)} secret hint="Токен доступу для відправки і читання повідомлень." />
               <Field label="Verify Token" value={contentSettings.whatsapp_verify_token} onChange={(value) => updateSetting('whatsapp_verify_token', value)} secret hint="Секрет для підтвердження WhatsApp webhook." />
+              <Field label="App Secret (підпис вебхука)" value={contentSettings.whatsapp_app_secret} onChange={(value) => updateSetting('whatsapp_app_secret', value)} secret hint="App Secret додатка Meta. Якщо заповнено — CRM перевіряє підпис вебхука і відкидає підроблені запити." />
               <CopyBox label="Callback URL для WhatsApp webhook" value={`${publicOrigin || 'https://your-domain.com'}/api/webhooks/whatsapp`} hint="У WhatsApp configuration встав цей URL і Verify Token. Підписка потрібна на messages." />
             </div>
           </div>

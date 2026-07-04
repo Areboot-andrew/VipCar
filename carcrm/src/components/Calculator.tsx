@@ -110,9 +110,11 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalFuel
 
   // Modal & Booking state
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [bookingData, setBookingData] = useState({ 
+  const [bookingData, setBookingData] = useState({
     name: '', phone: '', email: '', password: ''
   });
+  // Server-verified price for the modal ("what you see is what you pay")
+  const [serverQuote, setServerQuote] = useState<{ price: number; depositAmount: number; discountPercent: number } | null>(null);
   
   const [arrivalDate, setArrivalDate] = useState<Date | null>(null);
   const [pickupTime, setPickupTime] = useState<Date | null>(null);
@@ -202,6 +204,49 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalFuel
     }, 400);
     return () => clearTimeout(timer);
   }, [discountCode, selectedCarId]);
+
+  // The modal shows the server-verified price (same engine that creates the booking).
+  useEffect(() => {
+    if (!isModalOpen || !originObj || !destObj || !arrivalDate || !selectedCarId) {
+      setServerQuote(null);
+      return;
+    }
+    let active = true;
+    fetch('/api/quote', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        carId: selectedCarId,
+        routeFrom: originObj.display_name,
+        routeTo: destObj.display_name,
+        routeCountries,
+        distance,
+        distanceCity,
+        distanceHighway,
+        durationMins,
+        originLat: originObj.lat,
+        originLng: originObj.lng,
+        destinationLat: destObj.lat,
+        destinationLng: destObj.lng,
+        arrivalDate: arrivalDate.toISOString(),
+        passengers: Number(passengers),
+        children: Number(children),
+        childSeats: Number(childSeats),
+        petsCount: Number(petsCount),
+        meetAndGreet,
+        promotionId: initPromotionId,
+        promoCode: discountCode || null,
+      }),
+    })
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        if (active && data && typeof data.price === 'number') {
+          setServerQuote({ price: data.price, depositAmount: Number(data.depositAmount || 0), discountPercent: Number(data.discountPercent || 0) });
+        }
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [isModalOpen, meetAndGreet, selectedCarId, arrivalDate, distance, discountCode]);
 
   // Logged-in client: load personal discount ("ваша ціна") and prefill contacts.
   useEffect(() => {
@@ -836,7 +881,13 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalFuel
                       </div>
                       <div className="text-right">
                         <div className="text-xs uppercase tracking-widest text-[#8a8a93]">Ціна</div>
-                        <div className="text-2xl font-display-lg text-[#e9c349]">€ {price}</div>
+                        <div className="text-2xl font-display-lg text-[#e9c349]">€ {serverQuote?.price ?? price}</div>
+                        {serverQuote && serverQuote.depositAmount > 0 && (
+                          <div className="mt-1 text-xs text-[#c7c6ca]">завдаток € {serverQuote.depositAmount}</div>
+                        )}
+                        {serverQuote && serverQuote.discountPercent > 0 && (
+                          <div className="text-xs font-bold text-[#e9c349]">зі знижкою −{serverQuote.discountPercent}%</div>
+                        )}
                       </div>
                     </div>
 

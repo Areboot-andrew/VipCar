@@ -19,6 +19,24 @@ type ChatRoom = {
   messages: Message[];
 };
 
+const platformStyle = (platform: string) =>
+  platform === 'TELEGRAM' || platform === 'TELEGRAM_BOT' ? 'bg-[#2AABEE]/20 text-[#2AABEE]'
+  : platform === 'MESSENGER' ? 'bg-[#00B2FF]/20 text-[#00B2FF]'
+  : platform === 'WHATSAPP' ? 'bg-[#25D366]/20 text-[#25D366]'
+  : 'bg-white/10 text-white';
+
+const platformIcon = (platform: string) =>
+  platform === 'TELEGRAM' ? 'send'
+  : platform === 'TELEGRAM_BOT' ? 'smart_toy'
+  : platform === 'MESSENGER' ? 'forum'
+  : platform === 'WHATSAPP' ? 'call'
+  : 'chat';
+
+const platformLabel = (platform: string) =>
+  platform === 'TELEGRAM_BOT' ? 'Telegram бот'
+  : platform === 'WEB' ? 'Сайт'
+  : platform;
+
 export default function AdminChatPage() {
   const [chats, setChats] = useState<ChatRoom[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
@@ -126,12 +144,9 @@ export default function AdminChatPage() {
                 >
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex items-center gap-2">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                        chat.platform === 'TELEGRAM' ? 'bg-[#2AABEE]/20 text-[#2AABEE]' : 
-                        chat.platform === 'MESSENGER' ? 'bg-[#00B2FF]/20 text-[#00B2FF]' : 'bg-white/10 text-white'
-                      }`}>
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${platformStyle(chat.platform)}`}>
                         <span className="material-symbols-outlined text-lg">
-                          {chat.platform === 'TELEGRAM' ? 'send' : chat.platform === 'MESSENGER' ? 'forum' : 'chat'}
+                          {platformIcon(chat.platform)}
                         </span>
                       </div>
                       <div>
@@ -139,7 +154,7 @@ export default function AdminChatPage() {
                           {chat.clientName || chat.clientPhone || chat.externalId || 'Анонім'}
                         </strong>
                         <span className="text-[10px] text-[#8a8a93] uppercase tracking-wider font-bold">
-                          {chat.platform}
+                          {platformLabel(chat.platform)}
                         </span>
                       </div>
                     </div>
@@ -162,19 +177,16 @@ export default function AdminChatPage() {
         {activeChat ? (
           <>
             <div className="z-10 flex items-center gap-4 border-b border-white/5 bg-[#13131a]/80 p-4 backdrop-blur-md lg:p-5">
-               <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                  activeChat.platform === 'TELEGRAM' ? 'bg-[#2AABEE]/20 text-[#2AABEE]' : 
-                  activeChat.platform === 'MESSENGER' ? 'bg-[#00B2FF]/20 text-[#00B2FF]' : 'bg-white/10 text-white'
-                }`}>
+               <div className={`w-12 h-12 rounded-full flex items-center justify-center ${platformStyle(activeChat.platform)}`}>
                   <span className="material-symbols-outlined text-2xl">
-                    {activeChat.platform === 'TELEGRAM' ? 'send' : activeChat.platform === 'MESSENGER' ? 'forum' : 'chat'}
+                    {platformIcon(activeChat.platform)}
                   </span>
                 </div>
                 <div>
                   <h3 className="m-0 text-white text-lg font-bold">
                     {activeChat.clientName || activeChat.clientPhone || activeChat.externalId || 'Анонім'}
                   </h3>
-                  <p className="m-0 text-[#8a8a93] text-xs uppercase tracking-wider mt-1">{activeChat.platform} Чат</p>
+                  <p className="m-0 text-[#8a8a93] text-xs uppercase tracking-wider mt-1">{platformLabel(activeChat.platform)} Чат</p>
                 </div>
             </div>
 

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { touchChannelEvent } from '@/lib/channelStatus';
+import { isValidMetaSignature } from '@/lib/metaSignature';
 
 // Meta Webhook Verification
 export async function GET(req: Request) {
@@ -32,12 +33,21 @@ export async function GET(req: Request) {
 // Receive messages from Facebook Messenger
 export async function POST(req: Request) {
   try {
-    const enabledRecord = await prisma.siteContent.findUnique({ where: { key: 'facebook_enabled' } });
+    const [enabledRecord, appSecretRecord] = await Promise.all([
+      prisma.siteContent.findUnique({ where: { key: 'facebook_enabled' } }),
+      prisma.siteContent.findUnique({ where: { key: 'facebook_app_secret' } }),
+    ]);
     if (enabledRecord?.value !== 'true') {
       return new NextResponse('DISABLED', { status: 200 });
     }
 
-    const body = await req.json();
+    const rawBody = await req.text();
+    // When the App Secret is configured, reject requests that are not signed by Meta
+    if (appSecretRecord?.value && !isValidMetaSignature(rawBody, req.headers.get('x-hub-signature-256'), appSecretRecord.value)) {
+      return new NextResponse('Invalid signature', { status: 403 });
+    }
+
+    const body = JSON.parse(rawBody);
 
     if (body.object === 'page') {
       touchChannelEvent('messenger_last_event_at');

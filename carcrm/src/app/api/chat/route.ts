@@ -67,6 +67,23 @@ export async function POST(req: Request) {
           deliveryError = 'Telegram не зміг надіслати повідомлення.';
         }
       }
+    } else if (chatRoom.platform === 'TELEGRAM_BOT' && chatRoom.externalId) {
+      // Chats that came through the bot webhook are answered via Bot API
+      const tokenRow = await prisma.siteContent.findUnique({ where: { key: 'telegram_bot_token' } });
+      const botToken = tokenRow?.value || process.env.TELEGRAM_BOT_TOKEN;
+      if (!botToken) {
+        deliveryError = 'Не заповнений Bot Token у налаштуваннях.';
+      } else {
+        const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chat_id: chatRoom.externalId, text: content }),
+        });
+        if (!res.ok) {
+          console.error('Telegram bot send error:', await res.text());
+          deliveryError = 'Telegram-бот не зміг надіслати повідомлення.';
+        }
+      }
     } else if (chatRoom.platform === 'MESSENGER' && chatRoom.externalId) {
       // Forward to Facebook Messenger via Graph API
       const [enabledSetting, tokenSetting] = await Promise.all([
