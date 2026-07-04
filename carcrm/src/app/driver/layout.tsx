@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { CalendarDays, DollarSign, LogOut } from 'lucide-react';
+import { CalendarDays, DollarSign, ExternalLink } from 'lucide-react';
 import '../globals.css';
 
 export const metadata = {
@@ -28,9 +28,9 @@ export default function DriverLayout({
             <DollarSign size={20} />
             <span>Розрахунки</span>
           </Link>
-          <Link href="/" className="admin-nav-link" style={{ marginTop: 'auto', color: '#ffb4ab' }}>
-            <LogOut size={20} />
-            <span>Вийти</span>
+          <Link href="/" className="admin-nav-link" style={{ marginTop: 'auto', color: '#ffe088' }}>
+            <ExternalLink size={20} />
+            <span>На сайт</span>
           </Link>
         </nav>
       </aside>

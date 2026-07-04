@@ -7,19 +7,33 @@ import { motion } from 'framer-motion';
 import HighlightedTitle from './ui/HighlightedTitle';
 import { withContentDefaults } from '../lib/contentDefaults';
 
+type EmptyLegPromo = {
+  id: string;
+  title: string;
+  discount: number;
+  routeFrom?: string | null;
+  routeTo?: string | null;
+  dateStart?: string | null;
+  carId?: string | null;
+  active: boolean;
+  car?: {
+    make: string;
+    model: string;
+  } | null;
+};
+
 export default function EmptyLegsBanner({ cmsSettings = {} }: { cmsSettings?: Record<string, string> }) {
   const c = withContentDefaults(cmsSettings);
-  const [promos, setPromos] = useState<any[]>([]);
+  const [promos, setPromos] = useState<EmptyLegPromo[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetch('/api/promotions')
       .then(res => res.json())
       .then(data => {
-        // Filter only active promos
-        const activePromos = data.filter((p: any) => p.active);
-        // Sort by dateStart (closest first)
-        activePromos.sort((a: any, b: any) => {
+        const list = Array.isArray(data) ? data as EmptyLegPromo[] : [];
+        const activePromos = list.filter((p) => p.active);
+        activePromos.sort((a, b) => {
           if (!a.dateStart) return 1;
           if (!b.dateStart) return -1;
           return new Date(a.dateStart).getTime() - new Date(b.dateStart).getTime();
@@ -78,7 +92,7 @@ export default function EmptyLegsBanner({ cmsSettings = {} }: { cmsSettings?: Re
               )}
             </div>
 
-            <Link href={`/#calculator?promo=${promo.discount}&carId=${promo.carId || ''}`} className="block w-full text-center py-3 rounded-xl border border-[#e9c349] text-[#e9c349] hover:bg-[#e9c349] hover:text-black font-bold transition-all z-10 relative">
+            <Link href={`/?promo=${promo.discount}&carId=${promo.carId || ''}#calculator`} className="block w-full text-center py-3 rounded-xl border border-[#e9c349] text-[#e9c349] hover:bg-[#e9c349] hover:text-black font-bold transition-all z-10 relative">
               {c['empty_legs_book_button']}
             </Link>
           </motion.div>

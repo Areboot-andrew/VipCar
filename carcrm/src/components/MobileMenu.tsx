@@ -24,8 +24,8 @@ export default function MobileMenu({ c }: { c: Record<string, string> }) {
           
           <div className="flex flex-col gap-8 text-center text-xl font-headline-md tracking-wider">
             <Link href="#services" onClick={() => setIsOpen(false)} className="text-[#c7c6ca] hover:text-white uppercase">{c['menu_services']}</Link>
-            <Link href="#fleet" onClick={() => setIsOpen(false)} className="text-[#c7c6ca] hover:text-white uppercase">{c['menu_fleet']}</Link>
-            <Link href="#gallery" onClick={() => setIsOpen(false)} className="text-[#c7c6ca] hover:text-white uppercase">{c['menu_gallery']}</Link>
+            <Link href="/gallery" onClick={() => setIsOpen(false)} className="text-[#c7c6ca] hover:text-white uppercase">{c['menu_fleet']}</Link>
+            <Link href="/gallery" onClick={() => setIsOpen(false)} className="text-[#c7c6ca] hover:text-white uppercase">{c['menu_gallery']}</Link>
             <Link href="#contact" onClick={() => setIsOpen(false)} className="text-[#c7c6ca] hover:text-white uppercase">{c['menu_contact']}</Link>
             <div className="pt-8 border-t border-white/10 flex justify-center">
               <NavAuth loginText={c['menu_login']} driverCabinetText={c['menu_driver_cabinet']} profileText={c['menu_profile']} logoutText={c['menu_logout']} />
