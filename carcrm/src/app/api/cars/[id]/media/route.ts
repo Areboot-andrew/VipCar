@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 export async function POST(request: Request, props: { params: Promise<{ id: string }> }) {
   try {
     const params = await props.params;
-    const { url, mediaType, type, role, title, alt, caption, isCover } = await request.json();
+    const { url, mediaType, type, role, title, alt, caption, isCover, width, height } = await request.json();
     const resolvedType = type || mediaType || 'image';
     const car = await prisma.car.findFirst({ where: { OR: [{ id: params.id }, { slug: params.id }] }, include: { media: true } });
     if (!car) return NextResponse.json({ error: 'Car not found' }, { status: 404 });
@@ -29,6 +29,8 @@ export async function POST(request: Request, props: { params: Promise<{ id: stri
         alt: alt || `${car.make} ${car.model}`,
         caption: caption || null,
         isCover: Boolean(isCover),
+        width: width ? Number(width) : null,
+        height: height ? Number(height) : null,
         order: car.media.length,
       },
     });

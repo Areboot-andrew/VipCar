@@ -12,6 +12,7 @@ import {
   FilePenLine,
   Inbox,
   LayoutDashboard,
+  Megaphone,
   Menu,
   MessageSquare,
   Settings,
@@ -57,6 +58,12 @@ function getNavGroups(c: Record<string, string>): { label: string; items: NavIte
     label: c['admin_group_content'],
     items: [
       { href: '/admin/cms', label: c['admin_nav_cms'], description: c['admin_nav_cms_desc'], icon: FilePenLine },
+    ],
+  },
+  {
+    label: c['admin_group_marketing'],
+    items: [
+      { href: '/admin/marketing', label: c['admin_nav_marketing'], description: c['admin_nav_marketing_desc'], icon: Megaphone },
     ],
   },
   {

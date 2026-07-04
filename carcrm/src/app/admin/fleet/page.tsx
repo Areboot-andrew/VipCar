@@ -19,6 +19,7 @@ import {
   Upload,
 } from 'lucide-react';
 import IconPicker from '@/components/admin/IconPicker';
+import CroppedImageUploader from '@/components/admin/CroppedImageUploader';
 import DynamicIcon from '@/components/ui/DynamicIcon';
 import HighlightedTitle from '@/components/ui/HighlightedTitle';
 import { carSlug } from '@/lib/slug';
@@ -340,21 +341,19 @@ export default function AdminFleetPage() {
     }
   };
 
-  const uploadMedia = async (file: File, type: 'image' | 'video') => {
+  const attachUploadedMedia = async (uploadData: { url: string; width?: number; height?: number }, type: 'image' | 'video') => {
     if (!draft.id) {
       setNotice('Спочатку збережи авто, потім додавай медіа.');
       return;
     }
+    if (!uploadData.url) {
+      setNotice('Не вдалося завантажити медіа.');
+      return;
+    }
+
     setUploading(true);
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('type', 'fleet');
 
     try {
-      const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
-      const uploadData = await uploadRes.json();
-      if (!uploadData.url) throw new Error('Upload failed');
-
       const mediaRes = await fetch(`/api/cars/${draft.slug || draft.id}/media`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -364,6 +363,8 @@ export default function AdminFleetPage() {
           role: draft.media?.length ? 'gallery' : 'cover',
           isCover: !draft.media?.length,
           alt: `${draft.make} ${draft.model}`,
+          width: uploadData.width,
+          height: uploadData.height,
         }),
       });
       if (!mediaRes.ok) throw new Error('Media failed');
@@ -371,6 +372,29 @@ export default function AdminFleetPage() {
       setNotice('Медіа додано.');
     } catch {
       setNotice('Не вдалося завантажити медіа.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const uploadVideo = async (file: File) => {
+    if (!draft.id) {
+      setNotice('Спочатку збережи авто, потім додавай медіа.');
+      return;
+    }
+    setUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('type', 'video');
+
+    try {
+      const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
+      const uploadData = await uploadRes.json();
+      if (!uploadRes.ok || !uploadData.url) throw new Error('Upload failed');
+      await attachUploadedMedia(uploadData, 'video');
+      if (uploadData.note) setNotice(uploadData.note);
+    } catch {
+      setNotice('Не вдалося завантажити відео.');
     } finally {
       setUploading(false);
     }
@@ -718,14 +742,17 @@ export default function AdminFleetPage() {
                     <div className="text-sm font-bold text-white">Медіа-галерея авто</div>
                     <div className="text-xs text-[#8a8a93]">Обкладинка, опис, роль і порядок керують галереєю, сторінкою авто і картками на сайті.</div>
                   </div>
-                  <div className="flex gap-2">
-                    <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-bold text-white hover:bg-white/10">
-                      {uploading ? <Loader2 className="animate-spin" size={16} /> : <Upload size={16} />} Фото
-                      <input type="file" accept="image/*" className="hidden" disabled={uploading} onChange={(e) => e.target.files?.[0] && uploadMedia(e.target.files[0], 'image')} />
-                    </label>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <CroppedImageUploader
+                      preset="fleet"
+                      buttonLabel={uploading ? 'Завантаження...' : 'Фото з кадруванням'}
+                      disabled={uploading || !draft.id}
+                      value={(draft.media || []).find((item) => item.isCover)?.url || ''}
+                      onUploaded={(data) => attachUploadedMedia(data, 'image')}
+                    />
                     <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-bold text-white hover:bg-white/10">
                       {uploading ? <Loader2 className="animate-spin" size={16} /> : <Upload size={16} />} Відео
-                      <input type="file" accept="video/*" className="hidden" disabled={uploading} onChange={(e) => e.target.files?.[0] && uploadMedia(e.target.files[0], 'video')} />
+                      <input type="file" accept="video/*" className="hidden" disabled={uploading || !draft.id} onChange={(e) => e.target.files?.[0] && uploadVideo(e.target.files[0])} />
                     </label>
                   </div>
                 </div>
