@@ -110,6 +110,8 @@ export async function getAutoEmptyLegPromotions(now = new Date()) {
       pickupRadiusKm: AUTO_EMPTY_PICKUP_RADIUS_KM,
       pickupCenterLat: booking.destinationLat,
       pickupCenterLng: booking.destinationLng,
+      dropoffLat: booking.car.baseLat,
+      dropoffLng: booking.car.baseLng,
       pickupZoneText: `Забір у ${fromCity} або до ${AUTO_EMPTY_PICKUP_RADIUS_KM} км від міста`,
     });
   }
