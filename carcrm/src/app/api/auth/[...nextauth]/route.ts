@@ -8,17 +8,29 @@ import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
+const authSettingKeys = [
+  "google_auth_enabled",
+  "google_client_id",
+  "google_client_secret",
+  "facebook_auth_enabled",
+  "facebook_client_id",
+  "facebook_client_secret",
+];
+
+async function getAuthSettings() {
+  const rows = await prisma.siteContent.findMany({
+    where: { key: { in: authSettingKeys } },
+  });
+
+  return rows.reduce<Record<string, string>>((acc, row) => {
+    acc[row.key] = row.value;
+    return acc;
+  }, {});
+}
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID as string,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
-    }),
-    FacebookProvider({
-      clientId: process.env.FACEBOOK_CLIENT_ID as string,
-      clientSecret: process.env.FACEBOOK_CLIENT_SECRET as string,
-    }),
     CredentialsProvider({
       name: "Credentials",
       credentials: {
@@ -85,6 +97,37 @@ export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
 };
 
-const handler = NextAuth(authOptions);
+async function buildAuthOptions(): Promise<NextAuthOptions> {
+  const settings = await getAuthSettings();
+  const providers: NextAuthOptions["providers"] = [];
+
+  if (settings.google_auth_enabled === "true" && settings.google_client_id && settings.google_client_secret) {
+    providers.push(
+      GoogleProvider({
+        clientId: settings.google_client_id,
+        clientSecret: settings.google_client_secret,
+      })
+    );
+  }
+
+  if (settings.facebook_auth_enabled === "true" && settings.facebook_client_id && settings.facebook_client_secret) {
+    providers.push(
+      FacebookProvider({
+        clientId: settings.facebook_client_id,
+        clientSecret: settings.facebook_client_secret,
+      })
+    );
+  }
+
+  return {
+    ...authOptions,
+    providers: [...providers, ...authOptions.providers],
+  };
+}
+
+async function handler(req: Request, context: any) {
+  const options = await buildAuthOptions();
+  return NextAuth(options)(req as any, context);
+}
 
 export { handler as GET, handler as POST };

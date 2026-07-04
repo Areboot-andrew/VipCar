@@ -7,9 +7,12 @@ export async function GET(req: Request) {
     const mode = url.searchParams.get('hub.mode');
     const token = url.searchParams.get('hub.verify_token');
     const challenge = url.searchParams.get('hub.challenge');
-    const verifyTokenRecord = await prisma.siteContent.findUnique({ where: { key: 'whatsapp_verify_token' } });
+    const [enabledRecord, verifyTokenRecord] = await Promise.all([
+      prisma.siteContent.findUnique({ where: { key: 'whatsapp_enabled' } }),
+      prisma.siteContent.findUnique({ where: { key: 'whatsapp_verify_token' } }),
+    ]);
 
-    if (mode === 'subscribe' && token && token === verifyTokenRecord?.value) {
+    if (enabledRecord?.value === 'true' && mode === 'subscribe' && token && token === verifyTokenRecord?.value) {
       return new NextResponse(challenge, { status: 200 });
     }
 
@@ -21,6 +24,11 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
+    const enabledRecord = await prisma.siteContent.findUnique({ where: { key: 'whatsapp_enabled' } });
+    if (enabledRecord?.value !== 'true') {
+      return new NextResponse('DISABLED', { status: 200 });
+    }
+
     const body = await req.json();
     const entries = Array.isArray(body.entry) ? body.entry : [];
 

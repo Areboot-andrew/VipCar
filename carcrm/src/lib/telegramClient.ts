@@ -3,11 +3,6 @@ import { StringSession } from 'telegram/sessions';
 import { NewMessage } from 'telegram/events';
 import { prisma } from './prisma';
 
-// Hardcoded default API keys for testing if user doesn't have them
-// Usually these should be obtained from my.telegram.org
-const DEFAULT_API_ID = 2040;
-const DEFAULT_API_HASH = 'b18441a1ff607e10a989891a5462e627';
-
 // Global singleton to preserve client across hot-reloads in dev
 declare global {
   var tgClient: TelegramClient | undefined;
@@ -20,13 +15,19 @@ export const getTelegramClient = async (forceReconnect = false): Promise<Telegra
 
   try {
     // Get session and keys from DB
+    const enabledRecord = await prisma.siteContent.findUnique({ where: { key: 'telegram_enabled' } });
     const sessionRecord = await prisma.siteContent.findUnique({ where: { key: 'telegram_string_session' } });
     const apiIdRecord = await prisma.siteContent.findUnique({ where: { key: 'telegram_api_id' } });
     const apiHashRecord = await prisma.siteContent.findUnique({ where: { key: 'telegram_api_hash' } });
 
+    const enabled = enabledRecord?.value === 'true';
     const sessionString = sessionRecord?.value || '';
-    const apiId = apiIdRecord?.value ? parseInt(apiIdRecord.value) : DEFAULT_API_ID;
-    const apiHash = apiHashRecord?.value || DEFAULT_API_HASH;
+    const apiId = apiIdRecord?.value ? parseInt(apiIdRecord.value, 10) : 0;
+    const apiHash = apiHashRecord?.value || '';
+
+    if ((!enabled && !forceReconnect) || !apiId || !apiHash) {
+      return null;
+    }
 
     const stringSession = new StringSession(sessionString);
     

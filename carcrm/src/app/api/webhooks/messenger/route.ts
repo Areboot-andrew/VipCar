@@ -9,11 +9,14 @@ export async function GET(req: Request) {
     const token = url.searchParams.get('hub.verify_token');
     const challenge = url.searchParams.get('hub.challenge');
 
-    const verifyTokenRecord = await prisma.siteContent.findUnique({ where: { key: 'facebook_verify_token' } });
+    const [enabledRecord, verifyTokenRecord] = await Promise.all([
+      prisma.siteContent.findUnique({ where: { key: 'facebook_enabled' } }),
+      prisma.siteContent.findUnique({ where: { key: 'facebook_verify_token' } }),
+    ]);
     const VERIFY_TOKEN = verifyTokenRecord?.value;
 
     if (mode && token) {
-      if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+      if (enabledRecord?.value === 'true' && mode === 'subscribe' && token === VERIFY_TOKEN) {
         return new NextResponse(challenge, { status: 200 });
       } else {
         return new NextResponse('Forbidden', { status: 403 });
@@ -28,6 +31,11 @@ export async function GET(req: Request) {
 // Receive messages from Facebook Messenger
 export async function POST(req: Request) {
   try {
+    const enabledRecord = await prisma.siteContent.findUnique({ where: { key: 'facebook_enabled' } });
+    if (enabledRecord?.value !== 'true') {
+      return new NextResponse('DISABLED', { status: 200 });
+    }
+
     const body = await req.json();
 
     if (body.object === 'page') {

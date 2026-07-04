@@ -146,6 +146,12 @@ export const SITE_CONTENT_DEFAULTS: Record<string, string> = {
   whatsapp_business_account_id: '',
   whatsapp_access_token: '',
   whatsapp_verify_token: '',
+  google_auth_enabled: 'false',
+  google_client_id: '',
+  google_client_secret: '',
+  facebook_auth_enabled: 'false',
+  facebook_client_id: '',
+  facebook_client_secret: '',
   payment_card: '',
   payment_usdt: '',
 };

@@ -4,6 +4,11 @@ import { prisma } from '@/lib/prisma';
 // This endpoint receives messages from Telegram
 export async function POST(req: Request) {
   try {
+    const enabledRecord = await prisma.siteContent.findUnique({ where: { key: 'telegram_enabled' } });
+    if (enabledRecord?.value !== 'true') {
+      return NextResponse.json({ ok: true, disabled: true });
+    }
+
     const body = await req.json();
     
     // Check if it's a standard Telegram message

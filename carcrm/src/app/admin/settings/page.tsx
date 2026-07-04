@@ -6,12 +6,15 @@ import {
   BadgeEuro,
   Building2,
   CreditCard,
+  ExternalLink,
   Fuel,
   Globe,
+  KeyRound,
   MessageSquare,
   PlugZap,
   Plus,
   Save,
+  Send,
   Settings,
   Trash2,
 } from 'lucide-react';
@@ -35,12 +38,13 @@ type SettingsPayload = {
   contentSettings: Record<string, string>;
 };
 
-type TabId = 'business' | 'pricing' | 'messengers' | 'payments';
+type TabId = 'business' | 'pricing' | 'messengers' | 'auth' | 'payments';
 
 const tabs: { id: TabId; label: string; icon: ElementType }[] = [
   { id: 'business', label: 'Бізнес', icon: Building2 },
   { id: 'pricing', label: 'Ціни і валюти', icon: BadgeEuro },
   { id: 'messengers', label: 'Месенджери', icon: MessageSquare },
+  { id: 'auth', label: 'Авторизація', icon: KeyRound },
   { id: 'payments', label: 'Оплата', icon: CreditCard },
 ];
 
@@ -62,6 +66,12 @@ const defaultContentSettings: Record<string, string> = {
   whatsapp_business_account_id: '',
   whatsapp_access_token: '',
   whatsapp_verify_token: '',
+  google_auth_enabled: 'false',
+  google_client_id: '',
+  google_client_secret: '',
+  facebook_auth_enabled: 'false',
+  facebook_client_id: '',
+  facebook_client_secret: '',
   pricing_delivery_rate: '1.1',
   pricing_delivery_base_fee: '20',
   pricing_customs_wait_hours: '1.5',
@@ -135,14 +145,41 @@ function Toggle({
   );
 }
 
+function HelpLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="inline-flex items-center gap-1 text-xs font-bold text-[#e9c349] hover:text-[#ffe175]"
+    >
+      {children}
+      <ExternalLink size={13} />
+    </a>
+  );
+}
+
+function CopyBox({ label, value, hint }: { label: string; value: string; hint?: string }) {
+  return (
+    <div className="rounded-lg border border-white/10 bg-black/20 p-3">
+      <div className="mb-2 text-[11px] font-bold uppercase tracking-widest text-[#8a8a93]">{label}</div>
+      <code className="block break-all rounded-md bg-[#080818] px-3 py-2 text-xs text-[#e9c349]">{value}</code>
+      {hint && <div className="mt-2 text-xs leading-5 text-[#6f6f78]">{hint}</div>}
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<TabId>('business');
   const [currencies, setCurrencies] = useState<CurrencyRate[]>([]);
   const [fuelPrices, setFuelPrices] = useState<FuelPrice[]>([]);
   const [contentSettings, setContentSettings] = useState(defaultContentSettings);
+  const [publicOrigin, setPublicOrigin] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState('');
+  const [telegramNotice, setTelegramNotice] = useState('');
+  const [telegramAuth, setTelegramAuth] = useState({ phoneNumber: '', phoneCodeHash: '', code: '', password: '' });
   const [newCurrency, setNewCurrency] = useState({ currency: 'UAH', rateToEur: 42.5 });
   const [newFuel, setNewFuel] = useState({ country: 'Україна', fuelType: 'Дизель', priceEur: 1.1 });
 
@@ -167,6 +204,7 @@ export default function SettingsPage() {
   };
 
   useEffect(() => {
+    setPublicOrigin(window.location.origin);
     fetchSettings();
   }, []);
 
@@ -184,11 +222,63 @@ export default function SettingsPage() {
         body: JSON.stringify({ type: 'contentSettings', settings: contentSettings }),
       });
       setNotice(res.ok ? 'Налаштування збережено.' : 'Не вдалося зберегти налаштування.');
+      return res.ok;
     } catch (err) {
       console.error(err);
       setNotice('Не вдалося зберегти налаштування.');
+      return false;
     } finally {
       setSaving(false);
+    }
+  };
+
+  const sendTelegramCode = async () => {
+    setTelegramNotice('');
+    if (!contentSettings.telegram_api_id || !contentSettings.telegram_api_hash) {
+      setTelegramNotice('Спочатку заповни Telegram API ID і API Hash.');
+      return;
+    }
+    if (!telegramAuth.phoneNumber) {
+      setTelegramNotice('Вкажи номер телефону Telegram у міжнародному форматі.');
+      return;
+    }
+
+    const saved = await saveContentSettings();
+    if (!saved) return;
+
+    const res = await fetch('/api/telegram/auth/sendCode', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phoneNumber: telegramAuth.phoneNumber }),
+    });
+    const data = await res.json();
+    if (res.ok && data.phoneCodeHash) {
+      setTelegramAuth((prev) => ({ ...prev, phoneCodeHash: data.phoneCodeHash }));
+      setTelegramNotice('Код відправлено в Telegram. Введи його нижче і підтвердь сесію.');
+    } else {
+      setTelegramNotice(data.error || 'Не вдалося відправити код Telegram.');
+    }
+  };
+
+  const verifyTelegramCode = async () => {
+    setTelegramNotice('');
+    if (!telegramAuth.phoneNumber || !telegramAuth.phoneCodeHash || !telegramAuth.code) {
+      setTelegramNotice('Потрібні номер, отриманий код і phoneCodeHash.');
+      return;
+    }
+
+    const res = await fetch('/api/telegram/auth/verifyCode', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(telegramAuth),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      updateSetting('telegram_enabled', 'true');
+      setTelegramNotice('Telegram підключено. Сесію збережено в базу.');
+      await fetchSettings();
+    } else {
+      setTelegramNotice(data.error || 'Не вдалося підтвердити Telegram.');
     }
   };
 
@@ -411,35 +501,113 @@ export default function SettingsPage() {
       {activeTab === 'messengers' && (
         <section className="grid grid-cols-1 gap-6 xl:grid-cols-3">
           <div className="rounded-xl border border-white/10 bg-white/5 p-6">
-            <h2 className="mb-5 text-xl font-bold text-white">Telegram</h2>
+            <div className="mb-5 flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-bold text-white">Telegram</h2>
+                <p className="mt-1 text-xs leading-5 text-[#8a8a93]">MTProto підключення: CRM читає вхідні приватні повідомлення і може відповідати з адмінки.</p>
+              </div>
+              <HelpLink href="https://my.telegram.org/apps">API ключі</HelpLink>
+            </div>
             <div className="grid gap-4">
               <Toggle checked={contentSettings.telegram_enabled === 'true'} onChange={(checked) => updateSetting('telegram_enabled', String(checked))} label="Увімкнути Telegram" hint="Дозволяє CRM використовувати Telegram для повідомлень і привʼязки чатів." />
               <Field label="API ID" value={contentSettings.telegram_api_id} onChange={(value) => updateSetting('telegram_api_id', value)} placeholder="my.telegram.org API ID" hint="Числовий API ID з my.telegram.org для MTProto-авторизації." />
               <Field label="API Hash" value={contentSettings.telegram_api_hash} onChange={(value) => updateSetting('telegram_api_hash', value)} secret placeholder="my.telegram.org API Hash" hint="Секретний API Hash з my.telegram.org. Не показується відкритим текстом." />
               <Field label="String Session" value={contentSettings.telegram_string_session} onChange={(value) => updateSetting('telegram_string_session', value)} secret placeholder="Після авторизації MTProto" hint="Збережена сесія Telegram-акаунта/бота після авторизації. Без неї інтеграція не стартує." />
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-white/10 bg-white/5 p-6">
-            <h2 className="mb-5 text-xl font-bold text-white">Facebook Messenger</h2>
-            <div className="grid gap-4">
-              <Toggle checked={contentSettings.facebook_enabled === 'true'} onChange={(checked) => updateSetting('facebook_enabled', String(checked))} label="Увімкнути Messenger" hint="Вмикає обробку Facebook Messenger через webhook." />
-              <Field label="Page Access Token" value={contentSettings.facebook_page_token} onChange={(value) => updateSetting('facebook_page_token', value)} secret hint="Токен сторінки Facebook, яким CRM відповідає клієнтам." />
-              <Field label="Verify Token" value={contentSettings.facebook_verify_token} onChange={(value) => updateSetting('facebook_verify_token', value)} secret hint="Секретна фраза для підтвердження webhook у Meta." />
-              <div className="rounded-lg border border-white/10 bg-black/20 p-3 text-xs leading-5 text-[#8a8a93]">
-                Webhook: <span className="text-[#c7c6ca]">/api/webhooks/messenger</span>
+              <div className="rounded-lg border border-[#e9c349]/20 bg-[#e9c349]/10 p-4">
+                <div className="mb-3 text-sm font-bold text-white">Активація Telegram сесії</div>
+                <div className="grid gap-3">
+                  <Field label="Телефон Telegram" value={telegramAuth.phoneNumber} onChange={(value) => setTelegramAuth((prev) => ({ ...prev, phoneNumber: value }))} placeholder="+380..." hint="Номер акаунта Telegram, через який CRM буде читати і відправляти повідомлення." />
+                  <button
+                    type="button"
+                    onClick={sendTelegramCode}
+                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-[#e9c349]/40 bg-[#e9c349]/15 px-4 py-3 text-sm font-bold text-[#e9c349] hover:bg-[#e9c349]/20"
+                  >
+                    <Send size={16} />
+                    Надіслати код
+                  </button>
+                  <Field label="Код із Telegram" value={telegramAuth.code} onChange={(value) => setTelegramAuth((prev) => ({ ...prev, code: value }))} placeholder="12345" hint="Код, який Telegram надішле після кнопки вище." />
+                  <Field label="2FA пароль, якщо є" value={telegramAuth.password} onChange={(value) => setTelegramAuth((prev) => ({ ...prev, password: value }))} secret hint="Потрібен тільки якщо на Telegram акаунті увімкнено двофакторний пароль." />
+                  <button
+                    type="button"
+                    onClick={verifyTelegramCode}
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#e9c349] px-4 py-3 text-sm font-bold text-black hover:bg-[#ffe175]"
+                  >
+                    <KeyRound size={16} />
+                    Підтвердити Telegram
+                  </button>
+                  {telegramNotice && <div className="rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-xs leading-5 text-[#e9c349]">{telegramNotice}</div>}
+                </div>
               </div>
             </div>
           </div>
 
           <div className="rounded-xl border border-white/10 bg-white/5 p-6">
-            <h2 className="mb-5 text-xl font-bold text-white">WhatsApp Business</h2>
+            <div className="mb-5 flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-bold text-white">Facebook Messenger</h2>
+                <p className="mt-1 text-xs leading-5 text-[#8a8a93]">Meta webhook приймає повідомлення сторінки, а CRM відповідає Page Access Token-ом.</p>
+              </div>
+              <HelpLink href="https://developers.facebook.com/apps/">Meta Apps</HelpLink>
+            </div>
+            <div className="grid gap-4">
+              <Toggle checked={contentSettings.facebook_enabled === 'true'} onChange={(checked) => updateSetting('facebook_enabled', String(checked))} label="Увімкнути Messenger" hint="Вмикає обробку Facebook Messenger через webhook." />
+              <Field label="Page Access Token" value={contentSettings.facebook_page_token} onChange={(value) => updateSetting('facebook_page_token', value)} secret hint="Токен сторінки Facebook, яким CRM відповідає клієнтам." />
+              <Field label="Verify Token" value={contentSettings.facebook_verify_token} onChange={(value) => updateSetting('facebook_verify_token', value)} secret hint="Секретна фраза для підтвердження webhook у Meta." />
+              <CopyBox label="Callback URL для Meta webhook" value={`${publicOrigin || 'https://your-domain.com'}/api/webhooks/messenger`} hint="У Meta додай цей URL і той самий Verify Token. Підписки: messages, messaging_postbacks за потреби." />
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-white/10 bg-white/5 p-6">
+            <div className="mb-5 flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-bold text-white">WhatsApp Business</h2>
+                <p className="mt-1 text-xs leading-5 text-[#8a8a93]">WhatsApp Cloud API: вхідні повідомлення через webhook, відповіді через Graph API.</p>
+              </div>
+              <HelpLink href="https://developers.facebook.com/docs/whatsapp/cloud-api/get-started">Cloud API</HelpLink>
+            </div>
             <div className="grid gap-4">
               <Toggle checked={contentSettings.whatsapp_enabled === 'true'} onChange={(checked) => updateSetting('whatsapp_enabled', String(checked))} label="Увімкнути WhatsApp" hint="Вмикає WhatsApp Business API для заявок і переписки." />
               <Field label="Phone Number ID" value={contentSettings.whatsapp_phone_number_id} onChange={(value) => updateSetting('whatsapp_phone_number_id', value)} hint="ID номера WhatsApp Business у Meta." />
               <Field label="Business Account ID" value={contentSettings.whatsapp_business_account_id} onChange={(value) => updateSetting('whatsapp_business_account_id', value)} hint="ID WhatsApp Business Account у Meta." />
               <Field label="Access Token" value={contentSettings.whatsapp_access_token} onChange={(value) => updateSetting('whatsapp_access_token', value)} secret hint="Токен доступу для відправки і читання повідомлень." />
               <Field label="Verify Token" value={contentSettings.whatsapp_verify_token} onChange={(value) => updateSetting('whatsapp_verify_token', value)} secret hint="Секрет для підтвердження WhatsApp webhook." />
+              <CopyBox label="Callback URL для WhatsApp webhook" value={`${publicOrigin || 'https://your-domain.com'}/api/webhooks/whatsapp`} hint="У WhatsApp configuration встав цей URL і Verify Token. Підписка потрібна на messages." />
+            </div>
+          </div>
+        </section>
+      )}
+
+      {activeTab === 'auth' && (
+        <section className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+          <div className="rounded-xl border border-white/10 bg-white/5 p-6">
+            <div className="mb-5 flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-bold text-white">Google Login</h2>
+                <p className="mt-1 text-xs leading-5 text-[#8a8a93]">Кнопка Google на сторінці входу зʼявиться тільки якщо увімкнено і заповнено Client ID + Secret.</p>
+              </div>
+              <HelpLink href="https://console.cloud.google.com/apis/credentials">Google OAuth</HelpLink>
+            </div>
+            <div className="grid gap-4">
+              <Toggle checked={contentSettings.google_auth_enabled === 'true'} onChange={(checked) => updateSetting('google_auth_enabled', String(checked))} label="Увімкнути Google авторизацію" hint="Дозволяє клієнтам входити через Google OAuth." />
+              <Field label="Google Client ID" value={contentSettings.google_client_id} onChange={(value) => updateSetting('google_client_id', value)} hint="OAuth Client ID з Google Cloud Console." />
+              <Field label="Google Client Secret" value={contentSettings.google_client_secret} onChange={(value) => updateSetting('google_client_secret', value)} secret hint="OAuth Client Secret. Зберігається в базі і не показується відкритим текстом." />
+              <CopyBox label="Authorized redirect URI" value={`${publicOrigin || 'https://your-domain.com'}/api/auth/callback/google`} hint="Цей callback треба додати в Google OAuth Client." />
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-white/10 bg-white/5 p-6">
+            <div className="mb-5 flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-bold text-white">Facebook Login</h2>
+                <p className="mt-1 text-xs leading-5 text-[#8a8a93]">Це саме логін на сайт через Facebook, не Messenger. Messenger налаштовується в сусідній вкладці.</p>
+              </div>
+              <HelpLink href="https://developers.facebook.com/apps/">Facebook Login</HelpLink>
+            </div>
+            <div className="grid gap-4">
+              <Toggle checked={contentSettings.facebook_auth_enabled === 'true'} onChange={(checked) => updateSetting('facebook_auth_enabled', String(checked))} label="Увімкнути Facebook авторизацію" hint="Дозволяє клієнтам входити через Facebook OAuth." />
+              <Field label="Facebook App ID" value={contentSettings.facebook_client_id} onChange={(value) => updateSetting('facebook_client_id', value)} hint="App ID з Meta Developers." />
+              <Field label="Facebook App Secret" value={contentSettings.facebook_client_secret} onChange={(value) => updateSetting('facebook_client_secret', value)} secret hint="App Secret. Не плутати з Page Access Token для Messenger." />
+              <CopyBox label="Valid OAuth Redirect URI" value={`${publicOrigin || 'https://your-domain.com'}/api/auth/callback/facebook`} hint="Цей callback треба додати в Facebook Login settings." />
             </div>
           </div>
         </section>
