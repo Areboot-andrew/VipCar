@@ -17,7 +17,22 @@ type ChatRoom = {
   clientPhone: string | null;
   updatedAt: string;
   messages: Message[];
+  booking?: {
+    id: string;
+    routeFrom: string;
+    routeTo: string;
+    dateStart?: string | null;
+    price?: number;
+    status?: string;
+    client?: { name: string; phone?: string | null; email?: string | null } | null;
+  } | null;
 };
+
+const chatClientName = (chat: ChatRoom) =>
+  chat.clientName || chat.booking?.client?.name || chat.clientPhone || chat.externalId || 'Анонім';
+
+const chatClientPhone = (chat: ChatRoom) => chat.clientPhone || chat.booking?.client?.phone || null;
+const chatClientEmail = (chat: ChatRoom) => chat.booking?.client?.email || null;
 
 const platformStyle = (platform: string) =>
   platform === 'TELEGRAM' || platform === 'TELEGRAM_BOT' ? 'bg-[#2AABEE]/20 text-[#2AABEE]'
@@ -149,13 +164,18 @@ export default function AdminChatPage() {
                           {platformIcon(chat.platform)}
                         </span>
                       </div>
-                      <div>
-                        <strong className={`block text-sm ${isSelected ? 'text-[#e9c349]' : 'text-white'}`}>
-                          {chat.clientName || chat.clientPhone || chat.externalId || 'Анонім'}
+                      <div className="min-w-0">
+                        <strong className={`block truncate text-sm ${isSelected ? 'text-[#e9c349]' : 'text-white'}`}>
+                          {chatClientName(chat)}
                         </strong>
                         <span className="text-[10px] text-[#8a8a93] uppercase tracking-wider font-bold">
                           {platformLabel(chat.platform)}
                         </span>
+                        {chat.booking && (
+                          <span className="block truncate text-[11px] text-[#8a8a93]">
+                            {chat.booking.routeFrom.split(',')[0]} → {chat.booking.routeTo.split(',')[0]}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -182,11 +202,30 @@ export default function AdminChatPage() {
                     {platformIcon(activeChat.platform)}
                   </span>
                 </div>
-                <div>
+                <div className="min-w-0 flex-1">
                   <h3 className="m-0 text-white text-lg font-bold">
-                    {activeChat.clientName || activeChat.clientPhone || activeChat.externalId || 'Анонім'}
+                    {chatClientName(activeChat)}
                   </h3>
-                  <p className="m-0 text-[#8a8a93] text-xs uppercase tracking-wider mt-1">{platformLabel(activeChat.platform)} Чат</p>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#8a8a93]">
+                    <span className="uppercase tracking-wider">{platformLabel(activeChat.platform)}</span>
+                    {chatClientPhone(activeChat) && (
+                      <a href={`tel:${chatClientPhone(activeChat)}`} className="flex items-center gap-1 text-[#e9c349] hover:underline">
+                        <span className="material-symbols-outlined text-[14px]">call</span>{chatClientPhone(activeChat)}
+                      </a>
+                    )}
+                    {chatClientEmail(activeChat) && (
+                      <a href={`mailto:${chatClientEmail(activeChat)}`} className="flex items-center gap-1 text-[#e9c349] hover:underline">
+                        <span className="material-symbols-outlined text-[14px]">mail</span>{chatClientEmail(activeChat)}
+                      </a>
+                    )}
+                    {activeChat.booking && (
+                      <span className="flex items-center gap-1 text-[#c7c6ca]">
+                        <span className="material-symbols-outlined text-[14px] text-[#e9c349]">route</span>
+                        {activeChat.booking.routeFrom.split(',')[0]} → {activeChat.booking.routeTo.split(',')[0]}
+                        {activeChat.booking.price ? ` • €${Math.round(Number(activeChat.booking.price))}` : ''}
+                      </span>
+                    )}
+                  </div>
                 </div>
             </div>
 

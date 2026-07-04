@@ -216,6 +216,7 @@ export default function DashboardCalendar({ cars, bookings, drivers = [], onOpen
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState('');
   const [priceDraft, setPriceDraft] = useState('');
+  const [depositDraft, setDepositDraft] = useState('');
   const [payMethod, setPayMethod] = useState('CASH');
   const [financeNotice, setFinanceNotice] = useState('');
   const [sendingInvoice, setSendingInvoice] = useState(false);
@@ -270,6 +271,7 @@ export default function DashboardCalendar({ cars, bookings, drivers = [], onOpen
       driverNotes: selectedBooking.driverNotes || '',
     });
     setPriceDraft(String(Math.round(Number(selectedBooking.price || 0))));
+    setDepositDraft(String(Math.round(Number(selectedBooking.invoice?.depositAmount || 0))));
     setPayMethod(selectedBooking.invoice?.paymentMethod || 'CASH');
     setFinanceNotice('');
   }, [selectedBooking?.id]);
@@ -487,6 +489,7 @@ export default function DashboardCalendar({ cars, bookings, drivers = [], onOpen
                         <span className="truncate">{shortPlace(booking.routeFrom)} {'->'} {shortPlace(booking.routeTo)}</span>
                       </div>
                       <div className="mt-3 grid gap-2 text-xs text-[#c7c6ca] md:grid-cols-2 xl:grid-cols-3">
+                        <span className="inline-flex items-center gap-1 font-bold text-white"><User size={14} className="text-[#e9c349]" /> {booking.client.name}{booking.client.phone ? ` • ${booking.client.phone}` : ''}</span>
                         <span className="inline-flex items-center gap-1"><CarIcon size={14} /> {car ? `${car.make} ${car.model}` : 'Авто не знайдено'}</span>
                         <span className="inline-flex items-center gap-1"><User size={14} /> {booking.driver?.user?.name || 'Водія не призначено'}</span>
                         <span className="inline-flex items-center gap-1"><Users size={14} /> {booking.passengers || 1} дор. / {booking.children || 0} діт.</span>
@@ -548,6 +551,21 @@ export default function DashboardCalendar({ cars, bookings, drivers = [], onOpen
                 </div>
               </div>
 
+              <div className="rounded-lg border border-[#e9c349]/25 bg-[#e9c349]/10 p-3">
+                <div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-widest text-[#b9a35b]"><User size={14} /> Клієнт</div>
+                <div className="text-lg font-bold text-white">{selectedBooking.client.name}</div>
+                <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                  {selectedBooking.client.phone ? (
+                    <a href={`tel:${selectedBooking.client.phone}`} className="font-bold text-[#e9c349] hover:underline">{selectedBooking.client.phone}</a>
+                  ) : (
+                    <span className="text-[#8a8a93]">телефон не вказано</span>
+                  )}
+                  {selectedBooking.client.email && (
+                    <a href={`mailto:${selectedBooking.client.email}`} className="text-[#e9c349] hover:underline">{selectedBooking.client.email}</a>
+                  )}
+                </div>
+              </div>
+
               <div className="grid gap-3 text-sm sm:grid-cols-2">
                 <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
                   <div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-widest text-[#8a8a93]"><CarIcon size={14} /> Авто</div>
@@ -557,7 +575,7 @@ export default function DashboardCalendar({ cars, bookings, drivers = [], onOpen
                 <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
                   <div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-widest text-[#8a8a93]"><User size={14} /> Водій</div>
                   <div className="font-bold text-white">{selectedBooking.driver?.user?.name || 'Водія не призначено'}</div>
-                  <div className="mt-1 text-xs text-[#8a8a93]">клієнт: {selectedBooking.client.name} • {selectedBooking.client.phone || 'телефон не вказано'}</div>
+                  <div className="mt-1 text-xs text-[#8a8a93]">{selectedBookingCar?.baseCity ? `база: ${selectedBookingCar.baseCity}` : 'база не вказана'}</div>
                 </div>
               </div>
 
@@ -630,8 +648,18 @@ export default function DashboardCalendar({ cars, bookings, drivers = [], onOpen
                   )}
                   <div className="mt-3 grid grid-cols-3 gap-2 text-center">
                     <div className="rounded-lg bg-black/25 p-2">
-                      <div className="text-[10px] uppercase tracking-widest text-[#8a8a93]">Завдаток</div>
-                      <div className="text-sm font-bold text-white">{money(invoiceDeposit)}</div>
+                      <div className="text-[10px] uppercase tracking-widest text-[#8a8a93]">Завдаток, €</div>
+                      <input
+                        type="number"
+                        min="0"
+                        value={depositDraft}
+                        onChange={(e) => setDepositDraft(e.target.value)}
+                        onBlur={() => {
+                          const value = Math.max(0, Math.round(Number(depositDraft) || 0));
+                          if (value !== invoiceDeposit) patchInvoice({ depositAmount: value });
+                        }}
+                        className="mt-1 w-full rounded-md border border-white/10 bg-transparent text-center text-sm font-bold text-white outline-none focus:border-[#e9c349]/60"
+                      />
                     </div>
                     <div className="rounded-lg bg-black/25 p-2">
                       <div className="text-[10px] uppercase tracking-widest text-[#8a8a93]">Оплачено</div>
@@ -651,10 +679,10 @@ export default function DashboardCalendar({ cars, bookings, drivers = [], onOpen
                     <select value={payMethod} onChange={(e) => setPayMethod(e.target.value)} className={fieldClass()}>
                       {PAY_METHODS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
                     </select>
-                    <button onClick={() => patchInvoice({ paidAmount: invoiceDeposit, paymentMethod: payMethod, paidAt: new Date().toISOString() })} className="rounded-lg border border-[#e9c349]/40 px-3 text-xs font-bold text-[#e9c349] hover:bg-[#e9c349]/10">
+                    <button onClick={() => patchInvoice({ paidAmount: Math.max(0, Math.round(Number(depositDraft) || 0)), depositAmount: Math.max(0, Math.round(Number(depositDraft) || 0)), paymentMethod: payMethod, paidAt: new Date().toISOString(), notifyClient: true })} className="rounded-lg border border-[#e9c349]/40 px-3 text-xs font-bold text-[#e9c349] hover:bg-[#e9c349]/10">
                       Завдаток отримано
                     </button>
-                    <button onClick={() => patchInvoice({ status: 'PAID', paymentMethod: payMethod })} className="rounded-lg border border-emerald-400/40 px-3 text-xs font-bold text-emerald-300 hover:bg-emerald-400/10">
+                    <button onClick={() => patchInvoice({ status: 'PAID', paymentMethod: payMethod, notifyClient: true })} className="rounded-lg border border-emerald-400/40 px-3 text-xs font-bold text-emerald-300 hover:bg-emerald-400/10">
                       Повна оплата
                     </button>
                   </div>

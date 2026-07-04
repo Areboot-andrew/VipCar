@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     const { 
       make, model, year, capacity, luggageCapacity, largeLuggageCapacity, baseRate, fuelType, 
       fuelConsumptionCity, fuelConsumptionHighway, fuelTankVolume, status, 
-      comfortClass, bodyType, luggageNote, images, videos, description, features, pageBlocks, baseCity, baseLat, baseLng,
+      comfortClass, bodyType, plateNumber, luggageNote, images, videos, description, features, pageBlocks, baseCity, baseLat, baseLng,
       includedPassengers, pricePerPerson, crossBorderFee, meetAndGreetFee, animalFee, childSeatFee,
       amortizationPerKm, deliveryBaseFee, allowsChildren, allowsAnimals,
       seoTitle, seoDescription, defaultDriverId, slug
@@ -50,6 +50,7 @@ export async function POST(request: Request) {
         fuelTankVolume: fuelTankVolume ? parseFloat(fuelTankVolume) : 60.0,
         comfortClass: comfortClass || 'Premium',
         bodyType: bodyType || null,
+        plateNumber: plateNumber || null,
         luggageNote: luggageNote || null,
         
         includedPassengers: includedPassengers ? parseInt(includedPassengers) : 1,

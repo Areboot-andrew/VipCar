@@ -59,6 +59,7 @@ type CarRecord = {
   fuelTankVolume: number | string;
   comfortClass: string;
   bodyType?: string | null;
+  plateNumber?: string | null;
   luggageNote?: string | null;
   status: string;
   includedPassengers: number | string;
@@ -99,6 +100,7 @@ const emptyCar = (): CarRecord => ({
   fuelTankVolume: 60,
   comfortClass: 'Premium',
   bodyType: 'Sedan',
+  plateNumber: '',
   luggageNote: '',
   status: 'AVAILABLE',
   includedPassengers: 1,
@@ -730,6 +732,7 @@ export default function AdminFleetPage() {
                 <Field label="Діти дозволені" hint="Якщо вимкнено, калькулятор не покаже це авто для поїздки з дітьми."><input type="checkbox" checked={draft.allowsChildren} onChange={(e) => updateDraft('allowsChildren', e.target.checked)} className="h-5 w-5 accent-[#e9c349]" /></Field>
                 <Field label="Тварини дозволені" hint="Якщо вимкнено, калькулятор не покаже це авто для поїздки з тваринами."><input type="checkbox" checked={draft.allowsAnimals} onChange={(e) => updateDraft('allowsAnimals', e.target.checked)} className="h-5 w-5 accent-[#e9c349]" /></Field>
                 <Field label="Базове місто" hint="Звідки авто зазвичай стартує. Видно адмінам і використовується для логіки подачі."><input value={draft.baseCity || ''} onChange={(e) => updateDraft('baseCity', e.target.value)} className={inputClass()} /></Field>
+                <Field label="Держномер" hint="Надсилається клієнту в повідомленні після підтвердження рейсу, щоб він упізнав авто."><input value={draft.plateNumber || ''} onChange={(e) => updateDraft('plateNumber', e.target.value)} className={inputClass()} placeholder="AA 1234 BB" /></Field>
                 <Field label="Широта бази" hint="Координата бази авто для розрахунку подачі до клієнта."><input value={draft.baseLat || ''} onChange={(e) => updateDraft('baseLat', e.target.value)} className={inputClass()} /></Field>
                 <Field label="Довгота бази" hint="Координата бази авто для розрахунку подачі до клієнта."><input value={draft.baseLng || ''} onChange={(e) => updateDraft('baseLng', e.target.value)} className={inputClass()} /></Field>
               </div>

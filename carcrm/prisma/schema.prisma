@@ -101,6 +101,7 @@ model Car {
   fuelTankVolume         Float    @default(60.0) // L or kWh
   comfortClass           String   @default("Premium")
   bodyType               String?
+  plateNumber            String?  // Держномер — надсилається клієнту після підтвердження
   luggageNote            String?  @db.Text
   status                 String   @default("AVAILABLE") // AVAILABLE, MAINTENANCE, IN_USE
   

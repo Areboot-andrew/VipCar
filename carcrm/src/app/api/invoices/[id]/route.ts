@@ -55,6 +55,47 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
 
     const invoice = await prisma.invoice.update({ where: { id }, data });
+
+    // Receipt to the client's booking chat when payment is registered
+    if (body.notifyClient && invoice.bookingId) {
+      try {
+        const booking = await prisma.booking.findUnique({
+          where: { id: invoice.bookingId },
+          include: { client: true },
+        });
+        if (booking) {
+          const oldPaid = Number(current.paidAmount || 0);
+          const newPaid = Number(invoice.paidAmount || 0);
+          const received = Math.max(0, Math.round(newPaid - oldPaid));
+          const remaining = Math.max(0, Math.round(Number(invoice.amount || 0) - newPaid));
+          const methodLabel: Record<string, string> = { CASH: 'готівка', CARD: 'карта', USDT: 'USDT', BANK: 'банківський переказ' };
+
+          const lines = [
+            '🧾 Квитанція про оплату',
+            `${booking.routeFrom.split(',')[0]} → ${booking.routeTo.split(',')[0]}, ${new Date(booking.dateStart).toLocaleDateString('uk-UA')}`,
+            received > 0
+              ? `Ми отримали вашу оплату: €${received}${invoice.paymentMethod ? ` (${methodLabel[invoice.paymentMethod] || invoice.paymentMethod})` : ''}.`
+              : 'Статус оплати оновлено.',
+            `Всього сплачено: €${Math.round(newPaid)} із €${Math.round(Number(invoice.amount || 0))}.`,
+            remaining === 0 ? 'Поїздку оплачено повністю. Дякуємо!' : `Залишок до сплати: €${remaining}.`,
+          ];
+
+          let chatRoom = await prisma.chatRoom.findUnique({ where: { bookingId: booking.id } });
+          if (!chatRoom) {
+            chatRoom = await prisma.chatRoom.create({
+              data: { bookingId: booking.id, platform: 'WEB', clientName: booking.client.name, clientPhone: booking.client.phone },
+            });
+          }
+          await prisma.message.create({
+            data: { chatRoomId: chatRoom.id, isFromAdmin: true, content: lines.join('\n') },
+          });
+          await prisma.chatRoom.update({ where: { id: chatRoom.id }, data: { updatedAt: new Date() } });
+        }
+      } catch (e) {
+        console.error('Receipt notify failed:', e);
+      }
+    }
+
     return NextResponse.json(invoice);
   } catch (error) {
     return NextResponse.json({ error: 'Failed to update' }, { status: 500 });

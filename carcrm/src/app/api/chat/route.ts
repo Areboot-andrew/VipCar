@@ -10,7 +10,18 @@ export async function GET() {
       include: {
         messages: {
           orderBy: { createdAt: 'asc' }
-        }
+        },
+        booking: {
+          select: {
+            id: true,
+            routeFrom: true,
+            routeTo: true,
+            dateStart: true,
+            price: true,
+            status: true,
+            client: { select: { name: true, phone: true, email: true } },
+          },
+        },
       },
       orderBy: { updatedAt: 'desc' }
     });

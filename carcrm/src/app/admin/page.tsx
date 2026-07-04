@@ -2,7 +2,6 @@ import { endOfMonth, format, startOfDay, startOfMonth, subDays } from 'date-fns'
 import { uk } from 'date-fns/locale/uk';
 import {
   AlertTriangle,
-  ArrowRight,
   CalendarClock,
   Car,
   CheckCircle2,
@@ -14,11 +13,11 @@ import {
   MessageSquare,
   Route,
   TrendingUp,
-  UserRoundCheck,
   Users,
   WalletCards,
 } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
+import BookingCard, { type DashboardBooking } from '@/components/admin/BookingCard';
 
 export const dynamic = 'force-dynamic';
 
@@ -111,78 +110,9 @@ function MetricCard({
   );
 }
 
-function TripRow({
-  booking,
-  compact = false,
-}: {
-  booking: Awaited<ReturnType<typeof getDashboardData>>['futureBookings'][number];
-  compact?: boolean;
-}) {
-  const expenses = calcExpenses(booking);
-  const profit = calcProfit(booking);
-  const status = statusLabel[booking.status] || booking.status;
-  const carName = `${booking.car.make} ${booking.car.model}`;
-  const driverName = booking.driver?.user?.name || 'Водій не призначений';
-
-  return (
-    <div className="rounded-xl border border-white/10 bg-[#17171f] p-4 transition hover:border-[#e9c349]/35">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className={`rounded-full border px-2.5 py-1 text-xs font-bold ${statusClass[booking.status] || statusClass.PENDING}`}>
-              {status}
-            </span>
-            <span className="text-sm text-[#a7a6ad]">#{booking.id.slice(0, 8)}</span>
-          </div>
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-xl font-black text-white">
-            <span>{shortPlace(booking.routeFrom)}</span>
-            <ArrowRight size={18} className="text-[#e9c349]" />
-            <span>{shortPlace(booking.routeTo)}</span>
-          </div>
-          <div className="mt-2 grid gap-2 text-sm text-[#c7c6ca] md:grid-cols-2">
-            <span className="flex items-center gap-2">
-              <CalendarClock size={15} className="text-[#e9c349]" />
-              {tripTime(booking.dateStart)}
-            </span>
-            <span className="flex items-center gap-2">
-              <Car size={15} className="text-[#e9c349]" />
-              {carName}
-            </span>
-            <span className="flex items-center gap-2">
-              <UserRoundCheck size={15} className="text-[#e9c349]" />
-              {driverName}
-            </span>
-            <span className="flex items-center gap-2">
-              <Users size={15} className="text-[#e9c349]" />
-              {booking.passengers} дор. / {booking.children} дит.
-            </span>
-          </div>
-          {!compact && (
-            <div className="mt-3 flex flex-wrap gap-2 text-xs text-[#a7a6ad]">
-              <span className="rounded-lg bg-black/20 px-2.5 py-1">маршрут: {km(booking.distance)}</span>
-              <span className="rounded-lg bg-black/20 px-2.5 py-1">подача: {km(booking.deliveryDistance)}</span>
-              <span className="rounded-lg bg-black/20 px-2.5 py-1">валізи: {booking.luggage}</span>
-              <span className="rounded-lg bg-black/20 px-2.5 py-1">тварини: {booking.petsCount || 0}</span>
-            </div>
-          )}
-        </div>
-        <div className="grid min-w-[148px] grid-cols-3 gap-2 text-right lg:block">
-          <div>
-            <div className="text-xs uppercase tracking-[0.14em] text-[#8a8a93]">ціна</div>
-            <div className="text-xl font-black text-[#e9c349]">{eur(booking.price)}</div>
-          </div>
-          <div className="lg:mt-2">
-            <div className="text-xs uppercase tracking-[0.14em] text-[#8a8a93]">витрати</div>
-            <div className="font-bold text-red-200">{eur(expenses)}</div>
-          </div>
-          <div className="lg:mt-2">
-            <div className="text-xs uppercase tracking-[0.14em] text-[#8a8a93]">прибуток</div>
-            <div className="font-bold text-emerald-300">{eur(profit)}</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+// Booking rows are rendered by the clickable BookingCard (opens the details modal with map)
+function toPlain(booking: unknown): DashboardBooking {
+  return JSON.parse(JSON.stringify(booking)) as DashboardBooking;
 }
 
 function ChatRow({ chat }: { chat: Awaited<ReturnType<typeof getDashboardData>>['unansweredChats'][number] }) {
@@ -228,6 +158,7 @@ async function getDashboardData() {
     car: true,
     client: true,
     driver: { include: { user: true } },
+    invoice: true,
   };
 
   const [futureBookings, activeBookings, closedBookings, monthBookings, openRequests, rawChats, cars, drivers] = await Promise.all([
@@ -376,7 +307,7 @@ export default async function AdminDashboardPage() {
             </div>
             <div className="grid gap-3 p-4">
               {futureBookings.length > 0 ? (
-                futureBookings.map((booking) => <TripRow key={booking.id} booking={booking} />)
+                futureBookings.map((booking) => <BookingCard key={booking.id} booking={toPlain(booking)} />)
               ) : (
                 <div className="rounded-xl border border-dashed border-white/15 p-6 text-sm text-[#a7a6ad]">
                   Майбутніх рейсів немає. Коли клієнт створить бронювання, воно з'явиться тут.
@@ -397,7 +328,7 @@ export default async function AdminDashboardPage() {
             </div>
             <div className="grid gap-3 p-4 md:grid-cols-2">
               {closedBookings.length > 0 ? (
-                closedBookings.map((booking) => <TripRow key={booking.id} booking={booking} compact />)
+                closedBookings.map((booking) => <BookingCard key={booking.id} booking={toPlain(booking)} compact />)
               ) : (
                 <div className="rounded-xl border border-dashed border-white/15 p-6 text-sm text-[#a7a6ad] md:col-span-2">
                   За останні 7 днів немає закритих рейсів.
@@ -445,7 +376,7 @@ export default async function AdminDashboardPage() {
             <p className="mt-1 text-sm text-[#8a8a93]">Нові бронювання, які ще треба підтвердити, уточнити або відхилити.</p>
             <div className="mt-4 grid gap-3">
               {openRequests.length > 0 ? (
-                openRequests.slice(0, 4).map((booking) => <TripRow key={booking.id} booking={booking} compact />)
+                openRequests.slice(0, 4).map((booking) => <BookingCard key={booking.id} booking={toPlain(booking)} compact />)
               ) : (
                 <div className="rounded-xl border border-dashed border-white/15 p-4 text-sm text-[#a7a6ad]">Немає відкритих непідтверджених заявок.</div>
               )}

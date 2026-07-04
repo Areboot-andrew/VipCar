@@ -544,6 +544,7 @@ async function seedCars(drivers: { id: string }[]) {
     const images = demoCar.media.filter((item) => !item.url.includes('.mp4')).map((item) => item.url);
     const videos = demoCar.media.filter((item) => item.url.includes('.mp4')).map((item) => item.url);
     const defaultDriverId = drivers[carIndex % drivers.length]?.id || null;
+    const plateNumber = `AA ${String(1000 + carIndex * 111)} FL`;
 
     const car = await prisma.car.upsert({
       where: { slug },
@@ -562,6 +563,7 @@ async function seedCars(drivers: { id: string }[]) {
         fuelTankVolume: demoCar.fuelTankVolume,
         comfortClass: demoCar.comfortClass,
         bodyType: demoCar.bodyType,
+        plateNumber,
         status: 'AVAILABLE',
         includedPassengers: 1,
         pricePerPerson: demoCar.pricePerPerson,
@@ -598,6 +600,7 @@ async function seedCars(drivers: { id: string }[]) {
         fuelTankVolume: demoCar.fuelTankVolume,
         comfortClass: demoCar.comfortClass,
         bodyType: demoCar.bodyType,
+        plateNumber,
         status: 'AVAILABLE',
         includedPassengers: 1,
         pricePerPerson: demoCar.pricePerPerson,

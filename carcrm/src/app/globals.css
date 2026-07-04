@@ -154,3 +154,27 @@
 .custom-map-tooltip.leaflet-tooltip-top:before {
   border-top-color: rgba(233, 195, 73, 0.5) !important;
 }
+
+/* --- Cross-browser form controls (Safari/mac fix: native steppers and spinners) --- */
+select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23e9c349' d='M6 8 0 0h12z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 10px 7px;
+  padding-right: 2.25rem !important;
+}
+select::-ms-expand { display: none; }
+
+/* Hide number input spinners (deposit/price fields look broken with them on mac) */
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}

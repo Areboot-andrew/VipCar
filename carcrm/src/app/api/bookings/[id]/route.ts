@@ -2,11 +2,71 @@ import { NextResponse } from 'next/server';
 import { recalculateChain } from '@/lib/chaining';
 import { prisma } from '@/lib/prisma';
 
+const round2 = (value: number) => Math.round(value * 100) / 100;
+const shortPlace = (value: string) => value.split(',')[0] || value;
+
+type FullBooking = NonNullable<Awaited<ReturnType<typeof fetchBooking>>>;
+
+function fetchBooking(id: string) {
+  return prisma.booking.findUnique({
+    where: { id },
+    include: {
+      client: true,
+      car: true,
+      driver: { include: { user: true } },
+      invoice: true,
+    },
+  });
+}
+
+// Posts a message into the booking's web chat (the client sees it in the cabinet).
+async function postToBookingChat(booking: FullBooking, content: string) {
+  let chatRoom = await prisma.chatRoom.findUnique({ where: { bookingId: booking.id } });
+  if (!chatRoom) {
+    chatRoom = await prisma.chatRoom.create({
+      data: {
+        bookingId: booking.id,
+        platform: 'WEB',
+        clientName: booking.client.name,
+        clientPhone: booking.client.phone,
+      },
+    });
+  }
+  await prisma.message.create({
+    data: { chatRoomId: chatRoom.id, isFromAdmin: true, content },
+  });
+  await prisma.chatRoom.update({ where: { id: chatRoom.id }, data: { updatedAt: new Date() } });
+}
+
+// Trip details for the client: driver, phone, car + plate, pickup time, payment state.
+function clientTripMessage(booking: FullBooking, headline: string) {
+  const paid = Number(booking.invoice?.paidAmount || 0);
+  const price = Number(booking.price || 0);
+  const remaining = Math.max(0, Math.round(price - paid));
+  const plate = booking.car.plateNumber ? `, держномер ${booking.car.plateNumber}` : '';
+  const driverLine = booking.driver?.user
+    ? `👤 Водій: ${booking.driver.user.name}${booking.driver.user.phone ? `, тел. ${booking.driver.user.phone}` : ''}`
+    : '👤 Водія буде призначено найближчим часом — повідомимо в цьому чаті';
+  const payLine = remaining === 0
+    ? `💶 Вартість: €${Math.round(price)} — оплачено повністю. Дякуємо!`
+    : `💶 Вартість: €${Math.round(price)}${paid > 0 ? `, сплачено €${Math.round(paid)}` : ''}, залишок €${remaining}`;
+
+  return [
+    headline,
+    `${shortPlace(booking.routeFrom)} → ${shortPlace(booking.routeTo)}`,
+    `📅 Подача: ${new Date(booking.pickupAt || booking.dateStart).toLocaleString('uk-UA', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}`,
+    `🚘 Авто: ${booking.car.make} ${booking.car.model}${plate}`,
+    driverLine,
+    payLine,
+    'Якщо плани зміняться — просто напишіть у цей чат.',
+  ].join('\n');
+}
+
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const body = await req.json();
-    
+
     const updateData: any = {};
     if (body.status !== undefined) updateData.status = body.status;
     if (body.isEndingAtBase !== undefined) updateData.isEndingAtBase = Boolean(body.isEndingAtBase);
@@ -42,14 +102,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       }
     });
 
-    // Price changed: recompute profit and sync the invoice (amount + deposit)
+    // Price changed: sync the invoice (amount + deposit); profit is recomputed below
     if (updateData.price !== undefined) {
-      const internalCost =
-        Number(booking.fuelCost || 0) +
-        Number(booking.driverSalary || 0) +
-        Number(booking.deliveryCost || 0) +
-        Number(booking.amortization || 0) +
-        Number(booking.hotelCost || 0);
       const depositRow = await prisma.siteContent.findUnique({ where: { key: 'deposit_percent' } });
       const depositPercent = Number(depositRow?.value || 30);
       const depositAmount = Math.max(0, Math.round(updateData.price * (depositPercent / 100)));
@@ -59,35 +113,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         update: { amount: updateData.price, depositAmount },
         create: { bookingId: id, amount: updateData.price, depositAmount, status: 'UNPAID' },
       });
-
-      booking = await prisma.booking.update({
-        where: { id },
-        data: { netProfit: Math.round((updateData.price - internalCost) * 100) / 100 },
-        include: {
-          client: true,
-          car: true,
-          driver: { include: { user: true } },
-          invoice: true
-        }
-      });
     }
 
-    // Telegram notification to Driver
-    if (updateData.driverId && updateData.driverId !== oldBooking?.driverId && booking.driver?.telegramId) {
-      try {
-        const { getTelegramClient } = await import('@/lib/telegramClient');
-        const client = await getTelegramClient();
-        if (client) {
-          const msg = `🚗 Новий рейс!\n\n📍 ${booking.routeFrom} ➔ ${booking.routeTo}\n📅 ${new Date(booking.dateStart).toLocaleString('uk-UA')}\n👤 Клієнт: ${booking.client.name} (${booking.client.phone})\n🚘 Авто: ${booking.car.make} ${booking.car.model}\n\nЗайдіть у кабінет водія для деталей.`;
-          await client.sendMessage(booking.driver.telegramId, { message: msg });
-        }
-      } catch (e) {
-        console.error("Failed to send telegram to driver:", e);
-      }
-    }
-
-    // Recalculate chain for this car
-    if (
+    // Recalculate the chain for this car (delivery/return distances, fuel)
+    const needsChainRecalc =
       updateData.status !== undefined ||
       updateData.driverId !== undefined ||
       updateData.carId !== undefined ||
@@ -95,19 +124,82 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       updateData.returnToBaseAt !== undefined ||
       updateData.returnToBaseDistance !== undefined ||
       updateData.dateStart !== undefined ||
-      updateData.dateEnd !== undefined
-    ) {
+      updateData.dateEnd !== undefined;
+
+    if (needsChainRecalc) {
       await recalculateChain(booking.carId);
-      const recalculated = await prisma.booking.findUnique({
-        where: { id },
-        include: {
-          client: true,
-          car: true,
-          driver: { include: { user: true } },
-          invoice: true
+    }
+
+    // Finance completion: return-leg hours, driver salary (km + hours),
+    // overnight stay for long trips and the resulting net profit.
+    if (needsChainRecalc || updateData.price !== undefined) {
+      const fresh = await fetchBooking(id);
+      if (fresh) {
+        const settingsRows = await prisma.siteContent.findMany({
+          where: { key: { in: ['pricing_hotel_after_hours', 'pricing_hotel_cost_per_night'] } },
+        });
+        const sMap = Object.fromEntries(settingsRows.map((row) => [row.key, row.value]));
+        const hotelAfterHours = Number(sMap.pricing_hotel_after_hours || 10);
+        const hotelPerNight = Number(sMap.pricing_hotel_cost_per_night || 90);
+
+        const returnMins = fresh.returnToBaseDistance ? Math.ceil((Number(fresh.returnToBaseDistance) / 55) * 60) : 0;
+        const speedFactor = Math.max(0.5, 1 - Number(fresh.trafficBufferPercent ?? 10) / 100);
+        const adjustedRouteMins = Math.ceil(Number(fresh.routeDurationMins || 0) / speedFactor);
+        const billableHours = round2(((adjustedRouteMins + returnMins) / 60) + Number(fresh.customsWaitHours || 0) + Number(fresh.manualWaitingHours || 0));
+        const totalKm = Number(fresh.totalExpenseDistance || fresh.distance || 0);
+        const driverSalary = round2(totalKm * Number(fresh.driver?.salaryPerKm ?? 0.15) + billableHours * Number(fresh.driver?.salaryPerHour ?? 12));
+        const hotelCost = billableHours > hotelAfterHours ? Number(fresh.driver?.overnightAllowance ?? hotelPerNight) : 0;
+        const internalCost = Number(fresh.fuelCost || 0) + driverSalary + Number(fresh.deliveryCost || 0) + Number(fresh.amortization || 0) + hotelCost;
+        const netProfit = round2(Number(fresh.price || 0) - internalCost);
+
+        booking = await prisma.booking.update({
+          where: { id },
+          data: { billableHours, driverSalary, hotelCost, netProfit },
+          include: {
+            client: true,
+            car: true,
+            driver: { include: { user: true } },
+            invoice: true
+          }
+        });
+      }
+    }
+
+    // Telegram to the driver: trip + how much to collect from the client
+    if (updateData.driverId && updateData.driverId !== oldBooking?.driverId && booking.driver?.telegramId) {
+      try {
+        const { getTelegramClient } = await import('@/lib/telegramClient');
+        const client = await getTelegramClient();
+        if (client) {
+          const paid = Number(booking.invoice?.paidAmount || 0);
+          const remaining = Math.max(0, Math.round(Number(booking.price || 0) - paid));
+          const payLine = remaining === 0
+            ? '💶 Поїздка оплачена повністю — нічого не отримувати.'
+            : `💶 Отримати від клієнта: €${remaining} (ціна €${Math.round(Number(booking.price || 0))}, сплачено €${Math.round(paid)}).`;
+          const msg = `🚗 Новий рейс!\n\n📍 ${booking.routeFrom} ➔ ${booking.routeTo}\n📅 ${new Date(booking.dateStart).toLocaleString('uk-UA')}\n👤 Клієнт: ${booking.client.name} (${booking.client.phone})\n🚘 Авто: ${booking.car.make} ${booking.car.model}\n${payLine}\n\nЗайдіть у кабінет водія для деталей.`;
+          await client.sendMessage(booking.driver.telegramId, { message: msg });
         }
-      });
-      if (recalculated) booking = recalculated;
+      } catch (e) {
+        console.error("Failed to send telegram to driver:", e);
+      }
+    }
+
+    // Message to the client: confirmation or driver change on a confirmed trip
+    try {
+      const becameConfirmed = updateData.status === 'CONFIRMED' && oldBooking?.status !== 'CONFIRMED';
+      const driverChangedOnConfirmed =
+        updateData.driverId !== undefined &&
+        updateData.driverId !== oldBooking?.driverId &&
+        booking.status === 'CONFIRMED' &&
+        !becameConfirmed;
+
+      if (becameConfirmed) {
+        await postToBookingChat(booking, clientTripMessage(booking, '✅ Вашу поїздку підтверджено!'));
+      } else if (driverChangedOnConfirmed) {
+        await postToBookingChat(booking, clientTripMessage(booking, '🔄 Оновлення по вашій поїздці: призначено водія.'));
+      }
+    } catch (e) {
+      console.error('Failed to notify client:', e);
     }
 
     return NextResponse.json(booking);

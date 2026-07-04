@@ -339,7 +339,7 @@ export default function UsersAdminPage() {
       </div>
 
       <div className="hidden overflow-x-auto rounded-xl border border-white/10 bg-[#13131a] xl:block">
-        <table className="w-full min-w-[1100px] text-left text-sm text-[#c7c6ca]">
+        <table className="w-full min-w-[1480px] text-left text-sm text-[#c7c6ca]">
           <thead className="border-b border-white/10 bg-white/5 text-xs uppercase tracking-widest text-white">
             <tr>
               <th className="p-4">Користувач</th>
