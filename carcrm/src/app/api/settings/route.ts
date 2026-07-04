@@ -37,6 +37,8 @@ const CONTENT_SETTING_KEYS = [
   'pricing_hotel_after_hours',
   'pricing_hotel_cost_per_night',
   'pricing_min_margin_percent',
+  'marketing_post_presets',
+  'marketing_schedule_rules',
 ];
 
 export async function GET() {
