@@ -36,6 +36,7 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
   const initCarId = searchParams.get('carId') || (cars[0]?.id || '');
   const initPromo = searchParams.get('promo') ? parseFloat(searchParams.get('promo')!) : 0;
   const initPromotionId = searchParams.get('promotionId') || null;
+  const initPromoCode = searchParams.get('promoCode') || '';
 
   const [distance, setDistance] = useState(100);
   const [distanceCity, setDistanceCity] = useState(50);
@@ -45,7 +46,7 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
   const [isWeekend, setIsWeekend] = useState(false);
   const [withDriver, setWithDriver] = useState(true);
   const [discountPercent, setDiscountPercent] = useState(initPromo);
-  const [discountCode, setDiscountCode] = useState('');
+  const [discountCode, setDiscountCode] = useState(initPromoCode);
   const [price, setPrice] = useState(0);
   const [expenseSnapshot, setExpenseSnapshot] = useState({
     fuelCost: 0,

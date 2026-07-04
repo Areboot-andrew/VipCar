@@ -1,5 +1,6 @@
 import { calculateTripPricing } from './pricingEngine';
 import { prisma } from './prisma';
+import { resolveAutoEmptyLeg } from './emptyLegs';
 
 type LatLng = { lat: number; lng: number } | null;
 
@@ -96,6 +97,15 @@ async function resolveDiscount(input: BookingQuoteInput) {
     };
   }
 
+  const autoEmptyLeg = await resolveAutoEmptyLeg(input.promoCode, input.carId, input.routeFrom, input.routeTo, coord(input.originLat, input.originLng));
+  if (autoEmptyLeg) {
+    return {
+      promotion: null,
+      percent: Number(autoEmptyLeg.discount || 0),
+      promoCode: autoEmptyLeg.id,
+    };
+  }
+
   const code = String(input.promoCode || '').trim().toLowerCase();
   if (code === 'vip10') {
     return { promotion: null, percent: 10, promoCode: 'vip10' };
@@ -103,7 +113,7 @@ async function resolveDiscount(input: BookingQuoteInput) {
 
   return {
     promotion: null,
-    percent: Math.min(80, Math.max(0, numberValue(input.discountPercent, 0))),
+    percent: 0,
     promoCode: input.promoCode || null,
   };
 }

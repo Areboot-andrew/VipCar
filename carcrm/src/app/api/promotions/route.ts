@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
+import { getAutoEmptyLegPromotions } from '@/lib/emptyLegs';
 
 export async function GET() {
   try {
@@ -9,7 +8,8 @@ export async function GET() {
       include: { car: true },
       orderBy: { createdAt: 'desc' }
     });
-    return NextResponse.json(promos);
+    const autoPromos = await getAutoEmptyLegPromotions();
+    return NextResponse.json([...autoPromos, ...promos]);
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch' }, { status: 500 });
   }

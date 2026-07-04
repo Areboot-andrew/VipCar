@@ -16,6 +16,11 @@ type EmptyLegPromo = {
   dateStart?: string | null;
   carId?: string | null;
   active: boolean;
+  source?: string;
+  bookingId?: string;
+  pickupRadiusKm?: number;
+  pickupZoneText?: string;
+  distanceKm?: number;
   car?: {
     make: string;
     model: string;
@@ -65,13 +70,40 @@ export default function EmptyLegsBanner({ cmsSettings = {} }: { cmsSettings?: Re
             <div className="absolute top-0 right-0 w-32 h-32 bg-[#e9c349]/10 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-[#e9c349]/20 transition-colors"></div>
             
             <div className="flex justify-between items-start mb-4">
-              <h3 className="text-xl font-bold text-white z-10">{promo.title}</h3>
+              <div className="z-10">
+                {promo.source === 'AUTO_EMPTY' && (
+                  <div className="mb-2 w-fit rounded-full border border-[#e9c349]/25 bg-[#e9c349]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#e9c349]">
+                    Авто повертається
+                  </div>
+                )}
+                <h3 className="text-xl font-bold text-white">{promo.title}</h3>
+              </div>
               <div className="bg-[#e9c349] text-black font-bold px-3 py-1 rounded-full text-sm flex items-center gap-1 z-10 shadow-[0_2px_10px_rgba(233,195,73,0.3)]">
                 <Percent size={14} /> {promo.discount}%
               </div>
             </div>
 
             <div className="space-y-3 mb-6 z-10 relative">
+              {promo.source === 'AUTO_EMPTY' && (
+                <div className="rounded-xl border border-white/10 bg-[#080818]/70 p-3">
+                  <div className="mb-3 flex items-center justify-between gap-3 text-[11px] font-bold uppercase tracking-widest text-[#8a8a93]">
+                    <span>Зона підбору</span>
+                    <span className="text-[#e9c349]">до {promo.pickupRadiusKm || 50} км</span>
+                  </div>
+                  <div className="relative flex items-center gap-3">
+                    <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[#e9c349]/40 bg-[#e9c349]/10">
+                      <div className="absolute h-8 w-8 rounded-full border border-[#e9c349]/30"></div>
+                      <MapPin size={16} className="text-[#e9c349]" />
+                    </div>
+                    <div className="h-px flex-1 bg-gradient-to-r from-[#e9c349]/70 to-white/15"></div>
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5">
+                      <span className="material-symbols-outlined text-[18px] text-[#e9c349]">home_pin</span>
+                    </div>
+                  </div>
+                  <p className="m-0 mt-3 text-xs leading-5 text-[#c7c6ca]">{promo.pickupZoneText}</p>
+                </div>
+              )}
+
               <div className="flex items-center gap-3 text-[#c7c6ca]">
                 <MapPin size={16} className="text-[#e9c349]" />
                 <span className="text-sm">{promo.routeFrom || c['empty_legs_anywhere']} <ArrowRight size={14} className="inline mx-1" /> {promo.routeTo || c['empty_legs_anywhere']}</span>
@@ -92,7 +124,7 @@ export default function EmptyLegsBanner({ cmsSettings = {} }: { cmsSettings?: Re
               )}
             </div>
 
-            <Link href={`/?promo=${promo.discount}&promotionId=${promo.id}&carId=${promo.carId || ''}#calculator`} className="block w-full text-center py-3 rounded-xl border border-[#e9c349] text-[#e9c349] hover:bg-[#e9c349] hover:text-black font-bold transition-all z-10 relative">
+            <Link href={`/?promo=${promo.discount}&${promo.source === 'AUTO_EMPTY' ? `promoCode=${promo.id}` : `promotionId=${promo.id}`}&carId=${promo.carId || ''}#calculator`} className="block w-full text-center py-3 rounded-xl border border-[#e9c349] text-[#e9c349] hover:bg-[#e9c349] hover:text-black font-bold transition-all z-10 relative">
               {c['empty_legs_book_button']}
             </Link>
           </motion.div>
