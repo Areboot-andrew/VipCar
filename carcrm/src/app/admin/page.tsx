@@ -1,59 +1,416 @@
-import DashboardCalendar from './DashboardCalendar';
+import { endOfMonth, format, startOfDay, startOfMonth, subDays } from 'date-fns';
+import { uk } from 'date-fns/locale/uk';
+import {
+  AlertTriangle,
+  ArrowRight,
+  CalendarClock,
+  Car,
+  CheckCircle2,
+  CircleDollarSign,
+  Clock3,
+  Gauge,
+  Luggage,
+  Route,
+  TrendingUp,
+  UserRoundCheck,
+  Users,
+  WalletCards,
+} from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 
-// Disable caching so we always see fresh data
 export const dynamic = 'force-dynamic';
 
-export default async function AdminDashboardPage() {
-  // Fetch real data from the database
-  const cars = await prisma.car.findMany({
-    orderBy: { createdAt: 'desc' }
-  });
+const statusLabel: Record<string, string> = {
+  PENDING: 'Нова',
+  CONFIRMED: 'Підтверджена',
+  COMPLETED: 'Завершена',
+  CANCELLED: 'Скасована',
+};
 
-  // Fetch bookings for the next 90 days
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  const ninetyDaysFromNow = new Date(today);
-  ninetyDaysFromNow.setDate(today.getDate() + 90);
+const statusClass: Record<string, string> = {
+  PENDING: 'border-white/10 bg-white/5 text-white',
+  CONFIRMED: 'border-[#e9c349]/40 bg-[#e9c349]/15 text-[#e9c349]',
+  COMPLETED: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300',
+  CANCELLED: 'border-red-400/30 bg-red-400/10 text-red-300',
+};
 
-  const bookings = await prisma.booking.findMany({
-    where: {
-      dateStart: { lte: ninetyDaysFromNow },
-      dateEnd: { gte: today },
-    },
-    include: {
-      client: true,
-      driver: { include: { user: true } },
-    }
-  });
+function eur(value?: number | null) {
+  return `€${Number(value || 0).toFixed(0)}`;
+}
 
-  // Serialize dates to pass to client component safely
-  const serializedBookings = bookings.map(b => ({
-    ...b,
-    dateStart: b.dateStart.toISOString(),
-    dateEnd: b.dateEnd.toISOString(),
-    desiredArrivalAt: b.desiredArrivalAt?.toISOString() || null,
-    pickupAt: b.pickupAt?.toISOString() || null,
-    carDispatchAt: b.carDispatchAt?.toISOString() || null,
-    estimatedArrivalAt: b.estimatedArrivalAt?.toISOString() || null,
-    returnToBaseAt: b.returnToBaseAt?.toISOString() || null,
-  }));
+function km(value?: number | null) {
+  return `${Number(value || 0).toFixed(0)} км`;
+}
+
+function shortPlace(value: string) {
+  return value.split(',')[0] || value;
+}
+
+function tripTime(value: Date) {
+  return format(value, 'dd MMM, HH:mm', { locale: uk });
+}
+
+function calcExpenses(booking: {
+  fuelCost?: number | null;
+  driverSalary?: number | null;
+  deliveryCost?: number | null;
+  amortization?: number | null;
+  timeCost?: number | null;
+  hotelCost?: number | null;
+  surcharges?: number | null;
+}) {
+  return (
+    Number(booking.fuelCost || 0) +
+    Number(booking.driverSalary || 0) +
+    Number(booking.deliveryCost || 0) +
+    Number(booking.amortization || 0) +
+    Number(booking.timeCost || 0) +
+    Number(booking.hotelCost || 0) +
+    Number(booking.surcharges || 0)
+  );
+}
+
+function calcProfit(booking: { price: number; netProfit?: number | null } & Parameters<typeof calcExpenses>[0]) {
+  if (booking.netProfit !== null && booking.netProfit !== undefined) return Number(booking.netProfit);
+  return Number(booking.price || 0) - calcExpenses(booking);
+}
+
+function MetricCard({
+  icon: Icon,
+  label,
+  value,
+  hint,
+  tone = 'default',
+}: {
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  label: string;
+  value: string;
+  hint: string;
+  tone?: 'default' | 'gold' | 'green' | 'red';
+}) {
+  const toneClass =
+    tone === 'green'
+      ? 'border-emerald-400/20 bg-emerald-400/5'
+      : tone === 'red'
+        ? 'border-red-400/20 bg-red-400/5'
+        : tone === 'gold'
+          ? 'border-[#e9c349]/30 bg-[#e9c349]/10'
+          : 'border-white/10 bg-[#15151d]';
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="bg-[#13131a] p-6 rounded-2xl border border-white/10 shadow-lg">
-        <h1 className="text-2xl font-bold text-white mb-2">Дашборд (90 Днів)</h1>
-        <p className="text-[#8a8a93] m-0">Календар зайнятості автопарку. Усі дані завантажені з бази.</p>
+    <div className={`rounded-xl border p-4 ${toneClass}`}>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <span className="text-xs font-bold uppercase tracking-[0.16em] text-[#8a8a93]">{label}</span>
+        <Icon className={tone === 'green' ? 'text-emerald-300' : tone === 'red' ? 'text-red-300' : 'text-[#e9c349]'} size={20} />
       </div>
-      
-      {cars.length === 0 ? (
-        <div className="bg-[#13131a] p-6 rounded-2xl border border-white/10 text-[#c7c6ca]">
-          <p>Автопарк порожній. Будь ласка, додайте автомобілі в розділі "Автопарк", щоб вони з'явилися в календарі.</p>
+      <div className="text-2xl font-black text-white">{value}</div>
+      <div className="mt-1 text-sm text-[#a7a6ad]">{hint}</div>
+    </div>
+  );
+}
+
+function TripRow({
+  booking,
+  compact = false,
+}: {
+  booking: Awaited<ReturnType<typeof getDashboardData>>['futureBookings'][number];
+  compact?: boolean;
+}) {
+  const expenses = calcExpenses(booking);
+  const profit = calcProfit(booking);
+  const status = statusLabel[booking.status] || booking.status;
+  const carName = `${booking.car.make} ${booking.car.model}`;
+  const driverName = booking.driver?.user?.name || 'Водій не призначений';
+
+  return (
+    <div className="rounded-xl border border-white/10 bg-[#17171f] p-4 transition hover:border-[#e9c349]/35">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={`rounded-full border px-2.5 py-1 text-xs font-bold ${statusClass[booking.status] || statusClass.PENDING}`}>
+              {status}
+            </span>
+            <span className="text-sm text-[#a7a6ad]">#{booking.id.slice(0, 8)}</span>
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-xl font-black text-white">
+            <span>{shortPlace(booking.routeFrom)}</span>
+            <ArrowRight size={18} className="text-[#e9c349]" />
+            <span>{shortPlace(booking.routeTo)}</span>
+          </div>
+          <div className="mt-2 grid gap-2 text-sm text-[#c7c6ca] md:grid-cols-2">
+            <span className="flex items-center gap-2">
+              <CalendarClock size={15} className="text-[#e9c349]" />
+              {tripTime(booking.dateStart)}
+            </span>
+            <span className="flex items-center gap-2">
+              <Car size={15} className="text-[#e9c349]" />
+              {carName}
+            </span>
+            <span className="flex items-center gap-2">
+              <UserRoundCheck size={15} className="text-[#e9c349]" />
+              {driverName}
+            </span>
+            <span className="flex items-center gap-2">
+              <Users size={15} className="text-[#e9c349]" />
+              {booking.passengers} дор. / {booking.children} дит.
+            </span>
+          </div>
+          {!compact && (
+            <div className="mt-3 flex flex-wrap gap-2 text-xs text-[#a7a6ad]">
+              <span className="rounded-lg bg-black/20 px-2.5 py-1">маршрут: {km(booking.distance)}</span>
+              <span className="rounded-lg bg-black/20 px-2.5 py-1">подача: {km(booking.deliveryDistance)}</span>
+              <span className="rounded-lg bg-black/20 px-2.5 py-1">валізи: {booking.luggage}</span>
+              <span className="rounded-lg bg-black/20 px-2.5 py-1">тварини: {booking.petsCount || 0}</span>
+            </div>
+          )}
         </div>
-      ) : (
-        <DashboardCalendar cars={cars} bookings={serializedBookings} />
-      )}
+        <div className="grid min-w-[148px] grid-cols-3 gap-2 text-right lg:block">
+          <div>
+            <div className="text-xs uppercase tracking-[0.14em] text-[#8a8a93]">ціна</div>
+            <div className="text-xl font-black text-[#e9c349]">{eur(booking.price)}</div>
+          </div>
+          <div className="lg:mt-2">
+            <div className="text-xs uppercase tracking-[0.14em] text-[#8a8a93]">витрати</div>
+            <div className="font-bold text-red-200">{eur(expenses)}</div>
+          </div>
+          <div className="lg:mt-2">
+            <div className="text-xs uppercase tracking-[0.14em] text-[#8a8a93]">прибуток</div>
+            <div className="font-bold text-emerald-300">{eur(profit)}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+async function getDashboardData() {
+  const now = new Date();
+  const today = startOfDay(now);
+  const nextTwoWeeks = new Date(today);
+  nextTwoWeeks.setDate(today.getDate() + 14);
+  const weekAgo = subDays(today, 7);
+  const monthStart = startOfMonth(today);
+  const monthEnd = endOfMonth(today);
+
+  const include = {
+    car: true,
+    client: true,
+    driver: { include: { user: true } },
+  };
+
+  const [futureBookings, activeBookings, closedBookings, monthBookings, cars, drivers] = await Promise.all([
+    prisma.booking.findMany({
+      where: {
+        dateStart: { gte: now },
+        status: { not: 'CANCELLED' },
+      },
+      include,
+      orderBy: { dateStart: 'asc' },
+      take: 8,
+    }),
+    prisma.booking.findMany({
+      where: {
+        dateStart: { lte: now },
+        dateEnd: { gte: now },
+        status: { not: 'CANCELLED' },
+      },
+      include,
+      orderBy: { dateStart: 'asc' },
+      take: 6,
+    }),
+    prisma.booking.findMany({
+      where: {
+        dateEnd: { gte: weekAgo, lt: now },
+        status: 'COMPLETED',
+      },
+      include,
+      orderBy: { dateEnd: 'desc' },
+      take: 6,
+    }),
+    prisma.booking.findMany({
+      where: {
+        dateStart: { gte: monthStart, lte: monthEnd },
+        status: { not: 'CANCELLED' },
+      },
+      include,
+      orderBy: { dateStart: 'asc' },
+    }),
+    prisma.car.findMany({ orderBy: [{ status: 'asc' }, { createdAt: 'desc' }] }),
+    prisma.driver.findMany({ include: { user: true }, orderBy: { user: { name: 'asc' } } }),
+  ]);
+
+  const upcomingTwoWeeks = monthBookings.filter((booking) => booking.dateStart >= today && booking.dateStart <= nextTwoWeeks);
+
+  return {
+    futureBookings,
+    activeBookings,
+    closedBookings,
+    monthBookings,
+    upcomingTwoWeeks,
+    cars,
+    drivers,
+  };
+}
+
+export default async function AdminDashboardPage() {
+  const { futureBookings, activeBookings, closedBookings, monthBookings, upcomingTwoWeeks, cars, drivers } = await getDashboardData();
+
+  const monthRevenue = monthBookings.reduce((sum, booking) => sum + Number(booking.price || 0), 0);
+  const monthExpenses = monthBookings.reduce((sum, booking) => sum + calcExpenses(booking), 0);
+  const monthProfit = monthBookings.reduce((sum, booking) => sum + calcProfit(booking), 0);
+  const unassignedBookings = futureBookings.filter((booking) => !booking.driverId).length;
+  const availableCars = cars.filter((car) => car.status === 'AVAILABLE').length;
+  const activeDrivers = drivers.filter((driver) => driver.status === 'ACTIVE').length;
+  const statusCounts = monthBookings.reduce<Record<string, number>>((acc, booking) => {
+    acc[booking.status] = (acc[booking.status] || 0) + 1;
+    return acc;
+  }, {});
+
+  const nextTrip = futureBookings[0];
+
+  return (
+    <div className="flex flex-col gap-5">
+      <section className="rounded-xl border border-white/10 bg-[#13131a] p-5 shadow-lg">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+          <div>
+            <div className="mb-2 flex items-center gap-2 text-sm font-bold uppercase tracking-[0.18em] text-[#e9c349]">
+              <Gauge size={18} />
+              Операційний центр
+            </div>
+            <h1 className="text-2xl font-black text-white md:text-3xl">Дашборд рейсів, авто і фінансів</h1>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-[#a7a6ad]">
+              Тут видно що скоро їде, що вже в дорозі, що закрито за тиждень, скільки заробили цього місяця і де потрібна увага адміністратора.
+            </p>
+          </div>
+          {nextTrip && (
+            <div className="rounded-xl border border-[#e9c349]/25 bg-[#e9c349]/10 p-4 xl:min-w-[360px]">
+              <div className="text-xs font-bold uppercase tracking-[0.16em] text-[#e9c349]">Найближчий рейс</div>
+              <div className="mt-2 text-lg font-black text-white">
+                {shortPlace(nextTrip.routeFrom)} -&gt; {shortPlace(nextTrip.routeTo)}
+              </div>
+              <div className="mt-1 text-sm text-[#c7c6ca]">
+                {tripTime(nextTrip.dateStart)} · {nextTrip.car.make} {nextTrip.car.model}
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard icon={CalendarClock} label="Майбутні рейси" value={`${futureBookings.length}`} hint="найближчі бронювання у черзі" tone="gold" />
+        <MetricCard icon={Clock3} label="У дорозі" value={`${activeBookings.length}`} hint="активні рейси прямо зараз" />
+        <MetricCard icon={CircleDollarSign} label="Дохід місяця" value={eur(monthRevenue)} hint={`витрати ${eur(monthExpenses)}`} tone="green" />
+        <MetricCard icon={TrendingUp} label="Прибуток" value={eur(monthProfit)} hint="після пального, водія і подачі" tone={monthProfit < 0 ? 'red' : 'green'} />
+      </section>
+
+      <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
+        <div className="flex min-w-0 flex-col gap-5">
+          <div className="rounded-xl border border-white/10 bg-[#10101a]">
+            <div className="flex flex-col gap-2 border-b border-white/10 p-5 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h2 className="flex items-center gap-2 text-xl font-black text-white">
+                  <Route className="text-[#e9c349]" size={22} />
+                  Найближчі рейси
+                </h2>
+                <p className="mt-1 text-sm text-[#8a8a93]">Список для швидкого контролю без дублювання календаря.</p>
+              </div>
+              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm font-bold text-[#c7c6ca]">
+                14 днів: {upcomingTwoWeeks.length}
+              </span>
+            </div>
+            <div className="grid gap-3 p-4">
+              {futureBookings.length > 0 ? (
+                futureBookings.map((booking) => <TripRow key={booking.id} booking={booking} />)
+              ) : (
+                <div className="rounded-xl border border-dashed border-white/15 p-6 text-sm text-[#a7a6ad]">
+                  Майбутніх рейсів немає. Коли клієнт створить бронювання, воно з'явиться тут.
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-white/10 bg-[#10101a]">
+            <div className="flex flex-col gap-2 border-b border-white/10 p-5 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h2 className="flex items-center gap-2 text-xl font-black text-white">
+                  <CheckCircle2 className="text-emerald-300" size={22} />
+                  Закриті за 7 днів
+                </h2>
+                <p className="mt-1 text-sm text-[#8a8a93]">Завершені рейси для контролю оплат, витрат і фактичного прибутку.</p>
+              </div>
+            </div>
+            <div className="grid gap-3 p-4 md:grid-cols-2">
+              {closedBookings.length > 0 ? (
+                closedBookings.map((booking) => <TripRow key={booking.id} booking={booking} compact />)
+              ) : (
+                <div className="rounded-xl border border-dashed border-white/15 p-6 text-sm text-[#a7a6ad] md:col-span-2">
+                  За останні 7 днів немає закритих рейсів.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <aside className="flex min-w-0 flex-col gap-5">
+          <div className="rounded-xl border border-white/10 bg-[#10101a] p-5">
+            <h2 className="flex items-center gap-2 text-xl font-black text-white">
+              <AlertTriangle className="text-[#e9c349]" size={22} />
+              Потребує уваги
+            </h2>
+            <div className="mt-4 grid gap-3">
+              <div className="rounded-xl border border-white/10 bg-[#17171f] p-4">
+                <div className="text-2xl font-black text-white">{unassignedBookings}</div>
+                <div className="text-sm text-[#a7a6ad]">майбутніх рейсів без водія</div>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-[#17171f] p-4">
+                <div className="text-2xl font-black text-white">{availableCars} / {cars.length}</div>
+                <div className="text-sm text-[#a7a6ad]">авто доступні в автопарку</div>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-[#17171f] p-4">
+                <div className="text-2xl font-black text-white">{activeDrivers} / {drivers.length}</div>
+                <div className="text-sm text-[#a7a6ad]">активні водії</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-white/10 bg-[#10101a] p-5">
+            <h2 className="flex items-center gap-2 text-xl font-black text-white">
+              <WalletCards className="text-[#e9c349]" size={22} />
+              Статуси місяця
+            </h2>
+            <div className="mt-4 grid gap-2">
+              {Object.entries(statusLabel).map(([key, label]) => (
+                <div key={key} className="flex items-center justify-between gap-3 rounded-lg bg-white/[0.04] px-3 py-2">
+                  <span className="text-sm text-[#c7c6ca]">{label}</span>
+                  <span className="font-black text-white">{statusCounts[key] || 0}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-white/10 bg-[#10101a] p-5">
+            <h2 className="flex items-center gap-2 text-xl font-black text-white">
+              <Car className="text-[#e9c349]" size={22} />
+              Автопарк
+            </h2>
+            <div className="mt-4 grid gap-2">
+              {cars.slice(0, 6).map((car) => (
+                <div key={car.id} className="flex items-center justify-between gap-3 rounded-lg bg-white/[0.04] px-3 py-2">
+                  <div className="min-w-0">
+                    <div className="truncate font-bold text-white">{car.make} {car.model}</div>
+                    <div className="flex flex-wrap gap-2 text-xs text-[#8a8a93]">
+                      <span>{car.comfortClass}</span>
+                      <span className="flex items-center gap-1"><Users size={12} />{car.capacity}</span>
+                      <span className="flex items-center gap-1"><Luggage size={12} />{car.luggageCapacity}</span>
+                    </div>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-black/20 px-2 py-1 text-xs font-bold text-[#e9c349]">{car.status}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </aside>
+      </section>
     </div>
   );
 }
