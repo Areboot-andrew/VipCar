@@ -94,7 +94,7 @@ export async function getAutoEmptyLegPromotions(now = new Date()) {
 
     promos.push({
       id: `${AUTO_EMPTY_PREFIX}${booking.id}`,
-      title: `${fromCity} та околиці -> ${baseCity}`,
+      title: `${fromCity} -> ${baseCity}`,
       routeFrom: fromCity,
       routeTo: baseCity,
       discount,
@@ -110,7 +110,7 @@ export async function getAutoEmptyLegPromotions(now = new Date()) {
       pickupRadiusKm: AUTO_EMPTY_PICKUP_RADIUS_KM,
       pickupCenterLat: booking.destinationLat,
       pickupCenterLng: booking.destinationLng,
-      pickupZoneText: `Заберемо у ${fromCity} та до ${AUTO_EMPTY_PICKUP_RADIUS_KM} км навколо`,
+      pickupZoneText: `Забір у ${fromCity} або до ${AUTO_EMPTY_PICKUP_RADIUS_KM} км від міста`,
     });
   }
 

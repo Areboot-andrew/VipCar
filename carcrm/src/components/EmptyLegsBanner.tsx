@@ -85,12 +85,12 @@ export default function EmptyLegsBanner({ cmsSettings = {} }: { cmsSettings?: Re
               transition={{ delay: idx * 0.1 }}
               className="group overflow-hidden rounded-2xl border border-[#e9c349]/20 bg-[#13131a] shadow-2xl transition-colors hover:border-[#e9c349]/60"
             >
-              <div className="grid min-h-[420px] md:grid-cols-[1.1fr_0.9fr]">
-                <div className="relative min-h-[260px] overflow-hidden bg-[#080818]">
+              <div className="flex min-h-[520px] flex-col">
+                <div className="relative h-[290px] overflow-hidden bg-[#080818]">
                   {cover ? (
                     <img src={cover} alt={promo.car ? `${promo.car.make} ${promo.car.model}` : promo.title} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
                   ) : (
-                    <div className="flex h-full min-h-[260px] items-center justify-center text-[#56565f]">
+                    <div className="flex h-full items-center justify-center text-[#56565f]">
                       <CarFront size={58} />
                     </div>
                   )}
@@ -100,42 +100,40 @@ export default function EmptyLegsBanner({ cmsSettings = {} }: { cmsSettings?: Re
                   </div>
                   <div className="absolute bottom-5 left-5 right-5">
                     <div className="mb-2 w-fit rounded-full border border-white/15 bg-black/45 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#e9c349] backdrop-blur">
-                      {promo.source === 'AUTO_EMPTY' ? 'Авто повертається' : 'Акційний рейс'}
+                      {promo.source === 'AUTO_EMPTY' ? 'Вільний зворотний рейс' : 'Акційний рейс'}
                     </div>
                     <h3 className="m-0 text-2xl font-bold leading-tight text-white">{promo.title}</h3>
                     {promo.car && <p className="m-0 mt-2 text-sm text-[#c7c6ca]">{promo.car.make} {promo.car.model}</p>}
                   </div>
                 </div>
 
-                <div className="flex flex-col justify-between gap-5 p-5">
-                  <div className="rounded-xl border border-white/10 bg-[#080818] p-4">
-                    <div className="mb-4 flex items-center justify-between gap-3">
+                <div className="flex flex-1 flex-col justify-between gap-5 p-5">
+                  <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#080818]">
+                    <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
                       <div className="flex items-center gap-2 text-sm font-bold text-white">
-                        <Route size={17} className="text-[#e9c349]" /> Маршрут акції
+                        <Route size={17} className="text-[#e9c349]" /> Маршрут
                       </div>
-                      {promo.distanceKm && <span className="text-xs font-bold text-[#8a8a93]">{Math.round(promo.distanceKm)} км</span>}
+                      {promo.distanceKm && <span className="rounded-full bg-white/5 px-3 py-1 text-xs font-bold text-[#c7c6ca]">{Math.round(promo.distanceKm)} км</span>}
                     </div>
-                    <div className="relative overflow-hidden rounded-xl border border-white/10 bg-[#101018] p-4">
-                      <div className="absolute inset-0 opacity-25 [background-image:linear-gradient(#ffffff12_1px,transparent_1px),linear-gradient(90deg,#ffffff12_1px,transparent_1px)] [background-size:24px_24px]"></div>
-                      <div className="relative flex min-h-[118px] items-center">
+                    <div className="relative min-h-[150px] overflow-hidden p-4">
+                      <div className="absolute inset-0 opacity-30 [background-image:linear-gradient(#ffffff12_1px,transparent_1px),linear-gradient(90deg,#ffffff12_1px,transparent_1px)] [background-size:22px_22px]"></div>
+                      <div className="absolute inset-x-8 top-1/2 h-[2px] -translate-y-1/2 bg-gradient-to-r from-[#e9c349] via-[#e9c349]/70 to-[#e9c349]"></div>
+                      <div className="absolute left-[50%] top-1/2 h-12 w-12 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#e9c349]/40 bg-[#e9c349]/10 blur-sm"></div>
+                      <div className="relative flex min-h-[118px] items-center justify-between gap-5">
                         <div className="z-10 max-w-[42%]">
-                          <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-full border border-[#e9c349]/40 bg-[#e9c349]/15">
+                          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-[#e9c349]/40 bg-[#e9c349]/15">
                             <MapPin size={18} className="text-[#e9c349]" />
                           </div>
-                          <div className="text-sm font-bold text-white">{promo.routeFrom || c['empty_legs_anywhere']}</div>
-                          <div className="mt-1 text-xs leading-4 text-[#8a8a93]">{promo.pickupZoneText || 'Старт акційного маршруту'}</div>
+                          <div className="text-lg font-black text-white">{promo.routeFrom || c['empty_legs_anywhere']}</div>
                         </div>
-                        <div className="mx-3 flex-1">
-                          <div className="relative h-1 rounded-full bg-gradient-to-r from-[#e9c349] via-[#e9c349]/50 to-white/20">
-                            <ArrowRight size={18} className="absolute -right-1 -top-2 text-[#e9c349]" />
-                          </div>
+                        <div className="z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#e9c349] text-black shadow-[0_8px_24px_rgba(233,195,73,0.25)]">
+                          <ArrowRight size={20} />
                         </div>
-                        <div className="z-10 max-w-[36%] text-right">
-                          <div className="ml-auto mb-2 flex h-11 w-11 items-center justify-center rounded-lg border border-white/10 bg-white/5">
+                        <div className="z-10 max-w-[42%] text-right">
+                          <div className="ml-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-[#e9c349]/40 bg-[#e9c349]/15">
                             <span className="material-symbols-outlined text-[19px] text-[#e9c349]">home_pin</span>
                           </div>
-                          <div className="text-sm font-bold text-white">{promo.routeTo || c['empty_legs_anywhere']}</div>
-                          <div className="mt-1 text-xs leading-4 text-[#8a8a93]">напрямок бази</div>
+                          <div className="text-lg font-black text-white">{promo.routeTo || c['empty_legs_anywhere']}</div>
                         </div>
                       </div>
                     </div>
@@ -150,7 +148,7 @@ export default function EmptyLegsBanner({ cmsSettings = {} }: { cmsSettings?: Re
                     )}
                     <div className="flex items-center gap-3">
                       <MapPin size={16} className="text-[#e9c349]" />
-                      <span>{promo.routeFrom || c['empty_legs_anywhere']} <ArrowRight size={14} className="inline mx-1" /> {promo.routeTo || c['empty_legs_anywhere']}</span>
+                      <span>{promo.pickupZoneText || `${promo.routeFrom || c['empty_legs_anywhere']} -> ${promo.routeTo || c['empty_legs_anywhere']}`}</span>
                     </div>
                   </div>
 
