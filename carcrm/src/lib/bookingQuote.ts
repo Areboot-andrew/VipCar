@@ -27,6 +27,7 @@ export type BookingQuoteInput = {
   promotionId?: string | null;
   promoCode?: string | null;
   discountPercent?: number | string;
+  personalDiscountPercent?: number | string;
   isEndingAtBase?: boolean;
 };
 
@@ -69,6 +70,7 @@ const parseSettings = (rows: { key: string; value: string }[]) => {
     hotelCostPerNight: numberValue(map.pricing_hotel_cost_per_night, 90),
     minMarginPercent: numberValue(map.pricing_min_margin_percent, 0.25),
     weekendCoeff: numberValue(map.weekend_coefficient, 1.2),
+    depositPercent: numberValue(map.deposit_percent, 30),
   };
 };
 
@@ -145,6 +147,7 @@ export async function calculateBookingQuote(input: BookingQuoteInput) {
             'pricing_hotel_cost_per_night',
             'pricing_min_margin_percent',
             'weekend_coefficient',
+            'deposit_percent',
           ],
         },
       },
@@ -161,6 +164,9 @@ export async function calculateBookingQuote(input: BookingQuoteInput) {
   const distanceCity = numberValue(input.distanceCity, Math.ceil(distance * 0.3));
   const distanceHighway = numberValue(input.distanceHighway, Math.ceil(distance * 0.7));
   const discount = await resolveDiscount(input);
+  // Client's personal loyalty discount competes with the promo/empty-leg one — the client gets the better of the two.
+  const personalPercent = Math.max(0, numberValue(input.personalDiscountPercent, 0));
+  const effectivePercent = Math.max(Number(discount.percent || 0), personalPercent);
 
   const settings = {
     ...parseSettings(contentRows),
@@ -207,18 +213,22 @@ export async function calculateBookingQuote(input: BookingQuoteInput) {
     childSeats: numberValue(input.childSeats, 0),
     petsCount: numberValue(input.petsCount, 0),
     withDriver: input.withDriver !== false,
-    discountPercent: discount.percent,
+    discountPercent: effectivePercent,
     globalFuelPrices,
     settings,
   });
+
+  const depositAmount = Math.max(0, Math.round(pricing.price * (settings.depositPercent / 100)));
 
   return {
     car,
     pricing,
     promotion: discount.promotion,
     promoCode: discount.promoCode,
-    discountPercent: discount.percent,
+    discountPercent: effectivePercent,
+    personalDiscountPercent: personalPercent,
     discountAmount: Math.max(0, basePricing.price - pricing.price),
+    depositAmount,
     origin,
     destination,
     isEndingAtBase,

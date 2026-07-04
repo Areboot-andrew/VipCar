@@ -83,7 +83,7 @@ function fallbackPositions(from: ResolvedPoint, to: ResolvedPoint): [number, num
   return [[from.lat, from.lng], [to.lat, to.lng]];
 }
 
-export default function EmptyLegRouteMap({ from, to }: { from: Point; to: Point }) {
+export default function EmptyLegRouteMap({ from, to, onDistance }: { from: Point; to: Point; onDistance?: (km: number) => void }) {
   const [resolvedFrom, setResolvedFrom] = useState<ResolvedPoint | null>(null);
   const [resolvedTo, setResolvedTo] = useState<ResolvedPoint | null>(null);
   const [positions, setPositions] = useState<[number, number][]>([]);
@@ -115,9 +115,13 @@ export default function EmptyLegRouteMap({ from, to }: { from: Point; to: Point 
         const url = `https://router.project-osrm.org/route/v1/driving/${start.lng},${start.lat};${finish.lng},${finish.lat}?overview=full&geometries=geojson`;
         const res = await fetch(url, { signal: controller.signal });
         const data = res.ok ? await res.json() : null;
-        const coords = data?.routes?.[0]?.geometry?.coordinates;
+        const route = data?.routes?.[0];
+        const coords = route?.geometry?.coordinates;
         if (!cancelled && Array.isArray(coords) && coords.length > 1) {
           setPositions(coords.map((coord: [number, number]) => [coord[1], coord[0]]));
+          if (typeof route.distance === 'number' && route.distance > 0) {
+            onDistance?.(Math.round(route.distance / 1000));
+          }
         }
       })
       .catch(() => {});

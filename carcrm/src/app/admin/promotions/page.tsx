@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, type ReactNode } from 'react';
-import { CalendarDays, CarFront, MapPin, Percent, Plus, Route, Tag } from 'lucide-react';
+import { CalendarDays, CarFront, MapPin, Percent, Plus, Power, Route, Tag, Trash2 } from 'lucide-react';
 
 type Promo = {
   id: string;
@@ -11,6 +11,10 @@ type Promo = {
   discount: number;
   dateStart?: string | null;
   active: boolean;
+  source?: string;
+  distanceKm?: number;
+  originalPrice?: number;
+  discountedPrice?: number;
   car?: {
     make: string;
     model: string;
@@ -100,6 +104,25 @@ export default function PromotionsPage() {
     fetchData();
   };
 
+  const patchPromo = async (id: string, data: Record<string, unknown>) => {
+    await fetch(`/api/promotions/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    fetchData();
+  };
+
+  const deletePromo = async (promo: Promo) => {
+    const isAuto = promo.source === 'AUTO_EMPTY';
+    const message = isAuto
+      ? 'Приховати цю авто-акцію з сайту? Її можна буде повернути, увімкнувши знову.'
+      : 'Видалити цю акцію?';
+    if (!confirm(message)) return;
+    await fetch(`/api/promotions/${promo.id}`, { method: 'DELETE' });
+    fetchData();
+  };
+
   if (loading) {
     return <div className="p-8 text-white">Завантаження...</div>;
   }
@@ -113,7 +136,7 @@ export default function PromotionsPage() {
         <div>
           <h1 className="m-0 text-2xl font-bold text-white md:text-3xl">Empty Legs</h1>
           <p className="m-0 mt-1 max-w-3xl text-sm leading-6 text-[#8a8a93]">
-            Знижки на порожні або планові рейси. Тут задаємо зрозумілу назву, маршрут, дату, опціональне авто і відсоток знижки для клієнта.
+            «Авто-рейси» створюються автоматично для забронькованих авто, що вертаються додому порожні (знижка росте ближче до дати: 30/40/50%). «Ручні» — додаєш сам зліва. Будь-яку акцію можна вимкнути, змінити % або приховати.
           </p>
         </div>
       </div>
@@ -175,26 +198,76 @@ export default function PromotionsPage() {
           </div>
 
           <div className="grid gap-3">
-            {promos.map((promo) => (
+            {promos.map((promo) => {
+              const isAuto = promo.source === 'AUTO_EMPTY';
+              return (
               <article key={promo.id} className="rounded-xl border border-white/10 bg-[#080818] p-4">
                 <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                   <div>
-                    <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-[#e9c349]/25 bg-[#e9c349]/10 px-3 py-1 text-xs font-bold text-[#e9c349]">
-                      <Percent size={14} /> -{Number(promo.discount || 0)}%
+                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                      <span className="inline-flex items-center gap-2 rounded-full border border-[#e9c349]/25 bg-[#e9c349]/10 px-3 py-1 text-xs font-bold text-[#e9c349]">
+                        <Percent size={14} /> -{Number(promo.discount || 0)}%
+                      </span>
+                      <span className={`rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-widest ${isAuto ? 'border border-sky-400/25 bg-sky-400/10 text-sky-300' : 'border border-white/15 bg-white/5 text-[#c7c6ca]'}`}>
+                        {isAuto ? 'Авто-рейс' : 'Ручна'}
+                      </span>
                     </div>
                     <h3 className="m-0 text-lg font-bold text-white">{promo.title}</h3>
                     <div className="mt-3 grid gap-2 text-sm text-[#c7c6ca]">
-                      <div className="flex items-center gap-2"><Route size={15} className="text-[#e9c349]" /> {promo.routeFrom || 'Будь-яке місто'} {'->'} {promo.routeTo || 'Будь-яке місто'}</div>
+                      <div className="flex items-center gap-2"><Route size={15} className="text-[#e9c349]" /> {promo.routeFrom || 'Будь-яке місто'} {'->'} {promo.routeTo || 'Будь-яке місто'}{promo.distanceKm ? ` • ${Math.round(promo.distanceKm)} км` : ''}</div>
                       <div className="flex items-center gap-2"><CarFront size={15} className="text-[#e9c349]" /> {promo.car ? `${promo.car.make} ${promo.car.model}` : 'Будь-який відповідний автомобіль'}</div>
                       <div className="flex items-center gap-2"><CalendarDays size={15} className="text-[#e9c349]" /> {promo.dateStart ? new Date(promo.dateStart).toLocaleDateString('uk-UA') : 'Без дати'}</div>
+                      {isAuto && (promo.originalPrice || promo.discountedPrice) && (
+                        <div className="flex items-center gap-2 text-[#c7c6ca]">
+                          <Tag size={15} className="text-[#e9c349]" />
+                          {promo.originalPrice ? <span className="text-[#8a8a93] line-through">€{promo.originalPrice}</span> : null}
+                          {promo.discountedPrice ? <span className="font-bold text-white">€{promo.discountedPrice}</span> : null}
+                        </div>
+                      )}
                     </div>
                   </div>
-                  <div className={`rounded-lg px-3 py-2 text-sm font-bold ${promo.active ? 'bg-emerald-400/10 text-emerald-300' : 'bg-red-400/10 text-red-300'}`}>
-                    {promo.active ? 'Активна' : 'Неактивна'}
+                  <div className="flex flex-col items-stretch gap-2 md:w-56">
+                    <span className={`rounded-lg px-3 py-2 text-center text-sm font-bold ${promo.active ? 'bg-emerald-400/10 text-emerald-300' : 'bg-red-400/10 text-red-300'}`}>
+                      {promo.active ? 'Активна' : 'Прихована'}
+                    </span>
+                    <label className="grid gap-1">
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-[#8a8a93]">Знижка, %</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max="100"
+                        defaultValue={Number(promo.discount || 0)}
+                        onBlur={(event) => {
+                          const value = Number(event.target.value);
+                          if (Number.isFinite(value) && value !== Number(promo.discount || 0)) {
+                            patchPromo(promo.id, { discount: value });
+                          }
+                        }}
+                        className={fieldClass()}
+                      />
+                      {isAuto && <span className="text-[10px] leading-4 text-[#6f6f78]">Порожньо = автоматична знижка за часом (30/40/50%).</span>}
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => patchPromo(promo.id, { active: !promo.active })}
+                        className="inline-flex h-10 items-center justify-center gap-1 rounded-lg border border-white/15 px-2 text-xs font-bold text-white hover:bg-white/5"
+                      >
+                        <Power size={14} /> {promo.active ? 'Вимкнути' : 'Увімкнути'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => deletePromo(promo)}
+                        className="inline-flex h-10 items-center justify-center gap-1 rounded-lg border border-red-400/30 px-2 text-xs font-bold text-red-300 hover:bg-red-400/10"
+                      >
+                        <Trash2 size={14} /> {isAuto ? 'Приховати' : 'Видалити'}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </article>
-            ))}
+              );
+            })}
 
             {promos.length === 0 && (
               <div className="rounded-xl border border-dashed border-white/10 bg-[#080818] p-8 text-center text-sm text-[#8a8a93]">

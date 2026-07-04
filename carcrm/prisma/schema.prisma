@@ -43,6 +43,7 @@ model User {
   emailVerified DateTime?
   image         String?
   role          Role      @default(CLIENT)
+  personalDiscountPercent Float @default(0) // Personal loyalty discount set by admin
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -248,13 +249,17 @@ model Booking {
 }
 
 model Invoice {
-  id        String        @id @default(uuid())
-  bookingId String        @unique
-  booking   Booking       @relation(fields: [bookingId], references: [id])
-  amount    Float
-  status    InvoiceStatus @default(UNPAID)
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
+  id            String        @id @default(uuid())
+  bookingId     String        @unique
+  booking       Booking       @relation(fields: [bookingId], references: [id])
+  amount        Float
+  depositAmount Float         @default(0) // Required prepayment (deposit)
+  paidAmount    Float         @default(0) // How much the client has already paid
+  paidAt        DateTime?     // When the payment was registered
+  paymentMethod String?       // How it was paid: CASH, CARD, USDT, BANK
+  status        InvoiceStatus @default(UNPAID)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 }
 
 model Settlement {
@@ -384,4 +389,15 @@ model FuelPrice {
   updatedAt DateTime @updatedAt
 
   @@unique([country, fuelType])
+}
+
+// Admin overrides for auto-generated Empty Leg promos (keyed by the source booking).
+// Lets the admin hide a promo or force a specific discount without a Promotion row.
+model EmptyLegOverride {
+  id        String   @id @default(uuid())
+  bookingId String   @unique
+  discount  Float?   // Forced discount %; null keeps the automatic time-based tier
+  active    Boolean  @default(true) // false hides the promo from the site
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

@@ -98,6 +98,7 @@ export const SITE_CONTENT_DEFAULTS: Record<string, string> = {
   pricing_hotel_after_hours: '10',
   pricing_hotel_cost_per_night: '90',
   pricing_min_margin_percent: '0.25',
+  deposit_percent: '30',
   base_location_lat: '49.8397',
   base_location_lng: '24.0297',
 

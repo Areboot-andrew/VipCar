@@ -46,7 +46,10 @@ function returnWindow(booking: {
 }) {
   const destination = coord(booking.destinationLat, booking.destinationLng);
   const base = coord(booking.car.baseLat, booking.car.baseLng);
-  const distanceKm = booking.returnToBaseDistance || haversineRoadKm(destination, base) || Math.ceil(Number(booking.distance || 300) * 0.75);
+  // Real road distance for the way back (destination -> base). Coordinates first,
+  // then the outbound distance as a rough fallback. The promo card refines this
+  // to the exact routed distance from the map (OSRM) once it loads.
+  const distanceKm = booking.returnToBaseDistance || haversineRoadKm(destination, base) || Math.max(1, Math.ceil(Number(booking.distance || 300)));
   const minutes = Math.max(60, Math.ceil((distanceKm / 55) * 60));
   const start = booking.dateEnd;
   return {
@@ -78,6 +81,11 @@ export async function getAutoEmptyLegPromotions(now = new Date()) {
     orderBy: { dateEnd: 'asc' },
   });
 
+  const overrides = await prisma.emptyLegOverride.findMany({
+    where: { bookingId: { in: bookings.map((booking) => booking.id) } },
+  });
+  const overrideByBooking = new Map(overrides.map((item) => [item.bookingId, item]));
+
   const promos = [];
 
   for (const booking of bookings) {
@@ -88,8 +96,11 @@ export async function getAutoEmptyLegPromotions(now = new Date()) {
     const window = returnWindow(booking);
     const available = await isCarAvailableForInterval(booking.carId, window.start, window.end, booking.id);
     if (!available) continue;
-    const discount = autoEmptyDiscount(window.start, now);
-    const originalPrice = Math.max(0, Math.round(window.distanceKm * Number(booking.car.baseRate || 0)));
+    const override = overrideByBooking.get(booking.id);
+    // Admin can force a discount; otherwise use the automatic time-based tier.
+    const discount = override?.discount != null ? Number(override.discount) : autoEmptyDiscount(window.start, now);
+    const baseRate = Number(booking.car.baseRate || 0);
+    const originalPrice = Math.max(0, Math.round(window.distanceKm * baseRate));
     const discountedPrice = Math.max(0, Math.round(originalPrice * (1 - discount / 100)));
 
     promos.push({
@@ -98,10 +109,12 @@ export async function getAutoEmptyLegPromotions(now = new Date()) {
       routeFrom: fromCity,
       routeTo: baseCity,
       discount,
+      baseRate,
       originalPrice,
       discountedPrice,
       dateStart: window.start,
-      active: true,
+      // Admin can hide an auto promo from the site via an override.
+      active: override?.active !== false,
       carId: booking.carId,
       car: booking.car,
       source: 'AUTO_EMPTY',
@@ -129,7 +142,7 @@ export async function resolveAutoEmptyLeg(
   if (!code?.startsWith(AUTO_EMPTY_PREFIX)) return null;
   const bookingId = code.slice(AUTO_EMPTY_PREFIX.length);
   const promos = await getAutoEmptyLegPromotions();
-  const promo = promos.find((item) => item.bookingId === bookingId && item.carId === carId);
+  const promo = promos.find((item) => item.bookingId === bookingId && item.carId === carId && item.active);
   if (!promo) return null;
 
   const center = coord(promo.pickupCenterLat, promo.pickupCenterLng);

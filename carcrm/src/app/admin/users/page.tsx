@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { KeyRound, Save, ShieldCheck, UserCog } from "lucide-react";
+import { BadgePercent, KeyRound, Save, ShieldCheck, UserCog } from "lucide-react";
 
 type User = {
   id: string;
@@ -9,6 +9,7 @@ type User = {
   email: string;
   phone: string | null;
   role: string;
+  personalDiscountPercent?: number;
   createdAt: string;
   driver?: {
     licenseNum: string;
@@ -53,6 +54,7 @@ export default function UsersAdminPage() {
   const [chats, setChats] = useState<ChatRoom[]>([]);
   const [loading, setLoading] = useState(true);
   const [passwordDrafts, setPasswordDrafts] = useState<Record<string, string>>({});
+  const [discountDrafts, setDiscountDrafts] = useState<Record<string, string>>({});
   const [driverDrafts, setDriverDrafts] = useState<Record<string, DriverDraft>>({});
   const [notice, setNotice] = useState("");
 
@@ -79,6 +81,10 @@ export default function UsersAdminPage() {
           return acc;
         }, {} as Record<string, DriverDraft>);
         setDriverDrafts(drafts);
+        setDiscountDrafts(data.reduce((acc, user) => {
+          acc[user.id] = String(user.personalDiscountPercent ?? 0);
+          return acc;
+        }, {} as Record<string, string>));
       }
     } catch (err) {
       console.error(err);
@@ -118,6 +124,21 @@ export default function UsersAdminPage() {
       setNotice("Пароль оновлено.");
     } else {
       setNotice("Пароль має бути мінімум 6 символів.");
+    }
+  };
+
+  const handleDiscountSave = async (userId: string) => {
+    setNotice("");
+    const res = await fetch(`/api/users/${userId}/discount`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ personalDiscountPercent: Number(discountDrafts[userId] || 0) }),
+    });
+    if (res.ok) {
+      setNotice("Персональну знижку оновлено.");
+      fetchUsers();
+    } else {
+      setNotice("Не вдалося оновити знижку.");
     }
   };
 
@@ -194,6 +215,33 @@ export default function UsersAdminPage() {
           <Save size={14} /> Зберегти
         </button>
       </div>
+    </label>
+  );
+
+  const renderDiscountControl = (user: User) => (
+    <label className="block">
+      <span className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-[#8a8a93]">
+        <BadgePercent size={14} /> Персон. знижка, %
+      </span>
+      <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] xl:grid-cols-[120px_auto]">
+        <input
+          type="number"
+          min="0"
+          max="90"
+          value={discountDrafts[user.id] ?? "0"}
+          onChange={(event) => setDiscountDrafts((prev) => ({ ...prev, [user.id]: event.target.value }))}
+          className="h-10 w-full rounded-lg border border-white/10 bg-[#080818] px-3 text-white outline-none focus:border-[#e9c349]/60"
+          placeholder="0"
+        />
+        <button
+          type="button"
+          onClick={() => handleDiscountSave(user.id)}
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#e9c349] px-3 text-sm font-bold text-black"
+        >
+          <Save size={14} /> Зберегти
+        </button>
+      </div>
+      <span className="mt-1 block text-[11px] leading-4 text-[#6f6f78]">Коли клієнт залогінений — на сайті бачить «вашу ціну» з цією знижкою.</span>
     </label>
   );
 
@@ -283,6 +331,7 @@ export default function UsersAdminPage() {
             <div className="grid gap-5">
               {renderRoleControl(user)}
               {renderPasswordControl(user)}
+              {renderDiscountControl(user)}
               {renderDriverControl(user)}
             </div>
           </article>
@@ -297,6 +346,7 @@ export default function UsersAdminPage() {
               <th className="p-4">Контакти</th>
               <th className="p-4">Роль</th>
               <th className="p-4">Пароль</th>
+              <th className="p-4">Знижка</th>
               <th className="p-4">Водій</th>
             </tr>
           </thead>
@@ -317,6 +367,9 @@ export default function UsersAdminPage() {
                   </td>
                   <td className="p-4">
                     {renderPasswordControl(user)}
+                  </td>
+                  <td className="p-4">
+                    {renderDiscountControl(user)}
                   </td>
                   <td className="p-4">
                     {renderDriverControl(user)}

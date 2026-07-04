@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import DatePicker from 'react-datepicker';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { useSession, signIn } from 'next-auth/react';
 
 const MapDisplay = dynamic(() => import('./MapDisplay'), { ssr: false });
 import 'react-datepicker/dist/react-datepicker.css';
@@ -33,10 +34,13 @@ import { calculateTripPricing, type TripPricingResult } from '../lib/pricingEngi
 
 export default function Calculator({ cars, cmsSettings, siteSettings, globalCurrencies = [], globalFuelPrices = [] }: { cars: any[], cmsSettings?: Record<string, string>, siteSettings?: any, globalCurrencies?: any[], globalFuelPrices?: any[] }) {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const { status: authStatus } = useSession();
   const initCarId = searchParams.get('carId') || (cars[0]?.id || '');
   const initPromo = searchParams.get('promo') ? parseFloat(searchParams.get('promo')!) : 0;
   const initPromotionId = searchParams.get('promotionId') || null;
   const initPromoCode = searchParams.get('promoCode') || '';
+  const [personalDiscountPercent, setPersonalDiscountPercent] = useState(0);
 
   const [distance, setDistance] = useState(100);
   const [distanceCity, setDistanceCity] = useState(50);
@@ -177,6 +181,29 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
     } catch (e) { console.error(e); }
   };
 
+  // Logged-in client: load personal discount ("ваша ціна") and prefill contacts.
+  useEffect(() => {
+    if (authStatus !== 'authenticated') {
+      setPersonalDiscountPercent(0);
+      return;
+    }
+    let active = true;
+    fetch('/api/user/me')
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        if (!active || !data) return;
+        setPersonalDiscountPercent(Number(data.personalDiscountPercent || 0));
+        setBookingData(prev => ({
+          ...prev,
+          name: prev.name || data.name || '',
+          email: prev.email || data.email || '',
+          phone: prev.phone || data.phone || '',
+        }));
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [authStatus]);
+
   useEffect(() => {
     if (originObj && destObj) {
       const fetchRoute = async () => {
@@ -208,6 +235,9 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
     return countries;
   }
 
+  // The client gets the better of the promo discount and their personal loyalty discount.
+  const effectiveDiscount = Math.max(discountPercent, personalDiscountPercent);
+
   const getCarForPricing = (car: any) => ({
     ...car,
     baseLat: car.baseLat ?? baseLocationLat,
@@ -230,7 +260,7 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
     childSeats: Number(childSeats),
     petsCount: Number(petsCount),
     withDriver,
-    discountPercent,
+    discountPercent: effectiveDiscount,
     globalFuelPrices,
     settings: {
       fuelPricePetrol,
@@ -283,7 +313,7 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
       totalExpenseDistance: pricing.totalExpenseDistance,
       pricingSnapshot: pricing.pricingSnapshot,
     });
-  }, [distanceCity, distanceHighway, distance, durationMins, selectedCarId, detectedCrossBorder, arrivalDate, withDriver, discountPercent, cars, fuelPricePetrol, fuelPriceDiesel, weekendCoeff, children, childSeats, petsCount, meetAndGreet, passengers, originObj, destObj, routeCountryKey, baseLocationLat, baseLocationLng, amortizationRate, deliveryRate, deliveryBaseFee, defaultCustomsWaitHours, manualWaitingHours, prepBufferMins, trafficBufferPercent, timeRatePerHour, hotelAfterHours, hotelCostPerNight, minMarginPercent, marginRate, globalFuelPrices]);
+  }, [distanceCity, distanceHighway, distance, durationMins, selectedCarId, detectedCrossBorder, arrivalDate, withDriver, discountPercent, personalDiscountPercent, cars, fuelPricePetrol, fuelPriceDiesel, weekendCoeff, children, childSeats, petsCount, meetAndGreet, passengers, originObj, destObj, routeCountryKey, baseLocationLat, baseLocationLng, amortizationRate, deliveryRate, deliveryBaseFee, defaultCustomsWaitHours, manualWaitingHours, prepBufferMins, trafficBufferPercent, timeRatePerHour, hotelAfterHours, hotelCostPerNight, minMarginPercent, marginRate, globalFuelPrices]);
 
   useEffect(() => {
     if (!hasTripBasics || !arrivalDate) {
@@ -422,6 +452,20 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
       });
       if (res.ok) {
         setSubmitSuccess(true);
+        // Log the client in with the credentials they just used and send them to their cabinet.
+        try {
+          const login = await signIn('credentials', {
+            email: bookingData.email,
+            password: bookingData.password,
+            redirect: false,
+          });
+          if (login?.ok) {
+            setTimeout(() => router.push('/profile'), 1600);
+            return;
+          }
+        } catch (loginErr) {
+          console.error(loginErr);
+        }
         setTimeout(() => { setIsModalOpen(false); setSubmitSuccess(false); }, 3000);
       }
     } catch (err) {
@@ -621,6 +665,7 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
                 else setDiscountPercent(0);
               }} className="w-full rounded-xl border border-white/10 bg-[#353536]/30 px-4 py-3 text-[#e4e2e3] outline-none focus:border-[#e9c349] sm:w-[220px]" />
               {discountPercent > 0 && <span className="text-[#e9c349] text-sm">-{discountPercent}% Активовано!</span>}
+              {personalDiscountPercent > 0 && <span className="text-[#e9c349] text-sm font-bold">Ваша знижка -{personalDiscountPercent}%</span>}
             </div>
           </div>
         </div>
@@ -746,12 +791,17 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
         <div className="pt-6 md:pt-8 border-t border-white/10 relative z-10">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8 bg-[#353536]/30 p-6 md:p-8 rounded-2xl border border-white/5 backdrop-blur-sm">
             <div className="flex-1 text-center md:text-left">
-              <h4 className="font-label-caps text-[12px] text-[#c7c6ca] mb-2 uppercase tracking-widest">Орієнтовна вартість</h4>
+              <h4 className="font-label-caps text-[12px] text-[#c7c6ca] mb-2 uppercase tracking-widest">
+                {personalDiscountPercent > 0 && hasTripBasics ? 'Ваша ціна' : 'Орієнтовна вартість'}
+              </h4>
               <div className="relative inline-block">
                 <div className="text-5xl md:text-7xl font-display-lg text-white tracking-tight drop-shadow-2xl">
                   € {selectedCar && hasTripBasics ? price : 0}
                 </div>
               </div>
+              {personalDiscountPercent > 0 && hasTripBasics && (
+                <div className="mt-2 text-sm font-bold text-[#e9c349]">Персональна знижка -{personalDiscountPercent}% вже врахована</div>
+              )}
             </div>
             <div className="w-full md:w-auto">
               <button 
@@ -781,7 +831,7 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
               <div className="text-center py-10">
                 <span className="material-symbols-outlined text-[#e9c349] text-6xl mb-4">check_circle</span>
                 <h3 className="text-2xl font-headline-md text-white mb-2">Заявка прийнята!</h3>
-                <p className="text-[#c7c6ca]">Ми зв'яжемося з вами найближчим часом для підтвердження. Ваш акаунт створено.</p>
+                <p className="text-[#c7c6ca]">Ми зв'яжемося з вами найближчим часом для підтвердження. Відкриваємо ваш особистий кабінет...</p>
               </div>
             ) : (
               <>

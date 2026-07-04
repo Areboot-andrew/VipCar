@@ -28,6 +28,7 @@ type EmptyLegPromo = {
   dropoffLat?: number | null;
   dropoffLng?: number | null;
   distanceKm?: number;
+  baseRate?: number;
   originalPrice?: number;
   discountedPrice?: number;
   car?: {
@@ -52,6 +53,8 @@ export default function EmptyLegsBanner({ cmsSettings = {} }: { cmsSettings?: Re
   const c = withContentDefaults(cmsSettings);
   const [promos, setPromos] = useState<EmptyLegPromo[]>([]);
   const [loading, setLoading] = useState(true);
+  // Real routed distance (km) reported by each card's map (OSRM), keyed by promo id.
+  const [routedKm, setRoutedKm] = useState<Record<string, number>>({});
 
   useEffect(() => {
     fetch('/api/promotions')
@@ -82,8 +85,18 @@ export default function EmptyLegsBanner({ cmsSettings = {} }: { cmsSettings?: Re
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {promos.map((promo, idx) => {
           const cover = getCover(promo);
-          const oldPrice = priceLabel(promo.originalPrice);
-          const newPrice = priceLabel(promo.discountedPrice);
+          // Prefer the real routed distance from the map; fall back to the server estimate.
+          const effectiveKm = routedKm[promo.id] ?? promo.distanceKm;
+          const baseRate = Number(promo.baseRate || 0);
+          // Recompute the base-trip price from the real distance when we have a rate.
+          const originalPrice = effectiveKm && baseRate > 0
+            ? Math.round(effectiveKm * baseRate)
+            : promo.originalPrice;
+          const discountedPrice = originalPrice != null
+            ? Math.round(originalPrice * (1 - Number(promo.discount || 0) / 100))
+            : promo.discountedPrice;
+          const oldPrice = priceLabel(originalPrice);
+          const newPrice = priceLabel(discountedPrice);
           return (
             <motion.article
               key={promo.id}
@@ -120,12 +133,13 @@ export default function EmptyLegsBanner({ cmsSettings = {} }: { cmsSettings?: Re
                       <div className="flex items-center gap-2 text-sm font-bold text-white">
                         <Route size={17} className="text-[#e9c349]" /> Маршрут
                       </div>
-                      {promo.distanceKm && <span className="rounded-full bg-white/5 px-3 py-1 text-xs font-bold text-[#c7c6ca]">{Math.round(promo.distanceKm)} км</span>}
+                      {effectiveKm && <span className="rounded-full bg-white/5 px-3 py-1 text-xs font-bold text-[#c7c6ca]">{Math.round(effectiveKm)} км</span>}
                     </div>
                     <div className="relative min-h-[180px] overflow-hidden">
                       <EmptyLegRouteMap
                         from={{ lat: promo.pickupCenterLat, lng: promo.pickupCenterLng, label: promo.routeFrom || c['empty_legs_anywhere'] }}
                         to={{ lat: promo.dropoffLat, lng: promo.dropoffLng, label: promo.routeTo || c['empty_legs_anywhere'] }}
+                        onDistance={(km) => setRoutedKm((prev) => (prev[promo.id] === km ? prev : { ...prev, [promo.id]: km }))}
                       />
                     </div>
                   </div>

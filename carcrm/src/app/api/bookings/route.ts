@@ -17,6 +17,11 @@ export async function POST(request: Request) {
       routeDurationMins, distanceCity, distanceHighway, originLat, originLng, destinationLat, destinationLng
     } = body;
 
+    // Existing client may have a personal loyalty discount assigned by the admin.
+    const existingUser = email
+      ? await prisma.user.findUnique({ where: { email }, select: { personalDiscountPercent: true } })
+      : null;
+
     const quote = await calculateBookingQuote({
       carId,
       routeFrom,
@@ -40,6 +45,7 @@ export async function POST(request: Request) {
       promotionId,
       promoCode,
       discountPercent,
+      personalDiscountPercent: existingUser?.personalDiscountPercent ?? 0,
       isEndingAtBase,
     });
 
@@ -126,11 +132,12 @@ export async function POST(request: Request) {
       }
     });
 
-    // Створюємо інвойс автоматично
+    // Створюємо інвойс автоматично (з розрахованим завдатком)
     await prisma.invoice.create({
       data: {
         bookingId: booking.id,
         amount: pricing.price,
+        depositAmount: quote.depositAmount,
         status: 'UNPAID'
       }
     });

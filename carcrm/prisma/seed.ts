@@ -479,9 +479,9 @@ async function ensureUsers() {
   }
 
   const clientSeeds = [
-    { email: 'client.olena@example.com', name: 'Олена Савчук', phone: '+380501112233' },
-    { email: 'client.andriy@example.com', name: 'Андрій Мельник', phone: '+380631234567' },
-    { email: 'client.marta@example.com', name: 'Marta Zielinska', phone: '+48500111222' },
+    { email: 'client.olena@example.com', name: 'Олена Савчук', phone: '+380501112233', personalDiscountPercent: 10 },
+    { email: 'client.andriy@example.com', name: 'Андрій Мельник', phone: '+380631234567', personalDiscountPercent: 0 },
+    { email: 'client.marta@example.com', name: 'Marta Zielinska', phone: '+48500111222', personalDiscountPercent: 0 },
   ];
 
   const clients = [];
@@ -492,6 +492,7 @@ async function ensureUsers() {
         name: item.name,
         phone: item.phone,
         role: 'CLIENT',
+        personalDiscountPercent: item.personalDiscountPercent,
       },
       create: {
         email: item.email,
@@ -499,6 +500,7 @@ async function ensureUsers() {
         name: item.name,
         phone: item.phone,
         role: 'CLIENT',
+        personalDiscountPercent: item.personalDiscountPercent,
       },
     });
     clients.push(client);
@@ -918,10 +920,15 @@ async function seedBookings(cars: any[], drivers: any[], clients: any[]) {
       },
     });
 
+    const invoicePaid = item.invoiceStatus === 'PAID';
     await prisma.invoice.create({
       data: {
         bookingId: booking.id,
         amount: costs.price,
+        depositAmount: Math.round(costs.price * 0.3),
+        paidAmount: invoicePaid ? costs.price : 0,
+        paidAt: invoicePaid ? item.dateStart : null,
+        paymentMethod: invoicePaid ? 'CARD' : null,
         status: item.invoiceStatus,
       },
     });
