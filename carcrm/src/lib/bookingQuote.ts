@@ -1,8 +1,7 @@
 import { calculateTripPricing } from './pricingEngine';
 import { prisma } from './prisma';
 import { resolveAutoEmptyLeg } from './emptyLegs';
-
-type LatLng = { lat: number; lng: number } | null;
+import { coord, haversineRoadKm } from './geo';
 
 export type BookingQuoteInput = {
   carId: string;
@@ -34,26 +33,6 @@ export type BookingQuoteInput = {
 const numberValue = (value: unknown, fallback = 0) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
-};
-
-const coord = (lat: unknown, lng: unknown): LatLng => {
-  const parsedLat = Number(lat);
-  const parsedLng = Number(lng);
-  if (!Number.isFinite(parsedLat) || !Number.isFinite(parsedLng)) return null;
-  return { lat: parsedLat, lng: parsedLng };
-};
-
-const haversineRoadKm = (from: LatLng, to: LatLng) => {
-  if (!from || !to) return 0;
-  const radius = 6371;
-  const dLat = (to.lat - from.lat) * Math.PI / 180;
-  const dLon = (to.lng - from.lng) * Math.PI / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(from.lat * Math.PI / 180) * Math.cos(to.lat * Math.PI / 180) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return Math.ceil(radius * c * 1.3);
 };
 
 const parseSettings = (rows: { key: string; value: string }[]) => {
@@ -108,9 +87,19 @@ async function resolveDiscount(input: BookingQuoteInput) {
     };
   }
 
-  const code = String(input.promoCode || '').trim().toLowerCase();
-  if (code === 'vip10') {
-    return { promotion: null, percent: 10, promoCode: 'vip10' };
+  // Promo codes are Promotion rows with a `code`, managed from the admin panel
+  const code = String(input.promoCode || '').trim();
+  if (code) {
+    const codePromo = await prisma.promotion.findFirst({
+      where: { active: true, code: { equals: code, mode: 'insensitive' } },
+    });
+    if (codePromo) {
+      const carOk = !codePromo.carId || codePromo.carId === input.carId;
+      const routeOk = textMatches(codePromo.routeFrom, input.routeFrom) && textMatches(codePromo.routeTo, input.routeTo);
+      if (carOk && routeOk) {
+        return { promotion: codePromo, percent: Number(codePromo.discount || 0), promoCode: codePromo.code };
+      }
+    }
   }
 
   return {

@@ -24,6 +24,7 @@ export default function AdminChatPage() {
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [inputMessage, setInputMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const [deliveryError, setDeliveryError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const fetchChats = async () => {
@@ -73,12 +74,19 @@ export default function AdminChatPage() {
       return c;
     }));
 
-    await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chatRoomId: activeChatId, content: tempMsg })
-    });
-    
+    setDeliveryError(null);
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chatRoomId: activeChatId, content: tempMsg })
+      });
+      const data = await res.json();
+      if (data?.deliveryError) setDeliveryError(String(data.deliveryError));
+    } catch {
+      setDeliveryError('Не вдалося надіслати повідомлення.');
+    }
+
     fetchChats();
   };
 
@@ -189,6 +197,12 @@ export default function AdminChatPage() {
             </div>
 
             <div className="z-10 border-t border-white/5 bg-[#13131a]/80 p-4 backdrop-blur-md lg:p-5">
+              {deliveryError && (
+                <div className="mb-3 flex items-center gap-2 rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-2 text-sm text-red-300">
+                  <span className="material-symbols-outlined text-[18px]">warning</span>
+                  Збережено в CRM, але не доставлено: {deliveryError}
+                </div>
+              )}
               <form onSubmit={sendMessage} className="flex gap-3">
                 <input 
                   type="text" 

@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from "@/lib/prisma";
 
-const prisma = new PrismaClient();
 
 // POST: Add media to car
 export async function POST(request: Request, props: { params: Promise<{ id: string }> }) {

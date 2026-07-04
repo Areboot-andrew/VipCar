@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from "@/lib/prisma";
 import Link from 'next/link';
 import Calculator from '../components/Calculator';
 import ContactForm from '../components/ContactForm';
@@ -11,7 +11,6 @@ import HighlightedTitle from '../components/ui/HighlightedTitle';
 import DynamicIcon from '../components/ui/DynamicIcon';
 import { withContentDefaults } from '../lib/contentDefaults';
 
-const prisma = new PrismaClient();
 export const dynamic = 'force-dynamic';
 
 const parseAccent = (text: string | undefined, defaultText: string = '') => {
@@ -40,8 +39,7 @@ export default async function Home() {
   });
   
   const siteSettings = await prisma.siteSettings.findUnique({ where: { id: 'global' } });
-  
-  const globalCurrencies = await prisma.currencyRate.findMany();
+
   const globalFuelPrices = await prisma.fuelPrice.findMany();
   
   const contentRows = await prisma.siteContent.findMany();
@@ -215,7 +213,7 @@ export default async function Home() {
 
         <div id="calculator" className="scroll-mt-24">
           <Suspense fallback={<div className="text-center text-[#e9c349] py-12">{c['loading_calculator']}</div>}>
-            <Calculator cars={cars} cmsSettings={c} siteSettings={siteSettings} globalCurrencies={globalCurrencies} globalFuelPrices={globalFuelPrices} />
+            <Calculator cars={cars} cmsSettings={c} siteSettings={siteSettings} globalFuelPrices={globalFuelPrices} />
           </Suspense>
         </div>
 

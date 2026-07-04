@@ -24,11 +24,12 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { title, discount, routeFrom, routeTo, carId, dateStart } = body;
+    const { title, discount, routeFrom, routeTo, carId, dateStart, code } = body;
 
     const promo = await prisma.promotion.create({
       data: {
         title,
+        code: code ? String(code).trim().toLowerCase() : null,
         discount: Number(discount),
         routeFrom,
         routeTo,

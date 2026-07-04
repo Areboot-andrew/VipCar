@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 import { Inter } from "next/font/google";
 import { AuthProvider } from "@/components/AuthProvider";
 import { withContentDefaults } from "@/lib/contentDefaults";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin", "cyrillic"], variable: "--font-inter" });
-const prisma = new PrismaClient();
 
 async function getLayoutContent() {
   try {

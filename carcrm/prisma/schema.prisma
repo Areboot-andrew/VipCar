@@ -282,6 +282,7 @@ model SiteContent {
 model Promotion {
   id        String   @id @default(uuid())
   title     String
+  code      String?  @unique // Optional promo code the client can enter in the calculator
   carId     String?  // Optional link to specific car for Empty Legs
   car       Car?     @relation(fields: [carId], references: [id], onDelete: Cascade)
   routeFrom String?  // Optional specific route start

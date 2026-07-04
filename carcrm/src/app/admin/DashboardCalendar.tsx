@@ -18,7 +18,6 @@ import {
   CalendarDays,
   Car as CarIcon,
   CheckCircle,
-  Euro,
   Home,
   Luggage,
   MapPin,
@@ -26,6 +25,7 @@ import {
   PawPrint,
   Route,
   Save,
+  Send,
   User,
   Users,
   Baby,
@@ -47,6 +47,16 @@ type Car = {
 type Driver = {
   id: string;
   user: { name: string };
+};
+
+type Invoice = {
+  id: string;
+  amount: number;
+  depositAmount?: number;
+  paidAmount?: number;
+  paidAt?: string | null;
+  paymentMethod?: string | null;
+  status: string;
 };
 
 type Booking = {
@@ -96,8 +106,16 @@ type Booking = {
   client: { name: string; phone: string | null; email?: string | null };
   driver?: { id?: string; user?: { name: string } } | null;
   car?: Car;
+  invoice?: Invoice | null;
   status: string;
 };
+
+const PAY_METHODS = [
+  { value: 'CASH', label: 'Готівка' },
+  { value: 'CARD', label: 'Карта' },
+  { value: 'USDT', label: 'USDT' },
+  { value: 'BANK', label: 'Банк. переказ' },
+];
 
 type Props = {
   cars: Car[];
@@ -197,6 +215,10 @@ export default function DashboardCalendar({ cars, bookings, drivers = [], onOpen
   const [selectedId, setSelectedId] = useState<string | null>(bookings[0]?.id || null);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState('');
+  const [priceDraft, setPriceDraft] = useState('');
+  const [payMethod, setPayMethod] = useState('CASH');
+  const [financeNotice, setFinanceNotice] = useState('');
+  const [sendingInvoice, setSendingInvoice] = useState(false);
   const [editDraft, setEditDraft] = useState({
     dateStart: '',
     dateEnd: '',
@@ -247,6 +269,9 @@ export default function DashboardCalendar({ cars, bookings, drivers = [], onOpen
       isEndingAtBase: Boolean(selectedBooking.isEndingAtBase),
       driverNotes: selectedBooking.driverNotes || '',
     });
+    setPriceDraft(String(Math.round(Number(selectedBooking.price || 0))));
+    setPayMethod(selectedBooking.invoice?.paymentMethod || 'CASH');
+    setFinanceNotice('');
   }, [selectedBooking?.id]);
 
   const carFor = (booking: Booking) => booking.car || cars.find((car) => car.id === booking.carId);
@@ -270,6 +295,51 @@ export default function DashboardCalendar({ cars, bookings, drivers = [], onOpen
       setNotice('Не вдалося оновити рейс.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const savePrice = () => {
+    const value = Number(priceDraft);
+    if (!Number.isFinite(value) || value < 0) {
+      setFinanceNotice('Некоректна сума.');
+      return;
+    }
+    updateBooking({ price: value });
+  };
+
+  const patchInvoice = async (payload: Record<string, unknown>) => {
+    if (!selectedBooking?.invoice) {
+      setFinanceNotice('Рахунок ще не створено. Спершу відкоригуй та збережи ціну.');
+      return;
+    }
+    setFinanceNotice('');
+    try {
+      const res = await fetch(`/api/invoices/${selectedBooking.invoice.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const invoice = await res.json();
+      if (!res.ok) throw new Error('Invoice update failed');
+      setLocalBookings((prev) => prev.map((booking) => (booking.id === selectedBooking.id ? { ...booking, invoice } : booking)));
+      setFinanceNotice('Оплату оновлено.');
+    } catch {
+      setFinanceNotice('Не вдалося оновити оплату.');
+    }
+  };
+
+  const sendPaymentToChat = async () => {
+    if (!selectedBooking) return;
+    setSendingInvoice(true);
+    setFinanceNotice('');
+    try {
+      const res = await fetch(`/api/bookings/${selectedBooking.id}/send-payment`, { method: 'POST' });
+      if (!res.ok) throw new Error('failed');
+      setFinanceNotice('Рахунок надіслано клієнту в чат замовлення.');
+    } catch {
+      setFinanceNotice('Не вдалося надіслати рахунок.');
+    } finally {
+      setSendingInvoice(false);
     }
   };
 
@@ -304,6 +374,22 @@ export default function DashboardCalendar({ cars, bookings, drivers = [], onOpen
     : `${format(days[0], 'dd MMM', { locale: uk })} - ${format(days[6], 'dd MMM', { locale: uk })}`;
   const selectedBookingCar = selectedBooking ? carFor(selectedBooking) : null;
   const selectedReturnAt = selectedBooking?.returnToBaseAt ? new Date(selectedBooking.returnToBaseAt) : selectedBooking ? estimatedBaseReturn(selectedBooking) : null;
+
+  // Finance summary for the selected booking
+  const invoice = selectedBooking?.invoice || null;
+  const invoicePaid = Number(invoice?.paidAmount || 0);
+  const invoiceDeposit = Number(invoice?.depositAmount || 0);
+  const bookingPrice = Number(selectedBooking?.price || 0);
+  const invoiceRemaining = Math.max(0, Math.round(bookingPrice - invoicePaid));
+  const internalCost = selectedBooking
+    ? Number(selectedBooking.fuelCost || 0) +
+      Number(selectedBooking.driverSalary || 0) +
+      Number(selectedBooking.deliveryCost || 0) +
+      Number(selectedBooking.amortization || 0) +
+      Number(selectedBooking.hotelCost || 0)
+    : 0;
+  const profit = Number(selectedBooking?.netProfit ?? (bookingPrice - internalCost));
+  const marginPercent = bookingPrice > 0 ? Math.round((profit / bookingPrice) * 100) : 0;
 
   return (
     <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#13131a] shadow-2xl">
@@ -518,17 +604,99 @@ export default function DashboardCalendar({ cars, bookings, drivers = [], onOpen
               </div>
 
               <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-                <div className="mb-3 flex items-center gap-2 text-sm font-bold text-white"><WalletCards size={16} className="text-[#e9c349]" /> Витрати і прибуток</div>
-                <div className="grid gap-2 text-sm sm:grid-cols-2">
-                  <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Пальне / зарядка</span><strong className="text-white">{money(selectedBooking.fuelCost)}</strong></div>
-                  <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">ЗП водію</span><strong className="text-white">{money(selectedBooking.driverSalary)}</strong></div>
-                  <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Подача</span><strong className="text-white">{money(selectedBooking.deliveryCost)}</strong></div>
-                  <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Амортизація</span><strong className="text-white">{money(selectedBooking.amortization)}</strong></div>
-                  <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Час / очікування</span><strong className="text-white">{money(selectedBooking.timeCost)}</strong></div>
-                  <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Готель</span><strong className="text-white">{money(selectedBooking.hotelCost)}</strong></div>
-                  <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Надбавки</span><strong className="text-white">{money(selectedBooking.surcharges)}</strong></div>
-                  <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Знижка</span><strong className="text-white">{Number(selectedBooking.discountPercent || 0) > 0 ? `${Number(selectedBooking.discountPercent).toFixed(0)}% / ${money(selectedBooking.discountAmount)}` : '--'}</strong></div>
-                  <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Митниця / робота</span><strong className="text-white">{hours(selectedBooking.customsWaitHours)} / {hours(selectedBooking.billableHours)}</strong></div>
+                <div className="mb-3 flex items-center gap-2 text-sm font-bold text-white"><WalletCards size={16} className="text-[#e9c349]" /> Фінанси рейсу</div>
+
+                {/* Дохід: що платить клієнт */}
+                <div className="rounded-lg border border-[#e9c349]/25 bg-[#e9c349]/10 p-3">
+                  <div className="mb-2 text-[11px] font-bold uppercase tracking-widest text-[#b9a35b]">Клієнт платить</div>
+                  <div className="flex items-end gap-2">
+                    <label className="grid flex-1 gap-1">
+                      <span className="text-[11px] text-[#8a8a93]">Повна ціна, € — можна відкоригувати</span>
+                      <input type="number" min="0" value={priceDraft} onChange={(e) => setPriceDraft(e.target.value)} className={fieldClass()} />
+                    </label>
+                    <button onClick={savePrice} disabled={saving} className="inline-flex h-10 items-center gap-1 rounded-lg bg-[#e9c349] px-3 text-xs font-bold text-black disabled:opacity-60">
+                      <Save size={14} /> Зберегти
+                    </button>
+                  </div>
+                  {(Number(selectedBooking.discountPercent || 0) > 0 || Number(selectedBooking.surcharges || 0) > 0) && (
+                    <div className="mt-2 grid gap-1 text-xs text-[#c7c6ca]">
+                      {Number(selectedBooking.discountPercent || 0) > 0 && (
+                        <div className="flex justify-between"><span>Знижка клієнта</span><strong className="text-white">−{Number(selectedBooking.discountPercent).toFixed(0)}% ({money(selectedBooking.discountAmount)})</strong></div>
+                      )}
+                      {Number(selectedBooking.surcharges || 0) > 0 && (
+                        <div className="flex justify-between"><span>Опції в ціні (крісла, тварини, зустріч...)</span><strong className="text-white">{money(selectedBooking.surcharges)}</strong></div>
+                      )}
+                    </div>
+                  )}
+                  <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                    <div className="rounded-lg bg-black/25 p-2">
+                      <div className="text-[10px] uppercase tracking-widest text-[#8a8a93]">Завдаток</div>
+                      <div className="text-sm font-bold text-white">{money(invoiceDeposit)}</div>
+                    </div>
+                    <div className="rounded-lg bg-black/25 p-2">
+                      <div className="text-[10px] uppercase tracking-widest text-[#8a8a93]">Оплачено</div>
+                      <div className={`text-sm font-bold ${invoicePaid > 0 ? 'text-emerald-300' : 'text-white'}`}>{money(invoicePaid)}</div>
+                      {invoice?.paidAt && <div className="text-[10px] text-[#8a8a93]">{dateTime(invoice.paidAt)}</div>}
+                    </div>
+                    <div className="rounded-lg bg-black/25 p-2">
+                      <div className="text-[10px] uppercase tracking-widest text-[#8a8a93]">Залишок</div>
+                      <div className={`text-sm font-bold ${invoiceRemaining === 0 ? 'text-emerald-300' : 'text-[#e9c349]'}`}>{invoiceRemaining === 0 ? 'Оплачено' : money(invoiceRemaining)}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Дії з оплатою */}
+                <div className="mt-3 grid gap-2">
+                  <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] gap-2">
+                    <select value={payMethod} onChange={(e) => setPayMethod(e.target.value)} className={fieldClass()}>
+                      {PAY_METHODS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+                    </select>
+                    <button onClick={() => patchInvoice({ paidAmount: invoiceDeposit, paymentMethod: payMethod, paidAt: new Date().toISOString() })} className="rounded-lg border border-[#e9c349]/40 px-3 text-xs font-bold text-[#e9c349] hover:bg-[#e9c349]/10">
+                      Завдаток отримано
+                    </button>
+                    <button onClick={() => patchInvoice({ status: 'PAID', paymentMethod: payMethod })} className="rounded-lg border border-emerald-400/40 px-3 text-xs font-bold text-emerald-300 hover:bg-emerald-400/10">
+                      Повна оплата
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+                    <button onClick={sendPaymentToChat} disabled={sendingInvoice} className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#e9c349] px-4 py-3 text-sm font-bold text-black disabled:opacity-60">
+                      <Send size={15} /> {sendingInvoice ? 'Надсилаємо...' : 'Надіслати рахунок клієнту в чат'}
+                    </button>
+                    <button onClick={() => patchInvoice({ status: 'UNPAID' })} className="rounded-lg border border-white/15 px-3 text-xs font-bold text-[#c7c6ca] hover:bg-white/5">
+                      Скинути
+                    </button>
+                  </div>
+                  {financeNotice && <div className="rounded-lg border border-[#e9c349]/25 bg-[#e9c349]/10 px-3 py-2 text-xs text-[#e9c349]">{financeNotice}</div>}
+                </div>
+
+                {/* Видатки (собівартість) */}
+                <div className="mt-4 rounded-lg border border-white/10 bg-black/20 p-3">
+                  <div className="mb-2 text-[11px] font-bold uppercase tracking-widest text-[#8a8a93]">Видатки (собівартість)</div>
+                  <div className="grid gap-1.5 text-sm">
+                    <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Пальне / зарядка</span><strong className="text-white">{money(selectedBooking.fuelCost)}</strong></div>
+                    <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">ЗП водію</span><strong className="text-white">{money(selectedBooking.driverSalary)}</strong></div>
+                    <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Подача авто</span><strong className="text-white">{money(selectedBooking.deliveryCost)}</strong></div>
+                    <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Амортизація</span><strong className="text-white">{money(selectedBooking.amortization)}</strong></div>
+                    {Number(selectedBooking.hotelCost || 0) > 0 && (
+                      <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Готель водія</span><strong className="text-white">{money(selectedBooking.hotelCost)}</strong></div>
+                    )}
+                    <div className="mt-1 flex justify-between gap-4 border-t border-white/10 pt-2">
+                      <span className="font-bold text-[#c7c6ca]">Разом собівартість</span>
+                      <strong className="text-white">{money(internalCost)}</strong>
+                    </div>
+                    <div className="flex justify-between gap-4 text-xs text-[#8a8a93]">
+                      <span>Митниця {hours(selectedBooking.customsWaitHours)} • робочий час {hours(selectedBooking.billableHours)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Прибуток */}
+                <div className="mt-3 flex items-center justify-between rounded-lg border border-emerald-400/25 bg-emerald-400/10 p-3">
+                  <div>
+                    <div className="text-[11px] font-bold uppercase tracking-widest text-emerald-300">Прибуток рейсу</div>
+                    <div className="text-xs text-[#8a8a93]">маржа ~{marginPercent}% від ціни</div>
+                  </div>
+                  <div className="text-2xl font-bold text-emerald-300">{money(profit)}</div>
                 </div>
               </div>
 
@@ -586,17 +754,6 @@ export default function DashboardCalendar({ cars, bookings, drivers = [], onOpen
                 <button onClick={saveDetails} disabled={saving} className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#e9c349] px-4 py-3 text-sm font-bold text-black disabled:opacity-60">
                   <Save size={16} /> {saving ? 'Збереження...' : 'Зберегти зміни'}
                 </button>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-lg border border-[#e9c349]/20 bg-[#e9c349]/10 p-4">
-                  <div className="mb-1 flex items-center gap-1 text-xs uppercase tracking-widest text-[#b9a35b]"><Euro size={13} /> Ціна</div>
-                  <div className="text-2xl font-bold text-[#e9c349]">€{Number(selectedBooking.price || 0).toFixed(0)}</div>
-                </div>
-                <div className="rounded-lg border border-emerald-400/20 bg-emerald-400/10 p-4">
-                  <div className="mb-1 text-xs uppercase tracking-widest text-emerald-300">Прибуток</div>
-                  <div className="text-2xl font-bold text-emerald-300">€{Number(selectedBooking.netProfit || 0).toFixed(0)}</div>
-                </div>
               </div>
 
               <div className="grid gap-2 sm:grid-cols-2">

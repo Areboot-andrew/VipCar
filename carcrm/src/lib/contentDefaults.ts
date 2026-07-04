@@ -137,6 +137,7 @@ export const SITE_CONTENT_DEFAULTS: Record<string, string> = {
 
   telegram_enabled: 'false',
   telegram_bot_token: '',
+  telegram_admin_chat_id: '',
   telegram_api_id: '',
   telegram_api_hash: '',
   telegram_string_session: '',

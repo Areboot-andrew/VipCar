@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { touchChannelEvent } from '@/lib/channelStatus';
 
 // This endpoint receives messages from Telegram
 export async function POST(req: Request) {
@@ -13,6 +14,7 @@ export async function POST(req: Request) {
     
     // Check if it's a standard Telegram message
     if (body.message && body.message.text) {
+      touchChannelEvent('telegram_last_event_at');
       const chatId = body.message.chat.id.toString();
       const text = body.message.text;
       const firstName = body.message.from?.first_name || 'Anonymous';

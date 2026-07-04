@@ -2,6 +2,7 @@ import { TelegramClient } from 'telegram';
 import { StringSession } from 'telegram/sessions';
 import { NewMessage } from 'telegram/events';
 import { prisma } from './prisma';
+import { touchChannelEvent } from './channelStatus';
 
 // Global singleton to preserve client across hot-reloads in dev
 declare global {
@@ -45,6 +46,7 @@ export const getTelegramClient = async (forceReconnect = false): Promise<Telegra
 
         // We only care about private chats for this CRM (or all if user wants)
         if (message.isPrivate) {
+          touchChannelEvent('telegram_last_event_at');
           const chatId = message.peerId.userId.toString();
           const text = message.text;
           const sender = await message.getSender();

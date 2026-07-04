@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { touchChannelEvent } from '@/lib/channelStatus';
 
 export async function GET(req: Request) {
   try {
@@ -31,6 +32,7 @@ export async function POST(req: Request) {
 
     const body = await req.json();
     const entries = Array.isArray(body.entry) ? body.entry : [];
+    if (entries.length > 0) touchChannelEvent('whatsapp_last_event_at');
 
     for (const entry of entries) {
       const changes = Array.isArray(entry.changes) ? entry.changes : [];

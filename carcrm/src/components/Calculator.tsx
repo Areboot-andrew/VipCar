@@ -32,7 +32,7 @@ type Car = {
 
 import { calculateTripPricing, type TripPricingResult } from '../lib/pricingEngine';
 
-export default function Calculator({ cars, cmsSettings, siteSettings, globalCurrencies = [], globalFuelPrices = [] }: { cars: any[], cmsSettings?: Record<string, string>, siteSettings?: any, globalCurrencies?: any[], globalFuelPrices?: any[] }) {
+export default function Calculator({ cars, cmsSettings, siteSettings, globalFuelPrices = [] }: { cars: any[], cmsSettings?: Record<string, string>, siteSettings?: any, globalFuelPrices?: any[] }) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { status: authStatus } = useSession();
@@ -42,12 +42,11 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
   const initPromoCode = searchParams.get('promoCode') || '';
   const [personalDiscountPercent, setPersonalDiscountPercent] = useState(0);
 
-  const [distance, setDistance] = useState(100);
-  const [distanceCity, setDistanceCity] = useState(50);
-  const [distanceHighway, setDistanceHighway] = useState(50);
-  const [durationMins, setDurationMins] = useState(0); 
+  const [distance, setDistance] = useState(0);
+  const [distanceCity, setDistanceCity] = useState(0);
+  const [distanceHighway, setDistanceHighway] = useState(0);
+  const [durationMins, setDurationMins] = useState(0);
   const [selectedCarId, setSelectedCarId] = useState<string>(initCarId);
-  const [withDriver, setWithDriver] = useState(true);
   const [discountPercent, setDiscountPercent] = useState(initPromo);
   const [discountCode, setDiscountCode] = useState(initPromoCode);
   const [price, setPrice] = useState(0);
@@ -73,7 +72,6 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
 
   const fuelPricePetrol = siteSettings?.fuelPricePetrol || 1.6;
   const fuelPriceDiesel = siteSettings?.fuelPriceDiesel || 1.5;
-  const eurToUahRate = siteSettings?.exchangeRate || 42.5;
 
   // Fallbacks for older things that aren't per-car yet
   const amortizationRate = parseFloat(cmsSettings?.['amortization_rate'] || '0.05');
@@ -122,7 +120,6 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
-  const [availabilityStatus, setAvailabilityStatus] = useState<'idle'|'checking'|'available'|'unavailable'>('idle');
   const [vehicleAvailability, setVehicleAvailability] = useState<Record<string, boolean>>({});
   const [checkingVehicleAvailability, setCheckingVehicleAvailability] = useState(false);
   const [vehicleClass, setVehicleClass] = useState('all');
@@ -135,6 +132,13 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
   const routeCountryKey = routeCountries.join('|');
   const detectedCrossBorder = routeCountries.length > 1;
   const hasTripBasics = Boolean(originObj && destObj && durationMins > 0 && arrivalDate);
+  // Availability of the selected car, derived from the batch check below (single source of truth)
+  const availabilityStatus: 'idle' | 'checking' | 'available' | 'unavailable' =
+    !hasTripBasics || !selectedCarId ? 'idle'
+    : checkingVehicleAvailability ? 'checking'
+    : vehicleAvailability[selectedCarId] === true ? 'available'
+    : vehicleAvailability[selectedCarId] === false ? 'unavailable'
+    : 'idle';
   const availableClasses = Array.from(new Set(cars.map((car) => car.comfortClass || 'Premium')))
     .sort((a, b) => {
       const ai = classOrder.indexOf(a);
@@ -180,6 +184,24 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
       setter(data);
     } catch (e) { console.error(e); }
   };
+
+  // Live promo-code check against the DB (codes are managed in admin -> Empty Legs).
+  useEffect(() => {
+    const codeValue = discountCode.trim();
+    // Empty-leg promo from the URL keeps its own percent from the banner link.
+    if (codeValue.startsWith('auto-empty-')) return;
+    if (!codeValue) {
+      setDiscountPercent(initPromotionId ? initPromo : 0);
+      return;
+    }
+    const timer = setTimeout(() => {
+      fetch(`/api/promotions/resolve-code?code=${encodeURIComponent(codeValue)}&carId=${encodeURIComponent(selectedCarId)}`)
+        .then(res => res.json())
+        .then(data => setDiscountPercent(Number(data?.percent || 0)))
+        .catch(() => setDiscountPercent(0));
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [discountCode, selectedCarId]);
 
   // Logged-in client: load personal discount ("ваша ціна") and prefill contacts.
   useEffect(() => {
@@ -259,7 +281,7 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
     children: Number(children),
     childSeats: Number(childSeats),
     petsCount: Number(petsCount),
-    withDriver,
+    withDriver: true,
     discountPercent: effectiveDiscount,
     globalFuelPrices,
     settings: {
@@ -313,7 +335,7 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
       totalExpenseDistance: pricing.totalExpenseDistance,
       pricingSnapshot: pricing.pricingSnapshot,
     });
-  }, [distanceCity, distanceHighway, distance, durationMins, selectedCarId, detectedCrossBorder, arrivalDate, withDriver, discountPercent, personalDiscountPercent, cars, fuelPricePetrol, fuelPriceDiesel, weekendCoeff, children, childSeats, petsCount, meetAndGreet, passengers, originObj, destObj, routeCountryKey, baseLocationLat, baseLocationLng, amortizationRate, deliveryRate, deliveryBaseFee, defaultCustomsWaitHours, manualWaitingHours, prepBufferMins, trafficBufferPercent, timeRatePerHour, hotelAfterHours, hotelCostPerNight, minMarginPercent, marginRate, globalFuelPrices]);
+  }, [distanceCity, distanceHighway, distance, durationMins, selectedCarId, detectedCrossBorder, arrivalDate, discountPercent, personalDiscountPercent, cars, fuelPricePetrol, fuelPriceDiesel, weekendCoeff, children, childSeats, petsCount, meetAndGreet, passengers, originObj, destObj, routeCountryKey, baseLocationLat, baseLocationLng, amortizationRate, deliveryRate, deliveryBaseFee, defaultCustomsWaitHours, manualWaitingHours, prepBufferMins, trafficBufferPercent, timeRatePerHour, hotelAfterHours, hotelCostPerNight, minMarginPercent, marginRate, globalFuelPrices]);
 
   useEffect(() => {
     if (!hasTripBasics || !arrivalDate) {
@@ -370,38 +392,7 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
   }, [hasTripBasics, arrivalDate, durationMins, selectedCarId, vehicleClass, passengers, children, childSeats, luggage, petsCount, detectedCrossBorder, routeCountryKey, cars]);
 
   // manual distance change removed because the map auto-calculates it
-
-  // Calculate pickup time and double-check availability on backend
-  useEffect(() => {
-    if (!arrivalDate || durationMins === 0 || !selectedCar) return;
-    const pricing = getPricingForCar(selectedCar);
-    const calculatedPickup = pricing.pickupAt;
-    if (!calculatedPickup) return;
-
-    const checkAvailability = async () => {
-      setAvailabilityStatus('checking');
-      try {
-        const res = await fetch('/api/cars/availability', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            carId: selectedCarId,
-            dateStart: calculatedPickup.toISOString(),
-            dateEnd: arrivalDate.toISOString(),
-            carDispatchAt: pricing.carDispatchAt?.toISOString(),
-            returnToBaseAt: pricing.returnToBaseAt?.toISOString(),
-          })
-        });
-        const data = await res.json();
-        setAvailabilityStatus(data.available ? 'available' : 'unavailable');
-      } catch (err) {
-        console.error(err);
-        setAvailabilityStatus('idle');
-      }
-    };
-
-    checkAvailability();
-  }, [arrivalDate, durationMins, detectedCrossBorder, selectedCarId, selectedCar, expenseSnapshot.customsWaitHours]);
+  // (availability of the selected car is derived from the batch check above)
 
   const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -659,11 +650,7 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
             </div>
             )}
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <input type="text" placeholder="Промокод" value={discountCode} onChange={(e) => {
-                setDiscountCode(e.target.value);
-                if (e.target.value.toLowerCase() === 'vip10') setDiscountPercent(10);
-                else setDiscountPercent(0);
-              }} className="w-full rounded-xl border border-white/10 bg-[#353536]/30 px-4 py-3 text-[#e4e2e3] outline-none focus:border-[#e9c349] sm:w-[220px]" />
+              <input type="text" placeholder="Промокод" value={discountCode} onChange={(e) => setDiscountCode(e.target.value)} className="w-full rounded-xl border border-white/10 bg-[#353536]/30 px-4 py-3 text-[#e4e2e3] outline-none focus:border-[#e9c349] sm:w-[220px]" />
               {discountPercent > 0 && <span className="text-[#e9c349] text-sm">-{discountPercent}% Активовано!</span>}
               {personalDiscountPercent > 0 && <span className="text-[#e9c349] text-sm font-bold">Ваша знижка -{personalDiscountPercent}%</span>}
             </div>

@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from "@/lib/prisma";
 import { carSlug } from '@/lib/slug';
 
-const prisma = new PrismaClient();
 
 export async function GET(request: Request, props: { params: Promise<{ id: string }> }) {
   try {

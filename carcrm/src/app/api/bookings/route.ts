@@ -4,6 +4,7 @@ import { recalculateChain } from '@/lib/chaining';
 import { calculateBookingQuote } from '@/lib/bookingQuote';
 import { prisma } from '@/lib/prisma';
 import { isCarAvailableForInterval } from '@/lib/bookingAvailability';
+import { notifyAdminTelegram } from '@/lib/telegramNotify';
 
 import bcrypt from "bcryptjs";
 
@@ -145,6 +146,11 @@ export async function POST(request: Request) {
     // Trigger async calculation for the car chain
     recalculateChain(carId).catch(err => console.error("Chain calc error on create:", err));
 
+    // Сповіщення адміну про нову заявку
+    notifyAdminTelegram(
+      `🚗 Нова заявка на бронювання!\n\n📍 ${routeFrom} → ${routeTo}\n📅 Подача: ${pickupAt.toLocaleString('uk-UA')}\n🚘 ${quote.car.make} ${quote.car.model}\n👤 ${name}, ${phone}\n💶 Ціна: €${pricing.price} (завдаток €${quote.depositAmount})${quote.discountPercent > 0 ? `\n🏷 Знижка: -${quote.discountPercent}%` : ''}`
+    ).catch(() => {});
+
     return NextResponse.json(booking);
   } catch (error) {
     console.error('Error creating booking:', error);
@@ -155,7 +161,7 @@ export async function POST(request: Request) {
 export async function GET() {
   try {
     const bookings = await prisma.booking.findMany({
-      include: { client: true, car: true, driver: { include: { user: true } }, promotion: true },
+      include: { client: true, car: true, driver: { include: { user: true } }, promotion: true, invoice: true },
       orderBy: { createdAt: 'desc' }
     });
     return NextResponse.json(bookings);

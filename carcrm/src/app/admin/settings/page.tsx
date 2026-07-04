@@ -55,6 +55,8 @@ const defaultContentSettings: Record<string, string> = {
   payment_card: '',
   payment_usdt: '',
   telegram_enabled: 'false',
+  telegram_bot_token: '',
+  telegram_admin_chat_id: '',
   telegram_api_id: '',
   telegram_api_hash: '',
   telegram_string_session: '',
@@ -82,6 +84,8 @@ const defaultContentSettings: Record<string, string> = {
   pricing_hotel_after_hours: '10',
   pricing_hotel_cost_per_night: '90',
   pricing_min_margin_percent: '0.25',
+  weekend_coefficient: '1.2',
+  deposit_percent: '30',
 };
 
 const fuelTypes = ['Бензин', 'Дизель', 'Газ', 'Електро'];
@@ -210,6 +214,24 @@ export default function SettingsPage() {
 
   const updateSetting = (key: string, value: string) => {
     setContentSettings((prev) => ({ ...prev, [key]: value }));
+  };
+
+  // Live-status per messenger: timestamp of the last incoming event (set by webhooks/listener)
+  const lastEvent = (key: string) => {
+    const raw = (contentSettings as Record<string, string>)[key];
+    if (!raw) return null;
+    const date = new Date(raw);
+    return Number.isNaN(date.getTime()) ? null : date.toLocaleString('uk-UA');
+  };
+
+  const StatusLine = ({ settingKey }: { settingKey: string }) => {
+    const value = lastEvent(settingKey);
+    return (
+      <div className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs ${value ? 'border-emerald-400/25 bg-emerald-400/10 text-emerald-300' : 'border-white/10 bg-black/20 text-[#6f6f78]'}`}>
+        <span className={`h-2 w-2 rounded-full ${value ? 'bg-emerald-400' : 'bg-[#56565f]'}`}></span>
+        {value ? `Останнє вхідне: ${value}` : 'Вхідних повідомлень ще не було'}
+      </div>
+    );
   };
 
   const saveContentSettings = async () => {
@@ -399,6 +421,7 @@ export default function SettingsPage() {
               <Field label="Нічліг після годин" type="number" value={contentSettings.pricing_hotel_after_hours} onChange={(value) => updateSetting('pricing_hotel_after_hours', value)} hint="Після скількох годин рейсу система додає витрати на нічліг водія." />
               <Field label="Нічліг €" type="number" value={contentSettings.pricing_hotel_cost_per_night} onChange={(value) => updateSetting('pricing_hotel_cost_per_night', value)} hint="Орієнтовна вартість ночівлі водія, якщо рейс довгий." />
               <Field label="Мін. маржа 0.25 = 25%" type="number" value={contentSettings.pricing_min_margin_percent} onChange={(value) => updateSetting('pricing_min_margin_percent', value)} hint="Мінімальний прибуток поверх внутрішніх витрат. 0.25 означає 25%." />
+              <Field label="Коеф. вихідних (1.2 = +20%)" type="number" value={contentSettings.weekend_coefficient} onChange={(value) => updateSetting('weekend_coefficient', value)} hint="Множник ціни для рейсів у суботу та неділю. 1 = без надбавки." />
             </div>
           </div>
 
@@ -510,6 +533,9 @@ export default function SettingsPage() {
             </div>
             <div className="grid gap-4">
               <Toggle checked={contentSettings.telegram_enabled === 'true'} onChange={(checked) => updateSetting('telegram_enabled', String(checked))} label="Увімкнути Telegram" hint="Дозволяє CRM використовувати Telegram для повідомлень і привʼязки чатів." />
+              <StatusLine settingKey="telegram_last_event_at" />
+              <Field label="Bot Token (сповіщення)" value={contentSettings.telegram_bot_token} onChange={(value) => updateSetting('telegram_bot_token', value)} secret placeholder="123456:ABC..." hint="Токен бота з @BotFather. Через нього CRM шле сповіщення про нові заявки і бронювання." />
+              <Field label="Chat ID для сповіщень" value={contentSettings.telegram_admin_chat_id} onChange={(value) => updateSetting('telegram_admin_chat_id', value)} placeholder="123456789" hint="Твій chat id (дізнайся у @userinfobot). Сюди прилітають сповіщення. Спочатку напиши своєму боту /start." />
               <Field label="API ID" value={contentSettings.telegram_api_id} onChange={(value) => updateSetting('telegram_api_id', value)} placeholder="my.telegram.org API ID" hint="Числовий API ID з my.telegram.org для MTProto-авторизації." />
               <Field label="API Hash" value={contentSettings.telegram_api_hash} onChange={(value) => updateSetting('telegram_api_hash', value)} secret placeholder="my.telegram.org API Hash" hint="Секретний API Hash з my.telegram.org. Не показується відкритим текстом." />
               <Field label="String Session" value={contentSettings.telegram_string_session} onChange={(value) => updateSetting('telegram_string_session', value)} secret placeholder="Після авторизації MTProto" hint="Збережена сесія Telegram-акаунта/бота після авторизації. Без неї інтеграція не стартує." />
@@ -551,6 +577,7 @@ export default function SettingsPage() {
             </div>
             <div className="grid gap-4">
               <Toggle checked={contentSettings.facebook_enabled === 'true'} onChange={(checked) => updateSetting('facebook_enabled', String(checked))} label="Увімкнути Messenger" hint="Вмикає обробку Facebook Messenger через webhook." />
+              <StatusLine settingKey="messenger_last_event_at" />
               <Field label="Page Access Token" value={contentSettings.facebook_page_token} onChange={(value) => updateSetting('facebook_page_token', value)} secret hint="Токен сторінки Facebook, яким CRM відповідає клієнтам." />
               <Field label="Verify Token" value={contentSettings.facebook_verify_token} onChange={(value) => updateSetting('facebook_verify_token', value)} secret hint="Секретна фраза для підтвердження webhook у Meta." />
               <CopyBox label="Callback URL для Meta webhook" value={`${publicOrigin || 'https://your-domain.com'}/api/webhooks/messenger`} hint="У Meta додай цей URL і той самий Verify Token. Підписки: messages, messaging_postbacks за потреби." />
@@ -567,6 +594,7 @@ export default function SettingsPage() {
             </div>
             <div className="grid gap-4">
               <Toggle checked={contentSettings.whatsapp_enabled === 'true'} onChange={(checked) => updateSetting('whatsapp_enabled', String(checked))} label="Увімкнути WhatsApp" hint="Вмикає WhatsApp Business API для заявок і переписки." />
+              <StatusLine settingKey="whatsapp_last_event_at" />
               <Field label="Phone Number ID" value={contentSettings.whatsapp_phone_number_id} onChange={(value) => updateSetting('whatsapp_phone_number_id', value)} hint="ID номера WhatsApp Business у Meta." />
               <Field label="Business Account ID" value={contentSettings.whatsapp_business_account_id} onChange={(value) => updateSetting('whatsapp_business_account_id', value)} hint="ID WhatsApp Business Account у Meta." />
               <Field label="Access Token" value={contentSettings.whatsapp_access_token} onChange={(value) => updateSetting('whatsapp_access_token', value)} secret hint="Токен доступу для відправки і читання повідомлень." />
@@ -620,8 +648,9 @@ export default function SettingsPage() {
               <CreditCard className="text-[#e9c349]" /> Реквізити для оплат
             </h2>
             <div className="grid gap-4">
-              <Field label="Картка / IBAN" value={contentSettings.payment_card} onChange={(value) => updateSetting('payment_card', value)} placeholder="IBAN або номер картки" hint="Реквізити, які менеджер може відправити клієнту для оплати." />
+              <Field label="Картка / IBAN" value={contentSettings.payment_card} onChange={(value) => updateSetting('payment_card', value)} placeholder="IBAN або номер картки" hint="Реквізити, які підставляються у рахунок клієнту (кнопка «Надіслати рахунок у чат» в заявці)." />
               <Field label="USDT / Crypto" value={contentSettings.payment_usdt} onChange={(value) => updateSetting('payment_usdt', value)} placeholder="TRC20/ERC20 адреса" hint="Крипто-реквізити для альтернативної оплати." />
+              <Field label="Завдаток, % від ціни" type="number" value={contentSettings.deposit_percent} onChange={(value) => updateSetting('deposit_percent', value)} hint="Скільки відсотків від повної ціни система рахує як завдаток у рахунках і в кабінеті клієнта." />
             </div>
           </div>
           <div className="rounded-xl border border-white/10 bg-white/5 p-6">

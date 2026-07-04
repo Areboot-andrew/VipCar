@@ -13,6 +13,7 @@ const EmptyLegRouteMap = dynamic(() => import('./EmptyLegRouteMap'), { ssr: fals
 type EmptyLegPromo = {
   id: string;
   title: string;
+  code?: string | null;
   discount: number;
   routeFrom?: string | null;
   routeTo?: string | null;
@@ -61,7 +62,8 @@ export default function EmptyLegsBanner({ cmsSettings = {} }: { cmsSettings?: Re
       .then(res => res.json())
       .then(data => {
         const list = Array.isArray(data) ? data as EmptyLegPromo[] : [];
-        const activePromos = list.filter((p) => p.active);
+        // Promo codes (code-only promotions) belong to the calculator, not the banner
+        const activePromos = list.filter((p) => p.active && !p.code);
         activePromos.sort((a, b) => {
           if (!a.dateStart) return 1;
           if (!b.dateStart) return -1;

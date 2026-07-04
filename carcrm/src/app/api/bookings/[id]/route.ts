@@ -23,6 +23,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (body.driverId !== undefined) {
         updateData.driverId = body.driverId === "" ? null : body.driverId;
     }
+    // Manual price correction by admin
+    if (body.price !== undefined) {
+      const priceValue = Number(body.price);
+      if (Number.isFinite(priceValue) && priceValue >= 0) updateData.price = priceValue;
+    }
 
     const oldBooking = await prisma.booking.findUnique({ where: { id } });
 
@@ -32,9 +37,40 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       include: {
         client: true,
         car: true,
-        driver: { include: { user: true } }
+        driver: { include: { user: true } },
+        invoice: true
       }
     });
+
+    // Price changed: recompute profit and sync the invoice (amount + deposit)
+    if (updateData.price !== undefined) {
+      const internalCost =
+        Number(booking.fuelCost || 0) +
+        Number(booking.driverSalary || 0) +
+        Number(booking.deliveryCost || 0) +
+        Number(booking.amortization || 0) +
+        Number(booking.hotelCost || 0);
+      const depositRow = await prisma.siteContent.findUnique({ where: { key: 'deposit_percent' } });
+      const depositPercent = Number(depositRow?.value || 30);
+      const depositAmount = Math.max(0, Math.round(updateData.price * (depositPercent / 100)));
+
+      await prisma.invoice.upsert({
+        where: { bookingId: id },
+        update: { amount: updateData.price, depositAmount },
+        create: { bookingId: id, amount: updateData.price, depositAmount, status: 'UNPAID' },
+      });
+
+      booking = await prisma.booking.update({
+        where: { id },
+        data: { netProfit: Math.round((updateData.price - internalCost) * 100) / 100 },
+        include: {
+          client: true,
+          car: true,
+          driver: { include: { user: true } },
+          invoice: true
+        }
+      });
+    }
 
     // Telegram notification to Driver
     if (updateData.driverId && updateData.driverId !== oldBooking?.driverId && booking.driver?.telegramId) {
@@ -67,7 +103,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         include: {
           client: true,
           car: true,
-          driver: { include: { user: true } }
+          driver: { include: { user: true } },
+          invoice: true
         }
       });
       if (recalculated) booking = recalculated;

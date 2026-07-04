@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from "@/lib/prisma";
 import CarDetailsClient from './CarDetailsClient';
 
-const prisma = new PrismaClient();
 export const dynamic = 'force-dynamic';
 
 async function getCar(id: string) {

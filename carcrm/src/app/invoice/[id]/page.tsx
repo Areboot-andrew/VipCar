@@ -1,7 +1,6 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from "@/lib/prisma";
 import { notFound } from 'next/navigation';
 
-const prisma = new PrismaClient();
 
 export default async function InvoicePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

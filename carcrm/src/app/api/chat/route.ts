@@ -46,13 +46,26 @@ export async function POST(req: Request) {
       data: { updatedAt: new Date() }
     });
 
-    // If it's a Telegram chat, forward via MTProto
+    // Forward to the external messenger and report delivery honestly:
+    // deliveryError=true means the message is saved in CRM but did NOT reach the client.
+    let deliveryError: string | null = null;
+
     if (chatRoom.platform === 'TELEGRAM' && chatRoom.externalId) {
       const enabledSetting = await prisma.siteContent.findUnique({ where: { key: 'telegram_enabled' } });
-      if (enabledSetting?.value !== 'true') return NextResponse.json(message);
-      const client = await getTelegramClient();
-      if (client) {
-        await client.sendMessage(chatRoom.externalId, { message: content });
+      if (enabledSetting?.value !== 'true') {
+        deliveryError = 'Telegram вимкнено в налаштуваннях.';
+      } else {
+        try {
+          const client = await getTelegramClient();
+          if (!client) {
+            deliveryError = 'Telegram не підключено (немає сесії).';
+          } else {
+            await client.sendMessage(chatRoom.externalId, { message: content });
+          }
+        } catch (err) {
+          console.error('Telegram send error:', err);
+          deliveryError = 'Telegram не зміг надіслати повідомлення.';
+        }
       }
     } else if (chatRoom.platform === 'MESSENGER' && chatRoom.externalId) {
       // Forward to Facebook Messenger via Graph API
@@ -61,7 +74,7 @@ export async function POST(req: Request) {
         prisma.siteContent.findUnique({ where: { key: 'facebook_page_token' } }),
       ]);
       if (enabledSetting?.value === 'true' && tokenSetting?.value) {
-        await fetch(`https://graph.facebook.com/v20.0/me/messages?access_token=${tokenSetting.value}`, {
+        const res = await fetch(`https://graph.facebook.com/v20.0/me/messages?access_token=${tokenSetting.value}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -70,6 +83,12 @@ export async function POST(req: Request) {
             messaging_type: 'RESPONSE'
           })
         });
+        if (!res.ok) {
+          console.error('Messenger send error:', await res.text());
+          deliveryError = 'Messenger відхилив повідомлення (перевір Page Access Token).';
+        }
+      } else {
+        deliveryError = 'Messenger вимкнено або немає Page Access Token.';
       }
     } else if (chatRoom.platform === 'WHATSAPP' && chatRoom.externalId) {
       const [enabledSetting, tokenSetting, phoneIdSetting] = await Promise.all([
@@ -78,7 +97,7 @@ export async function POST(req: Request) {
         prisma.siteContent.findUnique({ where: { key: 'whatsapp_phone_number_id' } }),
       ]);
       if (enabledSetting?.value === 'true' && tokenSetting?.value && phoneIdSetting?.value) {
-        await fetch(`https://graph.facebook.com/v20.0/${phoneIdSetting.value}/messages`, {
+        const res = await fetch(`https://graph.facebook.com/v20.0/${phoneIdSetting.value}/messages`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -91,10 +110,16 @@ export async function POST(req: Request) {
             text: { body: content },
           }),
         });
+        if (!res.ok) {
+          console.error('WhatsApp send error:', await res.text());
+          deliveryError = 'WhatsApp відхилив повідомлення (24-годинне вікно або токен).';
+        }
+      } else {
+        deliveryError = 'WhatsApp вимкнено або не заповнені токен/Phone Number ID.';
       }
     }
 
-    return NextResponse.json(message);
+    return NextResponse.json({ ...message, deliveryError });
   } catch (error) {
     console.error('Chat POST Error:', error);
     return NextResponse.json({ error: 'Failed to send message' }, { status: 500 });

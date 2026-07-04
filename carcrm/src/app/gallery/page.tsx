@@ -1,12 +1,11 @@
 import type { Metadata } from 'next';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from "@/lib/prisma";
 import Link from 'next/link';
 import { Camera, Car, Images, ShieldCheck } from 'lucide-react';
 import { withContentDefaults } from '@/lib/contentDefaults';
 import HighlightedTitle from '@/components/ui/HighlightedTitle';
 import GalleryShowcase, { type GalleryCar } from './GalleryShowcase';
 
-const prisma = new PrismaClient();
 export const dynamic = 'force-dynamic';
 
 async function getContent() {

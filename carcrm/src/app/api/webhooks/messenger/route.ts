@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { touchChannelEvent } from '@/lib/channelStatus';
 
 // Meta Webhook Verification
 export async function GET(req: Request) {
@@ -39,6 +40,7 @@ export async function POST(req: Request) {
     const body = await req.json();
 
     if (body.object === 'page') {
+      touchChannelEvent('messenger_last_event_at');
       for (const entry of body.entry) {
         for (const webhook_event of entry.messaging) {
           const senderPsid = webhook_event.sender.id; // External ID

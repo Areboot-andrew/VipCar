@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from "@/lib/prisma";
 import { getMissingContentDefaults, withContentDefaults } from '@/lib/contentDefaults';
 
-const prisma = new PrismaClient();
 
 export async function GET() {
   try {

@@ -962,6 +962,22 @@ async function seedBookings(cars: any[], drivers: any[], clients: any[]) {
   console.log(`Demo bookings created: ${bookings.length}`);
 }
 
+async function seedPromoCodes() {
+  // Base promo code (was hardcoded as vip10 in the app; now managed via Promotion.code)
+  const existing = await prisma.promotion.findFirst({ where: { code: 'vip10' } });
+  if (!existing) {
+    await prisma.promotion.create({
+      data: {
+        title: 'Промокод VIP10',
+        code: 'vip10',
+        discount: 10,
+        active: true,
+      },
+    });
+    console.log('Promo code vip10 created.');
+  }
+}
+
 async function main() {
   console.log('Starting production-safe demo seed...');
   const existingVersion = await prisma.siteContent.findUnique({ where: { key: '_demo_seed_version' } });
@@ -976,6 +992,7 @@ async function main() {
   const cars = await seedCars(drivers);
   await seedBookings(cars, drivers, clients);
   await seedFinanceDefaults();
+  await seedPromoCodes();
   await prisma.siteContent.upsert({
     where: { key: '_demo_seed_version' },
     update: { value: demoSeedVersion },

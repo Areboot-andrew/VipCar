@@ -28,6 +28,8 @@ type Booking = {
   discountPercent?: number;
   discountAmount?: number;
   invoice?: Invoice | null;
+  car?: { make: string; model: string; year?: number; comfortClass?: string } | null;
+  driver?: { user?: { name: string; phone?: string | null } | null } | null;
 };
 
 const paymentMethodLabel = (method?: string | null) => {
@@ -169,6 +171,22 @@ export default function ProfilePage() {
                         <span className="truncate max-w-[150px] md:max-w-[300px]">{booking.routeFrom}</span>
                         <span className="text-[#e9c349] material-symbols-outlined text-sm">arrow_forward</span>
                         <span className="truncate max-w-[150px] md:max-w-[300px]">{booking.routeTo}</span>
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-gray-400">
+                        {booking.car && (
+                          <span className="flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[16px] text-[#e9c349]">directions_car</span>
+                            {booking.car.make} {booking.car.model}
+                          </span>
+                        )}
+                        <span className="flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[16px] text-[#e9c349]">person</span>
+                          Водій: {booking.driver?.user?.name ? (
+                            <span className="text-white">{booking.driver.user.name}</span>
+                          ) : (
+                            <span>буде призначений</span>
+                          )}
+                        </span>
                       </div>
                     </div>
                     <div className={`px-3 py-1 rounded-full text-xs font-medium border border-current self-start ${getStatusColor(booking.status)}`}>

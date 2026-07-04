@@ -1,10 +1,9 @@
-import { PrismaClient } from '@prisma/client';
+import { prisma } from "@/lib/prisma";
 import { DollarSign, CheckCircle, Clock } from 'lucide-react';
 
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../../api/auth/[...nextauth]/route";
 
-const prisma = new PrismaClient();
 export const dynamic = 'force-dynamic';
 
 export default async function DriverSettlementsPage() {

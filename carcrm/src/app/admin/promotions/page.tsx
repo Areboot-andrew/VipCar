@@ -6,6 +6,7 @@ import { CalendarDays, CarFront, MapPin, Percent, Plus, Power, Route, Tag, Trash
 type Promo = {
   id: string;
   title: string;
+  code?: string | null;
   routeFrom?: string | null;
   routeTo?: string | null;
   discount: number;
@@ -58,6 +59,7 @@ export default function PromotionsPage() {
   const [saving, setSaving] = useState(false);
 
   const [title, setTitle] = useState('');
+  const [code, setCode] = useState('');
   const [routeFrom, setRouteFrom] = useState('');
   const [routeTo, setRouteTo] = useState('');
   const [discount, setDiscount] = useState('');
@@ -92,9 +94,10 @@ export default function PromotionsPage() {
     await fetch('/api/promotions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, routeFrom, routeTo, discount, carId, dateStart }),
+      body: JSON.stringify({ title, code, routeFrom, routeTo, discount, carId, dateStart }),
     });
     setTitle('');
+    setCode('');
     setRouteFrom('');
     setRouteTo('');
     setDiscount('');
@@ -149,6 +152,10 @@ export default function PromotionsPage() {
           <form onSubmit={handleSubmit} className="grid gap-4">
             <Field label="Назва акції" hint="Короткий зрозумілий заголовок для менеджера і клієнта.">
               <input required value={title} onChange={(event) => setTitle(event.target.value)} className={fieldClass()} placeholder="Порожній рейс до Києва" />
+            </Field>
+
+            <Field label="Промокод (опційно)" hint="Якщо задати, клієнт зможе ввести цей код у калькуляторі і отримати знижку. Наприклад: vip10.">
+              <input value={code} onChange={(event) => setCode(event.target.value)} className={fieldClass()} placeholder="vip10" />
             </Field>
 
             <Field label="Автомобіль" hint="Якщо авто не вибране, пропозиція може бути застосована до будь-якої відповідної машини.">
@@ -211,6 +218,11 @@ export default function PromotionsPage() {
                       <span className={`rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-widest ${isAuto ? 'border border-sky-400/25 bg-sky-400/10 text-sky-300' : 'border border-white/15 bg-white/5 text-[#c7c6ca]'}`}>
                         {isAuto ? 'Авто-рейс' : 'Ручна'}
                       </span>
+                      {promo.code && (
+                        <span className="rounded-full border border-purple-400/25 bg-purple-400/10 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-purple-300">
+                          Код: {promo.code}
+                        </span>
+                      )}
                     </div>
                     <h3 className="m-0 text-lg font-bold text-white">{promo.title}</h3>
                     <div className="mt-3 grid gap-2 text-sm text-[#c7c6ca]">

@@ -8,11 +8,13 @@ type Message = {
   content: string | null;
   imageUrl: string | null;
   createdAt: string;
-  sender: {
+  isFromAdmin?: boolean;
+  // Admin replies from the CRM chat may have no sender user attached
+  sender?: {
     id: string;
     name: string;
     role: string;
-  };
+  } | null;
 };
 
 export default function ChatWidget({ bookingId, currentUserId, onClose }: { bookingId: string, currentUserId: string, onClose: () => void }) {
@@ -102,18 +104,19 @@ export default function ChatWidget({ bookingId, currentUserId, onClose }: { book
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#080818]">
         {messages.map((msg) => {
-          const isMine = msg.sender.id === currentUserId;
+          const isMine = msg.sender?.id === currentUserId;
+          const senderLabel = msg.sender ? `${msg.sender.name} (${msg.sender.role})` : 'Менеджер';
           return (
             <div key={msg.id} className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}>
               <div className="text-[10px] text-gray-500 mb-1 flex gap-2">
-                <span>{msg.sender.name} ({msg.sender.role})</span>
+                <span>{senderLabel}</span>
                 <span>{format(new Date(msg.createdAt), "HH:mm")}</span>
               </div>
               <div className={`max-w-[85%] rounded-2xl p-3 ${isMine ? "bg-[#e9c349] text-[#080818]" : "bg-white/10 text-white"}`}>
                 {msg.imageUrl && (
                   <img src={msg.imageUrl} alt="attachment" className="rounded-xl max-w-full mb-2 cursor-pointer" onClick={() => msg.imageUrl && window.open(msg.imageUrl, '_blank')} />
                 )}
-                {msg.content && <div className="text-sm break-words">{msg.content}</div>}
+                {msg.content && <div className="text-sm break-words whitespace-pre-line">{msg.content}</div>}
               </div>
             </div>
           );

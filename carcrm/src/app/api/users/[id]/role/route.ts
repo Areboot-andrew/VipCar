@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { PrismaClient, Role } from "@prisma/client";
+import { Role } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 
-const prisma = new PrismaClient();
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
