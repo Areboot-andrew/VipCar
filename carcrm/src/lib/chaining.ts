@@ -1,7 +1,5 @@
-import { PrismaClient } from '@prisma/client';
 import { calculateSmartFuelCost } from './fuelCalculator';
-
-const prisma = new PrismaClient();
+import { prisma } from './prisma';
 
 // Sleep utility to respect Nominatim API rate limits (1 req/sec)
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
@@ -68,6 +66,7 @@ export async function recalculateChain(carId: string) {
     }
     
     let returnToBaseDistance = 0;
+    let returnToBaseAt: Date | null = null;
     if (b.isEndingAtBase && b.car.baseCity) {
        // Only calculate if cities differ
        if (b.routeTo.toLowerCase().trim() !== b.car.baseCity.toLowerCase().trim()) {
@@ -76,8 +75,11 @@ export async function recalculateChain(carId: string) {
          if (loc1 && loc2) {
            returnToBaseDistance = await getDistance(loc1.lat, loc1.lng, loc2.lat, loc2.lng);
            returnToBaseDistance = Math.ceil(returnToBaseDistance * 1.3);
+           const returnMins = Math.ceil((returnToBaseDistance / 55) * 60);
+           returnToBaseAt = new Date(b.dateEnd.getTime() + returnMins * 60000);
          }
        }
+       if (!returnToBaseAt) returnToBaseAt = b.dateEnd;
     }
     
     const totalExpenseDistance = expenseDeliveryDistance + b.distance + returnToBaseDistance;
@@ -111,6 +113,7 @@ export async function recalculateChain(carId: string) {
          carStartLocation: currentLoc,
          expenseDeliveryDistance,
          returnToBaseDistance,
+         returnToBaseAt,
          totalExpenseDistance,
          driverSalary: newDriverSalary,
          fuelCost: newFuelCost

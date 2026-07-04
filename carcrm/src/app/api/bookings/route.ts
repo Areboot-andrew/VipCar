@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { recalculateChain } from '@/lib/chaining';
-
-const prisma = new PrismaClient();
+import { calculateBookingQuote } from '@/lib/bookingQuote';
+import { prisma } from '@/lib/prisma';
+import { isCarAvailableForInterval } from '@/lib/bookingAvailability';
 
 import bcrypt from "bcryptjs";
 
@@ -10,14 +11,48 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { 
-      name, phone, email, password, routeFrom, routeTo, routeCountries, distance, price, dateStart, dateEnd, carId,
-      passengers, children, childSeats, luggage, animals, petsCount,
-      fuelCost, driverSalary, deliveryCost, deliveryDistance, deliveryDurationMins, amortization,
-      timeCost, hotelCost, surcharges, netProfit,
-      desiredArrivalAt, pickupAt, carDispatchAt, estimatedArrivalAt,
-      routeDurationMins, prepBufferMins, customsWaitHours, manualWaitingHours,
-      trafficBufferPercent, billableHours, totalExpenseDistance, pricingSnapshot
+      name, phone, email, password, routeFrom, routeTo, routeCountries, distance, carId,
+      passengers, children, childSeats, luggage, animals, petsCount, meetAndGreet,
+      desiredArrivalAt, dateStart, dateEnd, isEndingAtBase, promoCode, promotionId, discountPercent,
+      routeDurationMins, distanceCity, distanceHighway, originLat, originLng, destinationLat, destinationLng
     } = body;
+
+    const quote = await calculateBookingQuote({
+      carId,
+      routeFrom,
+      routeTo,
+      routeCountries,
+      distance,
+      distanceCity,
+      distanceHighway,
+      durationMins: routeDurationMins,
+      originLat,
+      originLng,
+      destinationLat,
+      destinationLng,
+      arrivalDate: desiredArrivalAt || dateEnd,
+      passengers,
+      children,
+      childSeats,
+      petsCount: petsCount || (animals ? 1 : 0),
+      meetAndGreet,
+      withDriver: true,
+      promotionId,
+      promoCode,
+      discountPercent,
+      isEndingAtBase,
+    });
+
+    const pricing = quote.pricing;
+    const pickupAt = pricing.pickupAt || (dateStart ? new Date(dateStart) : new Date());
+    const arrivalAt = pricing.estimatedArrivalAt || (desiredArrivalAt ? new Date(desiredArrivalAt) : dateEnd ? new Date(dateEnd) : pickupAt);
+    const occupiedFrom = pricing.carDispatchAt || pickupAt;
+    const occupiedTo = pricing.returnToBaseAt || arrivalAt;
+
+    const available = await isCarAvailableForInterval(carId, occupiedFrom, occupiedTo);
+    if (!available) {
+      return NextResponse.json({ error: 'Car is not available for this time window' }, { status: 409 });
+    }
 
     const rawPassword = password || Math.random().toString(36).slice(-8);
     const hashedPassword = await bcrypt.hash(rawPassword, 10);
@@ -39,41 +74,53 @@ export async function POST(request: Request) {
       data: {
         clientId: user.id,
         carId,
+        driverId: quote.car.defaultDriverId || null,
         routeFrom,
         routeTo,
         routeCountries: Array.isArray(routeCountries) ? routeCountries : [],
+        originLat: quote.origin?.lat ?? null,
+        originLng: quote.origin?.lng ?? null,
+        destinationLat: quote.destination?.lat ?? null,
+        destinationLng: quote.destination?.lng ?? null,
         distance: Number(distance),
-        price: Number(price),
-        dateStart: new Date(dateStart),
-        dateEnd: new Date(dateEnd),
-        desiredArrivalAt: desiredArrivalAt ? new Date(desiredArrivalAt) : null,
-        pickupAt: pickupAt ? new Date(pickupAt) : new Date(dateStart),
-        carDispatchAt: carDispatchAt ? new Date(carDispatchAt) : null,
-        estimatedArrivalAt: estimatedArrivalAt ? new Date(estimatedArrivalAt) : new Date(dateEnd),
+        price: pricing.price,
+        promotionId: quote.promotion?.id || null,
+        promoCode: quote.promoCode,
+        discountPercent: quote.discountPercent,
+        discountAmount: quote.discountAmount,
+        dateStart: pickupAt,
+        dateEnd: arrivalAt,
+        desiredArrivalAt: arrivalAt,
+        pickupAt,
+        carDispatchAt: pricing.carDispatchAt,
+        estimatedArrivalAt: arrivalAt,
         routeDurationMins: Number(routeDurationMins || 0),
-        deliveryDurationMins: Number(deliveryDurationMins || 0),
-        prepBufferMins: Number(prepBufferMins || 30),
-        customsWaitHours: Number(customsWaitHours || 0),
-        manualWaitingHours: Number(manualWaitingHours || 0),
-        trafficBufferPercent: Number(trafficBufferPercent || 10),
-        billableHours: Number(billableHours || 0),
+        deliveryDurationMins: pricing.deliveryDurationMins,
+        prepBufferMins: pricing.prepBufferMins,
+        customsWaitHours: pricing.customsWaitHours,
+        manualWaitingHours: pricing.manualWaitingHours,
+        trafficBufferPercent: pricing.trafficBufferPercent,
+        billableHours: pricing.billableHours,
         passengers: Number(passengers),
         children: Number(children),
         childSeats: Number(childSeats || children || 0),
         luggage,
         animals: Boolean(animals),
         petsCount: Number(petsCount || (animals ? 1 : 0)),
-        fuelCost: Number(fuelCost || 0),
-        driverSalary: Number(driverSalary || 0),
-        deliveryCost: Number(deliveryCost || 0),
-        deliveryDistance: Number(deliveryDistance || 0),
-        amortization: Number(amortization || 0),
-        timeCost: Number(timeCost || 0),
-        hotelCost: Number(hotelCost || 0),
-        surcharges: Number(surcharges || 0),
-        netProfit: Number(netProfit || 0),
-        totalExpenseDistance: Number(totalExpenseDistance || Number(distance) + Number(deliveryDistance || 0)),
-        pricingSnapshot: pricingSnapshot || undefined,
+        fuelCost: pricing.fuelCost,
+        driverSalary: pricing.driverSalary,
+        deliveryCost: pricing.deliveryCost,
+        deliveryDistance: pricing.deliveryDistance,
+        amortization: pricing.amortization,
+        timeCost: pricing.timeCost,
+        hotelCost: pricing.hotelCost,
+        surcharges: pricing.surcharges,
+        netProfit: pricing.netProfit,
+        totalExpenseDistance: pricing.totalExpenseDistance,
+        isEndingAtBase: quote.isEndingAtBase,
+        returnToBaseDistance: pricing.returnToBaseDistance,
+        returnToBaseAt: pricing.returnToBaseAt,
+        pricingSnapshot: pricing.pricingSnapshot as Prisma.InputJsonValue,
         status: 'PENDING'
       }
     });
@@ -82,7 +129,7 @@ export async function POST(request: Request) {
     await prisma.invoice.create({
       data: {
         bookingId: booking.id,
-        amount: Number(price),
+        amount: pricing.price,
         status: 'UNPAID'
       }
     });
@@ -100,7 +147,7 @@ export async function POST(request: Request) {
 export async function GET() {
   try {
     const bookings = await prisma.booking.findMany({
-      include: { client: true, car: true, driver: { include: { user: true } } },
+      include: { client: true, car: true, driver: { include: { user: true } }, promotion: true },
       orderBy: { createdAt: 'desc' }
     });
     return NextResponse.json(bookings);

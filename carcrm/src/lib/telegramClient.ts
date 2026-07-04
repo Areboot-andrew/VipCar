@@ -1,9 +1,7 @@
 import { TelegramClient } from 'telegram';
 import { StringSession } from 'telegram/sessions';
-import { PrismaClient } from '@prisma/client';
 import { NewMessage } from 'telegram/events';
-
-const prisma = new PrismaClient();
+import { prisma } from './prisma';
 
 // Hardcoded default API keys for testing if user doesn't have them
 // Usually these should be obtained from my.telegram.org

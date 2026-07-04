@@ -57,6 +57,9 @@ type Booking = {
   routeTo: string;
   distance: number;
   price: number;
+  promoCode?: string | null;
+  discountPercent?: number | null;
+  discountAmount?: number | null;
   dateStart: string;
   dateEnd: string;
   desiredArrivalAt?: string | null;
@@ -86,6 +89,7 @@ type Booking = {
   petsCount?: number;
   isEndingAtBase?: boolean;
   returnToBaseDistance?: number | null;
+  returnToBaseAt?: string | null;
   carStartLocation?: string | null;
   driverNotes?: string | null;
   client: { name: string; phone: string | null; email?: string | null };
@@ -199,6 +203,7 @@ export default function DashboardCalendar({ cars, bookings, drivers = [], onOpen
     desiredArrivalAt: '',
     driverId: '',
     status: 'PENDING',
+    isEndingAtBase: false,
     driverNotes: '',
   });
 
@@ -238,6 +243,7 @@ export default function DashboardCalendar({ cars, bookings, drivers = [], onOpen
       desiredArrivalAt: toDateTimeLocal(selectedBooking.desiredArrivalAt || selectedBooking.dateEnd),
       driverId: selectedBooking.driverId || '',
       status: selectedBooking.status || 'PENDING',
+      isEndingAtBase: Boolean(selectedBooking.isEndingAtBase),
       driverNotes: selectedBooking.driverNotes || '',
     });
   }, [selectedBooking?.id]);
@@ -275,6 +281,7 @@ export default function DashboardCalendar({ cars, bookings, drivers = [], onOpen
       carDispatchAt: fromDateTimeLocal(editDraft.carDispatchAt),
       driverId: editDraft.driverId,
       status: editDraft.status,
+      isEndingAtBase: editDraft.isEndingAtBase,
       driverNotes: editDraft.driverNotes,
     });
   };
@@ -295,7 +302,7 @@ export default function DashboardCalendar({ cars, bookings, drivers = [], onOpen
     ? format(cursor, 'LLLL yyyy', { locale: uk })
     : `${format(days[0], 'dd MMM', { locale: uk })} - ${format(days[6], 'dd MMM', { locale: uk })}`;
   const selectedBookingCar = selectedBooking ? carFor(selectedBooking) : null;
-  const selectedReturnAt = selectedBooking ? estimatedBaseReturn(selectedBooking) : null;
+  const selectedReturnAt = selectedBooking?.returnToBaseAt ? new Date(selectedBooking.returnToBaseAt) : selectedBooking ? estimatedBaseReturn(selectedBooking) : null;
 
   return (
     <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#13131a] shadow-2xl">
@@ -475,7 +482,7 @@ export default function DashboardCalendar({ cars, bookings, drivers = [], onOpen
                   <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Подача клієнту</span><strong className="text-right text-white">{dateTime(selectedBooking.pickupAt || selectedBooking.dateStart)}</strong></div>
                   <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Куди їде</span><strong className="text-right text-white">{shortPlace(selectedBooking.routeTo)}</strong></div>
                   <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Прибуття клієнта</span><strong className="text-right text-white">{dateTime(selectedBooking.desiredArrivalAt || selectedBooking.dateEnd)}</strong></div>
-                  <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Орієнтовно на базі</span><strong className="text-right text-white">{selectedReturnAt ? format(selectedReturnAt, 'dd MMM, HH:mm', { locale: uk }) : selectedBooking.isEndingAtBase ? dateTime(selectedBooking.dateEnd) : '--'}</strong></div>
+                    <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Орієнтовно на базі</span><strong className="text-right text-white">{selectedReturnAt ? format(selectedReturnAt, 'dd MMM, HH:mm', { locale: uk }) : selectedBooking.isEndingAtBase ? dateTime(selectedBooking.dateEnd) : 'лишається у точці прибуття'}</strong></div>
                 </div>
               </div>
 
@@ -513,6 +520,7 @@ export default function DashboardCalendar({ cars, bookings, drivers = [], onOpen
                   <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Час / очікування</span><strong className="text-white">{money(selectedBooking.timeCost)}</strong></div>
                   <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Готель</span><strong className="text-white">{money(selectedBooking.hotelCost)}</strong></div>
                   <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Надбавки</span><strong className="text-white">{money(selectedBooking.surcharges)}</strong></div>
+                  <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Знижка</span><strong className="text-white">{Number(selectedBooking.discountPercent || 0) > 0 ? `${Number(selectedBooking.discountPercent).toFixed(0)}% / ${money(selectedBooking.discountAmount)}` : '--'}</strong></div>
                   <div className="flex justify-between gap-4"><span className="text-[#8a8a93]">Митниця / робота</span><strong className="text-white">{hours(selectedBooking.customsWaitHours)} / {hours(selectedBooking.billableHours)}</strong></div>
                 </div>
               </div>
@@ -549,6 +557,20 @@ export default function DashboardCalendar({ cars, bookings, drivers = [], onOpen
                     <option value="CANCELLED">Скасована</option>
                   </select>
                   <span className="text-[11px] normal-case leading-4 tracking-normal text-[#6f6f78]">Стан рейсу для календаря, клієнта, водія і фінансового обліку.</span>
+                </label>
+                <label className="flex items-start gap-3 rounded-lg border border-white/10 bg-[#080818] p-3 text-sm normal-case tracking-normal text-[#c7c6ca]">
+                  <input
+                    type="checkbox"
+                    checked={editDraft.isEndingAtBase}
+                    onChange={(e) => setEditDraft({ ...editDraft, isEndingAtBase: e.target.checked })}
+                    className="mt-1 h-4 w-4 accent-[#e9c349]"
+                  />
+                  <span>
+                    <span className="block font-bold text-white">Повернути авто на базу після рейсу</span>
+                    <span className="mt-1 block text-[11px] leading-4 text-[#6f6f78]">
+                      Якщо вимкнено, наступний рейс цього авто стартує з точки прибуття. Якщо увімкнено, система перерахує повернення на базу і повний пробіг.
+                    </span>
+                  </span>
                 </label>
                 <label className="grid gap-1 text-xs uppercase tracking-widest text-[#8a8a93]">Нотатки для водія
                   <textarea rows={4} value={editDraft.driverNotes} onChange={(e) => setEditDraft({ ...editDraft, driverNotes: e.target.value })} className="w-full resize-y rounded-lg border border-white/10 bg-[#080818] p-3 text-sm normal-case tracking-normal text-white outline-none focus:border-[#e9c349]/60" />

@@ -35,6 +35,7 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
   const searchParams = useSearchParams();
   const initCarId = searchParams.get('carId') || (cars[0]?.id || '');
   const initPromo = searchParams.get('promo') ? parseFloat(searchParams.get('promo')!) : 0;
+  const initPromotionId = searchParams.get('promotionId') || null;
 
   const [distance, setDistance] = useState(100);
   const [distanceCity, setDistanceCity] = useState(50);
@@ -299,6 +300,8 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
           carId: car.id,
           dateStart: pricing.pickupAt.toISOString(),
           dateEnd: arrivalDate.toISOString(),
+          carDispatchAt: pricing.carDispatchAt?.toISOString(),
+          returnToBaseAt: pricing.returnToBaseAt?.toISOString(),
         };
       })
       .filter(Boolean);
@@ -354,6 +357,8 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
             carId: selectedCarId,
             dateStart: calculatedPickup.toISOString(),
             dateEnd: arrivalDate.toISOString(),
+            carDispatchAt: pricing.carDispatchAt?.toISOString(),
+            returnToBaseAt: pricing.returnToBaseAt?.toISOString(),
           })
         });
         const data = await res.json();
@@ -384,39 +389,29 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
           routeFrom: originObj?.display_name || originSearch || 'Не вказано',
           routeTo: destObj?.display_name || destSearch || 'Не вказано',
           distance,
+          distanceCity,
+          distanceHighway,
           price,
           dateStart: pickupTime.toISOString(),
           dateEnd: arrivalDate.toISOString(),
           carId: selectedCarId,
+          originLat: originObj?.lat,
+          originLng: originObj?.lng,
+          destinationLat: destObj?.lat,
+          destinationLng: destObj?.lng,
           passengers: Number(passengers),
           children: Number(children),
           childSeats: Number(childSeats),
           luggage: luggage,
           animals: Number(petsCount) > 0,
           petsCount: Number(petsCount),
-          fuelCost: expenseSnapshot.fuelCost,
-          driverSalary: expenseSnapshot.driverSalary,
-          deliveryCost: expenseSnapshot.deliveryCost,
-          deliveryDistance: expenseSnapshot.deliveryDistance,
-          deliveryDurationMins: expenseSnapshot.deliveryDurationMins,
-          amortization: expenseSnapshot.amortization,
-          timeCost: expenseSnapshot.timeCost,
-          hotelCost: expenseSnapshot.hotelCost,
-          surcharges: expenseSnapshot.surcharges,
-          netProfit: expenseSnapshot.netProfit,
+          meetAndGreet,
+          promoCode: discountCode || null,
+          promotionId: initPromotionId,
+          discountPercent,
           desiredArrivalAt: arrivalDate.toISOString(),
-          pickupAt: pickupTime.toISOString(),
-          carDispatchAt: new Date(pickupTime.getTime() - (expenseSnapshot.deliveryDurationMins + expenseSnapshot.prepBufferMins) * 60000).toISOString(),
-          estimatedArrivalAt: arrivalDate.toISOString(),
           routeDurationMins: durationMins,
-          prepBufferMins: expenseSnapshot.prepBufferMins,
-          customsWaitHours: expenseSnapshot.customsWaitHours,
-          manualWaitingHours: expenseSnapshot.manualWaitingHours,
-          trafficBufferPercent: expenseSnapshot.trafficBufferPercent,
-          billableHours: expenseSnapshot.billableHours,
-          totalExpenseDistance: expenseSnapshot.totalExpenseDistance,
           routeCountries,
-          pricingSnapshot: expenseSnapshot.pricingSnapshot
         })
       });
       if (res.ok) {

@@ -1,8 +1,6 @@
-import { PrismaClient } from '@prisma/client';
 import { NextResponse } from 'next/server';
 import { recalculateChain } from '@/lib/chaining';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -11,7 +9,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     
     const updateData: any = {};
     if (body.status !== undefined) updateData.status = body.status;
-    if (body.isEndingAtBase !== undefined) updateData.isEndingAtBase = body.isEndingAtBase;
+    if (body.isEndingAtBase !== undefined) updateData.isEndingAtBase = Boolean(body.isEndingAtBase);
+    if (body.returnToBaseAt !== undefined) updateData.returnToBaseAt = body.returnToBaseAt ? new Date(body.returnToBaseAt) : null;
+    if (body.returnToBaseDistance !== undefined) updateData.returnToBaseDistance = Number(body.returnToBaseDistance || 0);
     if (body.driverNotes !== undefined) updateData.driverNotes = body.driverNotes;
     if (body.dateStart !== undefined && body.dateStart) {
       updateData.dateStart = new Date(body.dateStart);
@@ -26,7 +26,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     const oldBooking = await prisma.booking.findUnique({ where: { id } });
 
-    const booking = await prisma.booking.update({
+    let booking = await prisma.booking.update({
       where: { id },
       data: updateData,
       include: {
@@ -56,11 +56,21 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       updateData.driverId !== undefined ||
       updateData.carId !== undefined ||
       updateData.isEndingAtBase !== undefined ||
+      updateData.returnToBaseAt !== undefined ||
+      updateData.returnToBaseDistance !== undefined ||
       updateData.dateStart !== undefined ||
       updateData.dateEnd !== undefined
     ) {
-      // Async recalculation so it doesn't block response
-      recalculateChain(booking.carId).catch(err => console.error('Chain calc error:', err));
+      await recalculateChain(booking.carId);
+      const recalculated = await prisma.booking.findUnique({
+        where: { id },
+        include: {
+          client: true,
+          car: true,
+          driver: { include: { user: true } }
+        }
+      });
+      if (recalculated) booking = recalculated;
     }
 
     return NextResponse.json(booking);

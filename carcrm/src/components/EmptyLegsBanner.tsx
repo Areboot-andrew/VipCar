@@ -92,7 +92,7 @@ export default function EmptyLegsBanner({ cmsSettings = {} }: { cmsSettings?: Re
               )}
             </div>
 
-            <Link href={`/?promo=${promo.discount}&carId=${promo.carId || ''}#calculator`} className="block w-full text-center py-3 rounded-xl border border-[#e9c349] text-[#e9c349] hover:bg-[#e9c349] hover:text-black font-bold transition-all z-10 relative">
+            <Link href={`/?promo=${promo.discount}&promotionId=${promo.id}&carId=${promo.carId || ''}#calculator`} className="block w-full text-center py-3 rounded-xl border border-[#e9c349] text-[#e9c349] hover:bg-[#e9c349] hover:text-black font-bold transition-all z-10 relative">
               {c['empty_legs_book_button']}
             </Link>
           </motion.div>

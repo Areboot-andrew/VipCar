@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 
 // Fetch all chats and their messages
 export async function GET() {
   try {
+    getTelegramClient().catch(() => {});
+
     const chats = await prisma.chatRoom.findMany({
       include: {
         messages: {
@@ -48,7 +48,6 @@ export async function POST(req: Request) {
 
     // If it's a Telegram chat, forward via MTProto
     if (chatRoom.platform === 'TELEGRAM' && chatRoom.externalId) {
-      const { getTelegramClient } = await import('@/lib/telegramClient');
       const client = await getTelegramClient();
       if (client) {
         await client.sendMessage(chatRoom.externalId, { message: content });
@@ -67,6 +66,26 @@ export async function POST(req: Request) {
           })
         });
       }
+    } else if (chatRoom.platform === 'WHATSAPP' && chatRoom.externalId) {
+      const [tokenSetting, phoneIdSetting] = await Promise.all([
+        prisma.siteContent.findUnique({ where: { key: 'whatsapp_access_token' } }),
+        prisma.siteContent.findUnique({ where: { key: 'whatsapp_phone_number_id' } }),
+      ]);
+      if (tokenSetting?.value && phoneIdSetting?.value) {
+        await fetch(`https://graph.facebook.com/v20.0/${phoneIdSetting.value}/messages`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${tokenSetting.value}`,
+          },
+          body: JSON.stringify({
+            messaging_product: 'whatsapp',
+            to: chatRoom.externalId,
+            type: 'text',
+            text: { body: content },
+          }),
+        });
+      }
     }
 
     return NextResponse.json(message);
@@ -74,4 +93,9 @@ export async function POST(req: Request) {
     console.error('Chat POST Error:', error);
     return NextResponse.json({ error: 'Failed to send message' }, { status: 500 });
   }
+}
+
+async function getTelegramClient() {
+  const { getTelegramClient } = await import('@/lib/telegramClient');
+  return getTelegramClient();
 }

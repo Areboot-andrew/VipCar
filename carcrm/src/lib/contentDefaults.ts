@@ -139,11 +139,13 @@ export const SITE_CONTENT_DEFAULTS: Record<string, string> = {
   facebook_enabled: 'false',
   facebook_page_id: '',
   facebook_verify_token: '',
+  facebook_page_token: '',
   facebook_page_access_token: '',
   whatsapp_enabled: 'false',
   whatsapp_phone_number_id: '',
   whatsapp_business_account_id: '',
   whatsapp_access_token: '',
+  whatsapp_verify_token: '',
   payment_card: '',
   payment_usdt: '',
 };

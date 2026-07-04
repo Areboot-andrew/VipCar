@@ -1,7 +1,5 @@
-import { PrismaClient } from '@prisma/client';
 import DashboardCalendar from './DashboardCalendar';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 
 // Disable caching so we always see fresh data
 export const dynamic = 'force-dynamic';
@@ -39,6 +37,7 @@ export default async function AdminDashboardPage() {
     pickupAt: b.pickupAt?.toISOString() || null,
     carDispatchAt: b.carDispatchAt?.toISOString() || null,
     estimatedArrivalAt: b.estimatedArrivalAt?.toISOString() || null,
+    returnToBaseAt: b.returnToBaseAt?.toISOString() || null,
   }));
 
   return (

@@ -29,6 +29,7 @@ export type TripPricingInput = {
   durationMins: number;
   routeCountries: string[];
   origin: LatLng;
+  returnToBaseDistance?: number;
   arrivalDate: Date | null;
   crossBorder: boolean;
   meetAndGreet: boolean;
@@ -62,6 +63,8 @@ export type TripPricingResult = {
   pickupAt: Date | null;
   carDispatchAt: Date | null;
   estimatedArrivalAt: Date | null;
+  returnToBaseAt: Date | null;
+  returnToBaseDistance: number;
   totalExpenseDistance: number;
   pricingSnapshot: Record<string, unknown>;
 };
@@ -92,6 +95,7 @@ export function calculateTripPricing(input: TripPricingInput): TripPricingResult
     durationMins,
     routeCountries,
     origin,
+    returnToBaseDistance = 0,
     arrivalDate,
     crossBorder,
     meetAndGreet,
@@ -111,6 +115,7 @@ export function calculateTripPricing(input: TripPricingInput): TripPricingResult
 
   const deliveryDistance = haversineRoadKm(baseLocation, origin);
   const deliveryDurationMins = deliveryDistance > 0 ? Math.ceil((deliveryDistance / 55) * 60) : 0;
+  const returnDurationMins = returnToBaseDistance > 0 ? Math.ceil((returnToBaseDistance / 55) * 60) : 0;
   const trafficBufferPercent = settings.trafficBufferPercent ?? 10;
   const speedFactor = Math.max(0.5, 1 - trafficBufferPercent / 100);
   const adjustedRouteMins = Math.ceil(durationMins / speedFactor);
@@ -118,7 +123,7 @@ export function calculateTripPricing(input: TripPricingInput): TripPricingResult
   const customsWaitHours = isBorderCrossing ? (settings.defaultCustomsWaitHours ?? 1.5) : 0;
   const manualWaitingHours = settings.manualWaitingHours ?? 0;
   const prepBufferMins = settings.prepBufferMins ?? 30;
-  const billableHours = roundMoney((adjustedRouteMins / 60) + customsWaitHours + manualWaitingHours);
+  const billableHours = roundMoney(((adjustedRouteMins + returnDurationMins) / 60) + customsWaitHours + manualWaitingHours);
   const pickupAt = arrivalDate
     ? new Date(arrivalDate.getTime() - (adjustedRouteMins + customsWaitHours * 60 + manualWaitingHours * 60) * 60000)
     : null;
@@ -130,8 +135,10 @@ export function calculateTripPricing(input: TripPricingInput): TripPricingResult
     ? ((distanceCity / distance) * Number(car?.fuelConsumptionCity || 0)) + ((distanceHighway / distance) * Number(car?.fuelConsumptionHighway || 0))
     : Number(car?.fuelConsumptionHighway || 8);
 
+  const totalExpenseDistance = distance + deliveryDistance + returnToBaseDistance;
+
   const fuelCalc = calculateSmartFuelCost({
-    totalDistance: distance,
+    totalDistance: totalExpenseDistance,
     fuelConsumption: avgConsumption || 8,
     fuelTankVolume: Number(car?.fuelTankVolume || 60),
     fuelType: car?.fuelType || 'Бензин',
@@ -146,12 +153,11 @@ export function calculateTripPricing(input: TripPricingInput): TripPricingResult
       : (settings.fuelPricePetrol ?? 1.6);
   const fuelCost = fuelCalc.totalFuelCostEur > 0
     ? fuelCalc.totalFuelCostEur
-    : (((distanceCity / 100) * Number(car?.fuelConsumptionCity || 0)) + ((distanceHighway / 100) * Number(car?.fuelConsumptionHighway || 0))) * fallbackFuelPrice;
+    : (totalExpenseDistance / 100) * (avgConsumption || Number(car?.fuelConsumptionHighway || 8)) * fallbackFuelPrice;
 
   const driver = car?.defaultDriver;
   const driverKmRate = Number(driver?.salaryPerKm ?? 0.15);
   const driverHourRate = Number(driver?.salaryPerHour ?? settings.timeRatePerHour ?? 12);
-  const totalExpenseDistance = distance + deliveryDistance;
   const driverSalary = withDriver ? (totalExpenseDistance * driverKmRate) + (billableHours * driverHourRate) : 0;
   const amortization = totalExpenseDistance * Number(car?.amortizationPerKm ?? settings.amortizationRate ?? 0.08);
   const deliveryCost = Number(car?.deliveryBaseFee ?? settings.deliveryBaseFee ?? 0) + deliveryDistance * Number(settings.deliveryRate ?? 1.1);
@@ -203,6 +209,8 @@ export function calculateTripPricing(input: TripPricingInput): TripPricingResult
     pickupAt,
     carDispatchAt,
     estimatedArrivalAt: arrivalDate,
+    returnToBaseAt: arrivalDate && returnDurationMins > 0 ? new Date(arrivalDate.getTime() + returnDurationMins * 60000) : null,
+    returnToBaseDistance,
     totalExpenseDistance,
     pricingSnapshot: {
       routeBasePrice: roundMoney(routeBasePrice),
@@ -213,6 +221,8 @@ export function calculateTripPricing(input: TripPricingInput): TripPricingResult
       adjustedRouteMins,
       deliveryDurationMins,
       deliveryDistance,
+      returnDurationMins,
+      returnToBaseDistance,
       billableHours,
       customsWaitHours,
       manualWaitingHours,

@@ -184,8 +184,17 @@ model Booking {
   routeFrom   String
   routeTo     String
   routeCountries String[]   @default([])
+  originLat   Float?
+  originLng   Float?
+  destinationLat Float?
+  destinationLng Float?
   distance    Float         // in km
   price       Float         // calculated price
+  promotionId String?
+  promotion   Promotion?    @relation(fields: [promotionId], references: [id], onDelete: SetNull)
+  promoCode   String?
+  discountPercent Float     @default(0)
+  discountAmount  Float     @default(0)
   dateStart   DateTime
   dateEnd     DateTime
   desiredArrivalAt DateTime?
@@ -229,6 +238,7 @@ model Booking {
   totalExpenseDistance     Float?
   isEndingAtBase           Boolean       @default(false)
   returnToBaseDistance     Float?
+  returnToBaseAt           DateTime?
 
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
@@ -276,6 +286,8 @@ model Promotion {
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  bookings  Booking[]
 }
 
 model Feedback {
