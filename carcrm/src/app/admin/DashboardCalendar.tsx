@@ -18,7 +18,6 @@ import {
   CalendarDays,
   Car as CarIcon,
   CheckCircle,
-  Clock,
   Euro,
   Home,
   Luggage,
@@ -323,7 +322,7 @@ export default function DashboardCalendar({ cars, bookings, drivers = [], onOpen
         {periodTitle}
       </div>
 
-      <div className="grid gap-4 p-5 2xl:grid-cols-[1fr_460px]">
+      <div className="grid min-w-0 gap-4 p-3 sm:p-4 xl:p-5 2xl:grid-cols-[minmax(0,1fr)_420px]">
         <div className="space-y-4">
           <div className={`grid gap-2 ${viewMode === 'month' ? 'grid-cols-2 md:grid-cols-7' : 'grid-cols-2 md:grid-cols-7'}`}>
             {days.map((day) => {
@@ -334,7 +333,7 @@ export default function DashboardCalendar({ cars, bookings, drivers = [], onOpen
                 <button
                   key={day.toISOString()}
                   onClick={() => { setSelectedDay(day); setSelectedId(dayBookings[0]?.id || null); }}
-                  className={`min-h-[104px] rounded-xl border p-3 text-left transition-colors ${
+                  className={`min-h-[92px] rounded-xl border p-3 text-left transition-colors sm:min-h-[104px] ${
                     active ? 'border-[#e9c349] bg-[#e9c349]/15' : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.06]'
                   } ${muted ? 'opacity-45' : ''}`}
                 >
@@ -377,7 +376,7 @@ export default function DashboardCalendar({ cars, bookings, drivers = [], onOpen
                   <button
                     key={booking.id}
                     onClick={() => setSelectedId(booking.id)}
-                    className={`grid gap-4 rounded-xl border p-4 text-left transition-colors xl:grid-cols-[120px_1fr_220px] ${
+                    className={`grid min-w-0 gap-4 rounded-xl border p-4 text-left transition-colors 2xl:grid-cols-[108px_minmax(0,1fr)_170px] ${
                       active ? 'border-[#e9c349]/70 bg-[#e9c349]/10' : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.06]'
                     }`}
                   >
@@ -407,16 +406,16 @@ export default function DashboardCalendar({ cars, bookings, drivers = [], onOpen
                         <span className="rounded-lg bg-black/20 px-2 py-1">на базу: {returnAt ? format(returnAt, 'dd MMM, HH:mm', { locale: uk }) : '--'}</span>
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-2 text-xs xl:block xl:text-right">
-                      <div className="rounded-lg border border-[#e9c349]/20 bg-[#e9c349]/10 p-2 xl:border-0 xl:bg-transparent xl:p-0">
+                    <div className="grid grid-cols-2 gap-2 text-xs 2xl:block 2xl:text-right">
+                      <div className="rounded-lg border border-[#e9c349]/20 bg-[#e9c349]/10 p-2 2xl:border-0 2xl:bg-transparent 2xl:p-0">
                         <div className="text-[#8a8a93]">ціна</div>
                         <div className="text-lg font-bold text-[#e9c349]">{money(booking.price)}</div>
                       </div>
-                      <div className="rounded-lg border border-emerald-400/20 bg-emerald-400/10 p-2 xl:mt-2 xl:border-0 xl:bg-transparent xl:p-0">
+                      <div className="rounded-lg border border-emerald-400/20 bg-emerald-400/10 p-2 2xl:mt-2 2xl:border-0 2xl:bg-transparent 2xl:p-0">
                         <div className="text-[#8a8a93]">прибуток</div>
                         <div className="text-lg font-bold text-emerald-300">{money(booking.netProfit)}</div>
                       </div>
-                      <div className="col-span-2 mt-1 text-[#8a8a93] xl:mt-3">
+                      <div className="col-span-2 mt-1 text-[#8a8a93] 2xl:mt-3">
                         {km(booking.distance)} маршрут / {km(booking.totalExpenseDistance || booking.distance)} повний пробіг
                       </div>
                     </div>

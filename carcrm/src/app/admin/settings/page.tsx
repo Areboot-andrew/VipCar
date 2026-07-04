@@ -227,7 +227,7 @@ export default function SettingsPage() {
   if (loading) return <div className="p-8 text-white">Завантаження...</div>;
 
   return (
-    <div className="p-4 md:p-8">
+    <div className="text-[#e4e2e3]">
       <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-3">
           <Settings size={30} className="text-[#e9c349]" />

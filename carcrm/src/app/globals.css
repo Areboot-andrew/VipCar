@@ -34,9 +34,19 @@
 .react-datepicker-popper { z-index: 60 !important; }
 
 /* Keep some admin styles here temporarily */
-.admin-page-container { padding: 32px; max-width: 1200px; margin: 0 auto; color: #e4e2e3; }
-.admin-page-header { margin-bottom: 24px; }
+.admin-page-container { width: 100%; max-width: none; margin: 0; padding: 0; color: #e4e2e3; }
+.admin-page-header { margin-bottom: 20px; }
 .admin-table-container { background-color: rgba(36, 36, 37, 0.4); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; overflow: hidden; }
+
+.admin-form-textarea {
+  min-height: 132px;
+  line-height: 1.55;
+}
+
+.admin-form-textarea-lg {
+  min-height: 190px;
+  line-height: 1.6;
+}
 
 /* Premium Admin Calendar Redesign */
 .calendar-grid-90 { display: flex; flex-direction: column; gap: 16px; margin-top: 24px; font-family: inherit; }

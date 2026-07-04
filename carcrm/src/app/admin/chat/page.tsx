@@ -89,11 +89,11 @@ export default function AdminChatPage() {
   );
 
   return (
-    <div className="flex h-[calc(100vh-80px)] overflow-hidden bg-[#080818] rounded-3xl border border-white/5 shadow-2xl m-6 mt-0">
+    <div className="flex h-[calc(100vh-96px)] min-h-[640px] flex-col overflow-hidden rounded-2xl border border-white/5 bg-[#080818] shadow-2xl lg:h-[calc(100vh-120px)] lg:min-h-0 lg:flex-row">
       
       {/* Sidebar - Chat List */}
-      <div className="w-[350px] border-r border-white/5 bg-[#13131a]/50 flex flex-col backdrop-blur-sm">
-        <div className="p-6 border-b border-white/5 flex items-center justify-between">
+      <div className="flex max-h-[38vh] w-full flex-col border-b border-white/5 bg-[#13131a]/50 backdrop-blur-sm lg:max-h-none lg:w-[340px] lg:border-b-0 lg:border-r">
+        <div className="flex items-center justify-between border-b border-white/5 p-4 lg:p-5">
           <h2 className="m-0 text-white text-xl font-bold font-headline-md tracking-wider">Повідомлення</h2>
           <div className="bg-[#e9c349]/20 text-[#e9c349] text-xs font-bold px-2 py-1 rounded-full">{chats.length}</div>
         </div>
@@ -153,7 +153,7 @@ export default function AdminChatPage() {
       <div className="flex-1 flex flex-col bg-gradient-to-b from-[#13131a]/30 to-[#080818] relative">
         {activeChat ? (
           <>
-            <div className="p-6 border-b border-white/5 bg-[#13131a]/80 backdrop-blur-md flex items-center gap-4 z-10">
+            <div className="z-10 flex items-center gap-4 border-b border-white/5 bg-[#13131a]/80 p-4 backdrop-blur-md lg:p-5">
                <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
                   activeChat.platform === 'TELEGRAM' ? 'bg-[#2AABEE]/20 text-[#2AABEE]' : 
                   activeChat.platform === 'MESSENGER' ? 'bg-[#00B2FF]/20 text-[#00B2FF]' : 'bg-white/10 text-white'
@@ -170,9 +170,9 @@ export default function AdminChatPage() {
                 </div>
             </div>
 
-            <div className="flex-1 p-6 overflow-y-auto custom-scrollbar flex flex-col gap-4">
+            <div className="flex-1 overflow-y-auto p-4 custom-scrollbar flex flex-col gap-4 lg:p-5">
               {activeChat.messages.map(msg => (
-                <div key={msg.id} className={`flex flex-col ${msg.isFromAdmin ? 'items-end' : 'items-start'} max-w-[70%] ${msg.isFromAdmin ? 'ml-auto' : 'mr-auto'}`}>
+                <div key={msg.id} className={`flex max-w-[86%] flex-col ${msg.isFromAdmin ? 'ml-auto items-end' : 'mr-auto items-start'} lg:max-w-[70%]`}>
                   <div className={`p-4 rounded-2xl relative ${
                     msg.isFromAdmin 
                       ? 'bg-gradient-to-br from-[#e9c349] to-[#d4af37] text-black rounded-tr-none shadow-[0_5px_15px_rgba(233,195,73,0.2)]' 
@@ -188,7 +188,7 @@ export default function AdminChatPage() {
               <div ref={messagesEndRef} />
             </div>
 
-            <div className="p-6 bg-[#13131a]/80 backdrop-blur-md border-t border-white/5 z-10">
+            <div className="z-10 border-t border-white/5 bg-[#13131a]/80 p-4 backdrop-blur-md lg:p-5">
               <form onSubmit={sendMessage} className="flex gap-3">
                 <input 
                   type="text" 

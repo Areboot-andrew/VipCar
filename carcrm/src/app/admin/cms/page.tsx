@@ -202,7 +202,7 @@ function CmsField({
         {field.label}
       </label>
       {field.type === 'textarea' ? (
-        <textarea id={inputId} rows={3} value={value || ''} onChange={(event) => onChange(event.target.value)} className={`${fieldClass()} resize-y`} />
+        <textarea id={inputId} rows={6} value={value || ''} onChange={(event) => onChange(event.target.value)} className={`${fieldClass()} admin-form-textarea resize-y`} />
       ) : (
         <div className={isMedia ? 'grid gap-3 md:grid-cols-[96px_1fr_auto]' : ''}>
           {isMedia && (
@@ -409,7 +409,7 @@ export default function CMSPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#080818] p-4 text-[#e4e2e3] md:p-8">
+    <div className="min-h-screen text-[#e4e2e3]">
       <div className="mb-6 flex flex-col gap-4 border-b border-white/10 pb-6 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <div className="flex items-center gap-3">
@@ -634,11 +634,11 @@ export default function CMSPage() {
                                   items[featureIndex] = { ...items[featureIndex], title: event.target.value };
                                   updateBlockContent(index, { ...parsed, items });
                                 }} placeholder="Назва" className={fieldClass()} />
-                                <input value={feature.desc || ''} onChange={(event) => {
+                                <textarea rows={3} value={feature.desc || ''} onChange={(event) => {
                                   const items = [...(parsed.items || [])];
                                   items[featureIndex] = { ...items[featureIndex], desc: event.target.value };
                                   updateBlockContent(index, { ...parsed, items });
-                                }} placeholder="Опис" className={fieldClass()} />
+                                }} placeholder="Опис" className={`${fieldClass()} min-h-[88px] resize-y`} />
                                 <button onClick={() => {
                                   const items = [...(parsed.items || [])];
                                   items.splice(featureIndex, 1);

@@ -29,7 +29,7 @@ export default function FeedbackPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#080818] p-4 text-[#e4e2e3] md:p-8">
+    <div className="min-h-screen text-[#e4e2e3]">
       <div className="mb-6 flex items-start gap-3 border-b border-white/10 pb-6">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[#e9c349]/10 text-[#e9c349]">
           <Inbox size={22} />

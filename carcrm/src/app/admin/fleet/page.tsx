@@ -438,7 +438,7 @@ export default function AdminFleetPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#080818] p-4 text-[#e4e2e3] md:p-8">
+    <div className="min-h-screen text-[#e4e2e3]">
       <div className="mb-6 flex flex-col gap-4 border-b border-white/10 pb-6 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-[#e9c349]/10 text-[#e9c349]">
@@ -554,7 +554,7 @@ export default function AdminFleetPage() {
                   <Field label="Великих валіз" hint="Окрема оцінка для великого багажу, щоб менеджер бачив реальну місткість."><input type="number" value={draft.largeLuggageCapacity} onChange={(e) => updateDraft('largeLuggageCapacity', e.target.value)} className={inputClass()} /></Field>
                 </div>
 
-                <Field label="Опис багажу" hint="Людське пояснення для адміна і сторінки авто: наприклад, 2 великі валізи + ручна поклажа."><textarea rows={2} value={draft.luggageNote || ''} onChange={(e) => updateDraft('luggageNote', e.target.value)} className={`${inputClass()} resize-y`} /></Field>
+                <Field label="Опис багажу" hint="Людське пояснення для адміна і сторінки авто: наприклад, 2 великі валізи + ручна поклажа."><textarea rows={4} value={draft.luggageNote || ''} onChange={(e) => updateDraft('luggageNote', e.target.value)} className={`${inputClass()} admin-form-textarea resize-y`} /></Field>
               </div>
             )}
 
@@ -616,7 +616,7 @@ export default function AdminFleetPage() {
                           <input value={block.title} onChange={(e) => updatePageBlock(index, { title: e.target.value })} className={inputClass()} placeholder="Mercedes-Benz *S-Class*" />
                         </Field>
                         <Field label="Текст" hint="Основний текст блоку. Без HTML: форматування робимо структурою блоків.">
-                          <textarea rows={4} value={block.text} onChange={(e) => updatePageBlock(index, { text: e.target.value })} className={`${inputClass()} resize-y`} placeholder="Текст блоку без HTML-хаосу." />
+                          <textarea rows={8} value={block.text} onChange={(e) => updatePageBlock(index, { text: e.target.value })} className={`${inputClass()} admin-form-textarea-lg resize-y`} placeholder="Текст блоку без HTML-хаосу." />
                         </Field>
                         {(block.type === 'media_text' || block.type === 'headline') && (
                           <Field label="URL зображення / відео" hint="Медіа для конкретного блоку сторінки, якщо воно відрізняється від галереї авто.">
@@ -749,7 +749,7 @@ export default function AdminFleetPage() {
                           </select>
                         </Field>
                         <Field label="Порядок" hint="Менше число показується раніше. Обкладинка все одно має пріоритет."><input type="number" value={media.order} onChange={(e) => updateMediaDraft(index, { order: Number(e.target.value) })} className={inputClass()} /></Field>
-                        <Field label="Підпис" hint="Текст під фото або у великому перегляді галереї."><textarea rows={2} value={media.caption || ''} onChange={(e) => updateMediaDraft(index, { caption: e.target.value })} className={`${inputClass()} resize-y lg:col-span-2`} /></Field>
+                        <Field label="Підпис" hint="Текст під фото або у великому перегляді галереї."><textarea rows={3} value={media.caption || ''} onChange={(e) => updateMediaDraft(index, { caption: e.target.value })} className={`${inputClass()} min-h-[96px] resize-y lg:col-span-2`} /></Field>
                       </div>
                       <div className="flex flex-row gap-2 xl:flex-col">
                         <button onClick={() => updateMediaDraft(index, { isCover: !media.isCover })} className={`rounded-lg px-3 py-2 text-sm font-bold ${media.isCover ? 'bg-[#e9c349] text-black' : 'bg-white/5 text-white hover:bg-white/10'}`}>Обкладинка</button>
@@ -778,7 +778,7 @@ export default function AdminFleetPage() {
                   <Field label="Meta title" hint="Заголовок сторінки у браузері та пошуку. Якщо пусто, система збере з марки, моделі і року."><input value={draft.seoTitle || ''} onChange={(e) => updateDraft('seoTitle', e.target.value)} className={inputClass()} /></Field>
                   <Field label="Адреса сторінки" hint="URL сторінки авто. Має бути коротким і стабільним."><input value={draft.slug || ''} onChange={(e) => updateDraft('slug', e.target.value)} className={inputClass()} /></Field>
                 </div>
-                <Field label="Meta description" hint="Короткий опис для пошуку і превʼю. Не показується як основний текст сторінки."><textarea rows={4} value={draft.seoDescription || ''} onChange={(e) => updateDraft('seoDescription', e.target.value)} className={`${inputClass()} resize-y`} /></Field>
+                <Field label="Meta description" hint="Короткий опис для пошуку і превʼю. Не показується як основний текст сторінки."><textarea rows={6} value={draft.seoDescription || ''} onChange={(e) => updateDraft('seoDescription', e.target.value)} className={`${inputClass()} admin-form-textarea resize-y`} /></Field>
                 <div className="rounded-lg border border-white/10 bg-[#080818] p-4">
                   <div className="mb-3 text-sm font-bold text-white">Попередній перегляд переваг</div>
                   <div className="grid gap-2 sm:grid-cols-2">

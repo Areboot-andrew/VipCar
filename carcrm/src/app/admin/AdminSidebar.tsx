@@ -12,10 +12,12 @@ import {
   FilePenLine,
   Inbox,
   LayoutDashboard,
+  Menu,
   MessageSquare,
   Settings,
   TicketPercent,
   Users,
+  X,
 } from 'lucide-react';
 import { withContentDefaults } from '@/lib/contentDefaults';
 
@@ -80,6 +82,7 @@ function isActive(pathname: string, item: NavItem) {
 export default function AdminSidebar() {
   const pathname = usePathname();
   const [content, setContent] = useState<Record<string, string>>(withContentDefaults());
+  const [open, setOpen] = useState(false);
   const navGroups = useMemo(() => getNavGroups(content), [content]);
 
   useEffect(() => {
@@ -89,13 +92,16 @@ export default function AdminSidebar() {
       .catch(() => setContent(withContentDefaults()));
   }, []);
 
-  return (
-    <aside className="w-[304px] bg-[#13131a] border-r border-white/10 flex flex-col shrink-0 z-20">
-      <div className="h-[72px] flex items-center px-6 border-b border-white/10">
+  const sidebar = (
+    <aside className="flex h-full w-[288px] shrink-0 flex-col border-r border-white/10 bg-[#13131a] lg:w-[292px]">
+      <div className="h-[64px] lg:h-[72px] flex items-center justify-between gap-3 px-5 border-b border-white/10">
         <div>
           <h2 className="text-[#e9c349] font-bold text-xl tracking-wider uppercase leading-none">{content['admin_brand_title']}</h2>
           <p className="m-0 mt-2 text-[11px] uppercase tracking-[0.18em] text-[#8a8a93]">{content['admin_brand_subtitle']}</p>
         </div>
+        <button onClick={() => setOpen(false)} className="rounded-lg p-2 text-[#c7c6ca] hover:bg-white/5 hover:text-white lg:hidden" aria-label="Закрити меню">
+          <X size={20} />
+        </button>
       </div>
 
       <nav className="flex-1 overflow-y-auto py-5 px-3 custom-scrollbar">
@@ -114,6 +120,7 @@ export default function AdminSidebar() {
                     <Link
                       key={item.href}
                       href={item.href}
+                      onClick={() => setOpen(false)}
                       className={`group flex items-center gap-3 rounded-xl border px-3 py-3 transition-colors ${
                         active
                           ? 'border-[#e9c349]/40 bg-[#e9c349]/12 text-white'
@@ -151,5 +158,30 @@ export default function AdminSidebar() {
         </Link>
       </div>
     </aside>
+  );
+
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="fixed left-3 top-3 z-50 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-[#13131a] text-[#e9c349] shadow-lg lg:hidden"
+        aria-label="Відкрити меню"
+      >
+        <Menu size={20} />
+      </button>
+
+      <div className="hidden lg:block lg:h-screen">
+        {sidebar}
+      </div>
+
+      {open && (
+        <div className="fixed inset-0 z-[70] lg:hidden">
+          <button className="absolute inset-0 bg-black/60" onClick={() => setOpen(false)} aria-label="Закрити меню" />
+          <div className="absolute inset-y-0 left-0 max-w-[86vw]">
+            {sidebar}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
