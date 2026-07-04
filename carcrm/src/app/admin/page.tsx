@@ -9,7 +9,9 @@ import {
   CircleDollarSign,
   Clock3,
   Gauge,
+  Inbox,
   Luggage,
+  MessageSquare,
   Route,
   TrendingUp,
   UserRoundCheck,
@@ -183,6 +185,36 @@ function TripRow({
   );
 }
 
+function ChatRow({ chat }: { chat: Awaited<ReturnType<typeof getDashboardData>>['unansweredChats'][number] }) {
+  const lastMessage = chat.messages[0];
+  const clientName = chat.clientName || chat.clientPhone || chat.booking?.client?.name || chat.externalId || 'Клієнт';
+  const route = chat.booking ? `${shortPlace(chat.booking.routeFrom)} -> ${shortPlace(chat.booking.routeTo)}` : 'Без привʼязаного рейсу';
+
+  return (
+    <a
+      href="/admin/chat"
+      className="block rounded-xl border border-red-400/20 bg-red-400/5 p-4 transition hover:border-red-300/45"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full border border-red-300/30 bg-red-300/10 px-2.5 py-1 text-xs font-bold text-red-200">
+              Без відповіді
+            </span>
+            <span className="text-xs font-bold uppercase tracking-[0.14em] text-[#8a8a93]">{chat.platform}</span>
+          </div>
+          <div className="mt-2 truncate font-black text-white">{clientName}</div>
+          <div className="mt-1 text-sm text-[#a7a6ad]">{route}</div>
+          <div className="mt-2 line-clamp-2 text-sm text-[#c7c6ca]">{lastMessage?.content || 'Файл або зображення'}</div>
+        </div>
+        <div className="shrink-0 text-right text-xs text-[#8a8a93]">
+          {lastMessage ? tripTime(lastMessage.createdAt) : tripTime(chat.updatedAt)}
+        </div>
+      </div>
+    </a>
+  );
+}
+
 async function getDashboardData() {
   const now = new Date();
   const today = startOfDay(now);
@@ -198,7 +230,7 @@ async function getDashboardData() {
     driver: { include: { user: true } },
   };
 
-  const [futureBookings, activeBookings, closedBookings, monthBookings, cars, drivers] = await Promise.all([
+  const [futureBookings, activeBookings, closedBookings, monthBookings, openRequests, rawChats, cars, drivers] = await Promise.all([
     prisma.booking.findMany({
       where: {
         dateStart: { gte: now },
@@ -235,11 +267,31 @@ async function getDashboardData() {
       include,
       orderBy: { dateStart: 'asc' },
     }),
+    prisma.booking.findMany({
+      where: {
+        status: 'PENDING',
+      },
+      include,
+      orderBy: { createdAt: 'desc' },
+      take: 8,
+    }),
+    prisma.chatRoom.findMany({
+      include: {
+        booking: { include: { client: true } },
+        messages: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: 30,
+    }),
     prisma.car.findMany({ orderBy: [{ status: 'asc' }, { createdAt: 'desc' }] }),
     prisma.driver.findMany({ include: { user: true }, orderBy: { user: { name: 'asc' } } }),
   ]);
 
   const upcomingTwoWeeks = monthBookings.filter((booking) => booking.dateStart >= today && booking.dateStart <= nextTwoWeeks);
+  const unansweredChats = rawChats.filter((chat) => chat.messages[0] && !chat.messages[0].isFromAdmin).slice(0, 6);
 
   return {
     futureBookings,
@@ -247,13 +299,15 @@ async function getDashboardData() {
     closedBookings,
     monthBookings,
     upcomingTwoWeeks,
+    openRequests,
+    unansweredChats,
     cars,
     drivers,
   };
 }
 
 export default async function AdminDashboardPage() {
-  const { futureBookings, activeBookings, closedBookings, monthBookings, upcomingTwoWeeks, cars, drivers } = await getDashboardData();
+  const { futureBookings, activeBookings, closedBookings, monthBookings, upcomingTwoWeeks, openRequests, unansweredChats, cars, drivers } = await getDashboardData();
 
   const monthRevenue = monthBookings.reduce((sum, booking) => sum + Number(booking.price || 0), 0);
   const monthExpenses = monthBookings.reduce((sum, booking) => sum + calcExpenses(booking), 0);
@@ -296,9 +350,11 @@ export default async function AdminDashboardPage() {
         </div>
       </section>
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
         <MetricCard icon={CalendarClock} label="Майбутні рейси" value={`${futureBookings.length}`} hint="найближчі бронювання у черзі" tone="gold" />
         <MetricCard icon={Clock3} label="У дорозі" value={`${activeBookings.length}`} hint="активні рейси прямо зараз" />
+        <MetricCard icon={Inbox} label="Нові заявки" value={`${openRequests.length}`} hint="відкриті, ще не підтверджені" tone={openRequests.length ? 'red' : 'default'} />
+        <MetricCard icon={MessageSquare} label="Чати" value={`${unansweredChats.length}`} hint="останнє повідомлення від клієнта" tone={unansweredChats.length ? 'red' : 'default'} />
         <MetricCard icon={CircleDollarSign} label="Дохід місяця" value={eur(monthRevenue)} hint={`витрати ${eur(monthExpenses)}`} tone="green" />
         <MetricCard icon={TrendingUp} label="Прибуток" value={eur(monthProfit)} hint="після пального, водія і подачі" tone={monthProfit < 0 ? 'red' : 'green'} />
       </section>
@@ -362,6 +418,14 @@ export default async function AdminDashboardPage() {
                 <div className="text-2xl font-black text-white">{unassignedBookings}</div>
                 <div className="text-sm text-[#a7a6ad]">майбутніх рейсів без водія</div>
               </div>
+              <a href="/admin/bookings" className="rounded-xl border border-red-400/20 bg-red-400/5 p-4 transition hover:border-red-300/45">
+                <div className="text-2xl font-black text-white">{openRequests.length}</div>
+                <div className="text-sm text-[#a7a6ad]">відкритих заявок без підтвердження</div>
+              </a>
+              <a href="/admin/chat" className="rounded-xl border border-red-400/20 bg-red-400/5 p-4 transition hover:border-red-300/45">
+                <div className="text-2xl font-black text-white">{unansweredChats.length}</div>
+                <div className="text-sm text-[#a7a6ad]">чатів очікують відповідь</div>
+              </a>
               <div className="rounded-xl border border-white/10 bg-[#17171f] p-4">
                 <div className="text-2xl font-black text-white">{availableCars} / {cars.length}</div>
                 <div className="text-sm text-[#a7a6ad]">авто доступні в автопарку</div>
@@ -370,6 +434,36 @@ export default async function AdminDashboardPage() {
                 <div className="text-2xl font-black text-white">{activeDrivers} / {drivers.length}</div>
                 <div className="text-sm text-[#a7a6ad]">активні водії</div>
               </div>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-white/10 bg-[#10101a] p-5">
+            <h2 className="flex items-center gap-2 text-xl font-black text-white">
+              <Inbox className="text-[#e9c349]" size={22} />
+              Відкриті заявки
+            </h2>
+            <p className="mt-1 text-sm text-[#8a8a93]">Нові бронювання, які ще треба підтвердити, уточнити або відхилити.</p>
+            <div className="mt-4 grid gap-3">
+              {openRequests.length > 0 ? (
+                openRequests.slice(0, 4).map((booking) => <TripRow key={booking.id} booking={booking} compact />)
+              ) : (
+                <div className="rounded-xl border border-dashed border-white/15 p-4 text-sm text-[#a7a6ad]">Немає відкритих непідтверджених заявок.</div>
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-white/10 bg-[#10101a] p-5">
+            <h2 className="flex items-center gap-2 text-xl font-black text-white">
+              <MessageSquare className="text-[#e9c349]" size={22} />
+              Чати без відповіді
+            </h2>
+            <p className="mt-1 text-sm text-[#8a8a93]">Діалоги, де останнє повідомлення прийшло від клієнта або месенджера.</p>
+            <div className="mt-4 grid gap-3">
+              {unansweredChats.length > 0 ? (
+                unansweredChats.map((chat) => <ChatRow key={chat.id} chat={chat} />)
+              ) : (
+                <div className="rounded-xl border border-dashed border-white/15 p-4 text-sm text-[#a7a6ad]">Немає чатів, які чекають відповідь.</div>
+              )}
             </div>
           </div>
 
