@@ -5,7 +5,13 @@ import { getAutoEmptyLegPromotions } from '@/lib/emptyLegs';
 export async function GET() {
   try {
     const promos = await prisma.promotion.findMany({
-      include: { car: true },
+      include: {
+        car: {
+          include: {
+            media: { where: { active: true }, orderBy: [{ isCover: 'desc' }, { order: 'asc' }] },
+          },
+        },
+      },
       orderBy: { createdAt: 'desc' }
     });
     const autoPromos = await getAutoEmptyLegPromotions();

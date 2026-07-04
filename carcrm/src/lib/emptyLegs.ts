@@ -88,13 +88,18 @@ export async function getAutoEmptyLegPromotions(now = new Date()) {
     const window = returnWindow(booking);
     const available = await isCarAvailableForInterval(booking.carId, window.start, window.end, booking.id);
     if (!available) continue;
+    const discount = autoEmptyDiscount(window.start, now);
+    const originalPrice = Math.max(0, Math.round(window.distanceKm * Number(booking.car.baseRate || 0)));
+    const discountedPrice = Math.max(0, Math.round(originalPrice * (1 - discount / 100)));
 
     promos.push({
       id: `${AUTO_EMPTY_PREFIX}${booking.id}`,
       title: `${fromCity} та околиці -> ${baseCity}`,
       routeFrom: fromCity,
       routeTo: baseCity,
-      discount: autoEmptyDiscount(window.start, now),
+      discount,
+      originalPrice,
+      discountedPrice,
       dateStart: window.start,
       active: true,
       carId: booking.carId,
