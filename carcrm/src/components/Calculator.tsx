@@ -667,12 +667,18 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
               {filteredCars.map(car => {
                 const priceForCar = calculatePriceForCar(car);
                 const cover = getCarCover(car);
+                const optionChips = [
+                  car.allowsChildren ? 'Діти' : null,
+                  car.allowsAnimals ? 'Тварини' : null,
+                  Number(car.childSeatFee || 0) > 0 ? 'Крісла' : null,
+                  Number(car.meetAndGreetFee || 0) > 0 ? 'Зустріч + багаж' : null,
+                ].filter(Boolean);
                 return (
                 <label key={car.id} className="cursor-pointer group">
                   <input type="radio" name="service_class" value={car.id} checked={selectedCarId === car.id} onChange={() => setSelectedCarId(car.id)} className="peer sr-only" />
-                  <div className="glass-panel p-4 md:p-6 rounded-2xl border border-white/10 peer-checked:border-[#e9c349] peer-checked:bg-[#e9c349]/5 transition-all flex flex-col sm:flex-row items-center gap-4 md:gap-6 h-full relative overflow-hidden group-hover:border-white/30 peer-checked:shadow-[0_0_20px_rgba(233,195,73,0.15)]">
+                  <div className="glass-panel grid h-full min-h-[320px] grid-cols-1 gap-4 overflow-hidden rounded-2xl border border-white/10 p-4 transition-all peer-checked:border-[#e9c349] peer-checked:bg-[#e9c349]/5 peer-checked:shadow-[0_0_20px_rgba(233,195,73,0.15)] group-hover:border-white/30 sm:grid-cols-[150px_minmax(0,1fr)] md:p-5">
                     
-                    <div className="w-full sm:w-40 h-32 rounded-xl overflow-hidden bg-[#1b1b1c] shrink-0 relative">
+                    <div className="relative h-40 w-full overflow-hidden rounded-xl bg-[#1b1b1c] sm:h-full sm:min-h-[210px]">
                       {cover ? (
                         cover.type === 'video' ? (
                           <video src={cover.url} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" muted loop playsInline />
@@ -684,36 +690,44 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalCurr
                           <span className="material-symbols-outlined text-[#46474a] text-4xl">directions_car</span>
                         </div>
                       )}
+                      {selectedCarId === car.id && (
+                        <span className="material-symbols-outlined absolute right-3 top-3 rounded-full bg-[#080818]/80 text-3xl text-[#e9c349] drop-shadow-[0_0_8px_rgba(233,195,73,0.5)] backdrop-blur">check_circle</span>
+                      )}
                     </div>
 
-                    <div className="flex-1 flex flex-col h-full w-full">
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <span className="block font-headline-md text-xl md:text-2xl mb-1 text-white">{car.make}</span>
-                          <span className="text-sm font-bold text-[#e9c349]">{car.model}</span>
-                          <span className="mt-2 inline-flex rounded-full border border-[#e9c349]/25 bg-[#e9c349]/10 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-[#e9c349]">{car.comfortClass || 'Premium'}</span>
-                        </div>
-                        {selectedCarId === car.id && (
-                          <span className="material-symbols-outlined text-3xl text-[#e9c349] drop-shadow-[0_0_8px_rgba(233,195,73,0.5)]">check_circle</span>
-                        )}
+                    <div className="flex min-w-0 flex-col">
+                      <div className="min-w-0">
+                        <span className="block break-words font-headline-md text-xl leading-tight text-white md:text-2xl">{car.make}</span>
+                        <span className="mt-1 block break-words text-sm font-bold leading-snug text-[#e9c349]">{car.model}</span>
+                        <span className="mt-3 inline-flex max-w-full whitespace-normal break-words rounded-full border border-[#e9c349]/25 bg-[#e9c349]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#e9c349]">{car.comfortClass || 'Premium'}</span>
                       </div>
                       
-                      <div className="mt-auto pt-4 flex items-end justify-between border-t border-white/10">
-                        <div className="flex items-center gap-4 text-xs text-[#c7c6ca] uppercase tracking-widest font-bold">
-                          <div className="flex items-center gap-1" title="Пасажирських місць">
+                      <div className="mt-auto space-y-3 pt-4">
+                        <div className="flex flex-wrap gap-2 border-t border-white/10 pt-4 text-xs font-bold uppercase tracking-widest text-[#c7c6ca]">
+                          <div className="inline-flex items-center gap-1 rounded-lg bg-white/[0.04] px-2.5 py-2" title="Пасажирських місць">
                             <span className="material-symbols-outlined text-lg">person</span> {car.capacity}
                           </div>
-                          <div className="flex items-center gap-1" title="Валіз">
+                          <div className="inline-flex items-center gap-1 rounded-lg bg-white/[0.04] px-2.5 py-2" title="Валіз">
                             <span className="material-symbols-outlined text-lg">business_center</span> {car.luggageCapacity || 0}
                           </div>
-                          <div className="flex items-center gap-1" title="Рік випуску">
+                          <div className="inline-flex items-center gap-1 rounded-lg bg-white/[0.04] px-2.5 py-2" title="Рік випуску">
                             <span className="material-symbols-outlined text-lg">calendar_month</span> {car.year}
                           </div>
                         </div>
-                        
-                        <div className="text-right">
-                          <span className="text-[10px] text-[#c7c6ca] uppercase tracking-widest block mb-1">Орієнтовно</span>
-                          <span className={`text-2xl font-display-lg ${selectedCarId === car.id ? 'text-[#e9c349]' : 'text-white'}`}>
+
+                        {optionChips.length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {optionChips.map((chip) => (
+                              <span key={chip} className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[11px] font-bold text-[#c7c6ca]">
+                                {chip}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="flex flex-col gap-1 rounded-xl border border-white/10 bg-[#080818]/60 p-3 sm:flex-row sm:items-end sm:justify-between">
+                          <span className="text-[10px] text-[#c7c6ca] uppercase tracking-widest">Орієнтовно</span>
+                          <span className={`text-2xl leading-none font-display-lg ${selectedCarId === car.id ? 'text-[#e9c349]' : 'text-white'}`}>
                             € {priceForCar}
                           </span>
                         </div>
