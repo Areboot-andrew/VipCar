@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { Percent, Calendar, MapPin, ArrowRight, Route, CarFront } from 'lucide-react';
+import { Percent, Calendar, MapPin, Route, CarFront } from 'lucide-react';
 import { motion } from 'framer-motion';
 import HighlightedTitle from './ui/HighlightedTitle';
 import { withContentDefaults } from '../lib/contentDefaults';
@@ -84,8 +84,6 @@ export default function EmptyLegsBanner({ cmsSettings = {} }: { cmsSettings?: Re
           const cover = getCover(promo);
           const oldPrice = priceLabel(promo.originalPrice);
           const newPrice = priceLabel(promo.discountedPrice);
-          const hasRouteMap = [promo.pickupCenterLat, promo.pickupCenterLng, promo.dropoffLat, promo.dropoffLng]
-            .every((value) => typeof value === 'number' && Number.isFinite(value));
           return (
             <motion.article
               key={promo.id}
@@ -125,34 +123,10 @@ export default function EmptyLegsBanner({ cmsSettings = {} }: { cmsSettings?: Re
                       {promo.distanceKm && <span className="rounded-full bg-white/5 px-3 py-1 text-xs font-bold text-[#c7c6ca]">{Math.round(promo.distanceKm)} км</span>}
                     </div>
                     <div className="relative min-h-[180px] overflow-hidden">
-                      {hasRouteMap ? (
-                        <EmptyLegRouteMap
-                          from={{ lat: promo.pickupCenterLat as number, lng: promo.pickupCenterLng as number, label: promo.routeFrom || c['empty_legs_anywhere'] }}
-                          to={{ lat: promo.dropoffLat as number, lng: promo.dropoffLng as number, label: promo.routeTo || c['empty_legs_anywhere'] }}
-                        />
-                      ) : (
-                        <div className="relative min-h-[180px] overflow-hidden p-4">
-                          <div className="absolute inset-0 opacity-30 [background-image:linear-gradient(#ffffff12_1px,transparent_1px),linear-gradient(90deg,#ffffff12_1px,transparent_1px)] [background-size:22px_22px]"></div>
-                          <div className="absolute inset-x-8 top-1/2 h-[2px] -translate-y-1/2 bg-gradient-to-r from-[#e9c349] via-[#e9c349]/70 to-[#e9c349]"></div>
-                          <div className="relative flex min-h-[148px] items-center justify-between gap-5">
-                            <div className="z-10 max-w-[42%]">
-                              <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-[#e9c349]/40 bg-[#e9c349]/15">
-                                <MapPin size={18} className="text-[#e9c349]" />
-                              </div>
-                              <div className="text-lg font-black text-white">{promo.routeFrom || c['empty_legs_anywhere']}</div>
-                            </div>
-                            <div className="z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#e9c349] text-black shadow-[0_8px_24px_rgba(233,195,73,0.25)]">
-                              <ArrowRight size={20} />
-                            </div>
-                            <div className="z-10 max-w-[42%] text-right">
-                              <div className="ml-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full border border-[#e9c349]/40 bg-[#e9c349]/15">
-                                <span className="material-symbols-outlined text-[19px] text-[#e9c349]">home_pin</span>
-                              </div>
-                              <div className="text-lg font-black text-white">{promo.routeTo || c['empty_legs_anywhere']}</div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
+                      <EmptyLegRouteMap
+                        from={{ lat: promo.pickupCenterLat, lng: promo.pickupCenterLng, label: promo.routeFrom || c['empty_legs_anywhere'] }}
+                        to={{ lat: promo.dropoffLat, lng: promo.dropoffLng, label: promo.routeTo || c['empty_legs_anywhere'] }}
+                      />
                     </div>
                   </div>
 

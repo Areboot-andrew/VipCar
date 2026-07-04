@@ -13,15 +13,64 @@ L.Icon.Default.mergeOptions({
 });
 
 type Point = {
+  lat?: number | null;
+  lng?: number | null;
+  label: string;
+};
+
+type ResolvedPoint = {
   lat: number;
   lng: number;
   label: string;
 };
 
+const KNOWN_POINTS: Record<string, { lat: number; lng: number }> = {
+  'львів': { lat: 49.8397, lng: 24.0297 },
+  'lviv': { lat: 49.8397, lng: 24.0297 },
+  'київ': { lat: 50.4501, lng: 30.5234 },
+  'kyiv': { lat: 50.4501, lng: 30.5234 },
+  'kiev': { lat: 50.4501, lng: 30.5234 },
+  'краків': { lat: 50.0647, lng: 19.945 },
+  'kraków': { lat: 50.0647, lng: 19.945 },
+  'krakow': { lat: 50.0647, lng: 19.945 },
+  'warszawa': { lat: 52.2297, lng: 21.0122 },
+  'варшава': { lat: 52.2297, lng: 21.0122 },
+  'wrocław': { lat: 51.1079, lng: 17.0385 },
+  'wroclaw': { lat: 51.1079, lng: 17.0385 },
+  'berlin brandenburg airport': { lat: 52.3667, lng: 13.5033 },
+  'берлін': { lat: 52.52, lng: 13.405 },
+};
+
+function knownPoint(label: string) {
+  const normalized = label.trim().toLocaleLowerCase('uk');
+  const direct = KNOWN_POINTS[normalized];
+  if (direct) return direct;
+  const match = Object.entries(KNOWN_POINTS).find(([key]) => normalized.includes(key));
+  return match?.[1] || null;
+}
+
+async function geocodePoint(point: Point, signal: AbortSignal): Promise<ResolvedPoint | null> {
+  if (typeof point.lat === 'number' && typeof point.lng === 'number') {
+    return { lat: point.lat, lng: point.lng, label: point.label };
+  }
+
+  const known = knownPoint(point.label);
+  if (known) return { ...known, label: point.label };
+
+  const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(point.label)}`, { signal });
+  if (!res.ok) return null;
+  const data = await res.json();
+  const first = Array.isArray(data) ? data[0] : null;
+  if (!first?.lat || !first?.lon) return null;
+
+  return { lat: Number(first.lat), lng: Number(first.lon), label: point.label };
+}
+
 function FitRoute({ positions }: { positions: [number, number][] }) {
   const map = useMap();
 
   useEffect(() => {
+    map.invalidateSize();
     if (positions.length > 1) {
       map.fitBounds(L.latLngBounds(positions), { padding: [28, 28], maxZoom: 8 });
     }
@@ -30,34 +79,48 @@ function FitRoute({ positions }: { positions: [number, number][] }) {
   return null;
 }
 
-function fallbackPositions(from: Point, to: Point): [number, number][] {
+function fallbackPositions(from: ResolvedPoint, to: ResolvedPoint): [number, number][] {
   return [[from.lat, from.lng], [to.lat, to.lng]];
 }
 
 export default function EmptyLegRouteMap({ from, to }: { from: Point; to: Point }) {
-  const [positions, setPositions] = useState<[number, number][]>(() => fallbackPositions(from, to));
+  const [resolvedFrom, setResolvedFrom] = useState<ResolvedPoint | null>(null);
+  const [resolvedTo, setResolvedTo] = useState<ResolvedPoint | null>(null);
+  const [positions, setPositions] = useState<[number, number][]>([]);
 
-  const routeKey = `${from.lat},${from.lng}-${to.lat},${to.lng}`;
-  const center = useMemo<[number, number]>(() => [(from.lat + to.lat) / 2, (from.lng + to.lng) / 2], [from.lat, from.lng, to.lat, to.lng]);
+  const routeKey = `${from.lat || ''},${from.lng || ''},${from.label}-${to.lat || ''},${to.lng || ''},${to.label}`;
+  const center = useMemo<[number, number]>(() => {
+    if (resolvedFrom && resolvedTo) return [(resolvedFrom.lat + resolvedTo.lat) / 2, (resolvedFrom.lng + resolvedTo.lng) / 2];
+    return [50.2, 23.5];
+  }, [resolvedFrom, resolvedTo]);
 
   useEffect(() => {
     let cancelled = false;
-    setPositions(fallbackPositions(from, to));
+    setPositions([]);
+    setResolvedFrom(null);
+    setResolvedTo(null);
 
     const controller = new AbortController();
-    const url = `https://router.project-osrm.org/route/v1/driving/${from.lng},${from.lat};${to.lng},${to.lat}?overview=full&geometries=geojson`;
 
-    fetch(url, { signal: controller.signal })
-      .then((res) => res.ok ? res.json() : null)
-      .then((data) => {
+    Promise.all([
+      geocodePoint(from, controller.signal),
+      geocodePoint(to, controller.signal),
+    ])
+      .then(async ([start, finish]) => {
+        if (cancelled || !start || !finish) return;
+        setResolvedFrom(start);
+        setResolvedTo(finish);
+        setPositions(fallbackPositions(start, finish));
+
+        const url = `https://router.project-osrm.org/route/v1/driving/${start.lng},${start.lat};${finish.lng},${finish.lat}?overview=full&geometries=geojson`;
+        const res = await fetch(url, { signal: controller.signal });
+        const data = res.ok ? await res.json() : null;
         const coords = data?.routes?.[0]?.geometry?.coordinates;
         if (!cancelled && Array.isArray(coords) && coords.length > 1) {
           setPositions(coords.map((coord: [number, number]) => [coord[1], coord[0]]));
         }
       })
-      .catch(() => {
-        if (!cancelled) setPositions(fallbackPositions(from, to));
-      });
+      .catch(() => {});
 
     return () => {
       cancelled = true;
@@ -66,7 +129,8 @@ export default function EmptyLegRouteMap({ from, to }: { from: Point; to: Point 
   }, [routeKey, from.lat, from.lng, from.label, to.lat, to.lng, to.label]);
 
   return (
-    <MapContainer
+    <div className="relative h-full min-h-[180px] w-full">
+      <MapContainer
       center={center}
       zoom={6}
       scrollWheelZoom={false}
@@ -81,18 +145,28 @@ export default function EmptyLegRouteMap({ from, to }: { from: Point; to: Point 
         attribution='&copy; <a href="https://carto.com/">Carto</a>'
         url="https://{s}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png"
       />
-      <Polyline positions={positions} pathOptions={{ color: '#e9c349', weight: 5, opacity: 0.95 }} />
-      <Marker position={[from.lat, from.lng]}>
+        {positions.length > 1 && <Polyline positions={positions} pathOptions={{ color: '#e9c349', weight: 5, opacity: 0.95 }} />}
+        {resolvedFrom && (
+          <Marker position={[resolvedFrom.lat, resolvedFrom.lng]}>
         <Tooltip permanent direction="top" offset={[0, -34]} className="custom-map-tooltip">
-          {from.label}
+              {resolvedFrom.label}
         </Tooltip>
       </Marker>
-      <Marker position={[to.lat, to.lng]}>
+        )}
+        {resolvedTo && (
+          <Marker position={[resolvedTo.lat, resolvedTo.lng]}>
         <Tooltip permanent direction="top" offset={[0, -34]} className="custom-map-tooltip">
-          {to.label}
+              {resolvedTo.label}
         </Tooltip>
       </Marker>
-      <FitRoute positions={positions} />
-    </MapContainer>
+        )}
+        <FitRoute positions={positions} />
+      </MapContainer>
+      {positions.length === 0 && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-[#080818]/35 text-xs font-bold uppercase tracking-widest text-[#e9c349]">
+          Будуємо карту маршруту
+        </div>
+      )}
+    </div>
   );
 }
