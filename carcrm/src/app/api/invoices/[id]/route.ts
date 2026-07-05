@@ -56,40 +56,61 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     const invoice = await prisma.invoice.update({ where: { id }, data });
 
-    // Receipt to the client's booking chat when payment is registered
+    // Receipt to the client's booking chat — only when money was actually received.
+    // Separate wording per stage: deposit / balance top-up / full payment.
     if (body.notifyClient && invoice.bookingId) {
       try {
-        const booking = await prisma.booking.findUnique({
-          where: { id: invoice.bookingId },
-          include: { client: true },
-        });
-        if (booking) {
-          const oldPaid = Number(current.paidAmount || 0);
-          const newPaid = Number(invoice.paidAmount || 0);
-          const received = Math.max(0, Math.round(newPaid - oldPaid));
-          const remaining = Math.max(0, Math.round(Number(invoice.amount || 0) - newPaid));
-          const methodLabel: Record<string, string> = { CASH: 'готівка', CARD: 'карта', USDT: 'USDT', BANK: 'банківський переказ' };
+        const oldPaid = Number(current.paidAmount || 0);
+        const newPaid = Number(invoice.paidAmount || 0);
+        const received = Math.max(0, Math.round(newPaid - oldPaid));
 
-          const lines = [
-            '🧾 Квитанція про оплату',
-            `${booking.routeFrom.split(',')[0]} → ${booking.routeTo.split(',')[0]}, ${new Date(booking.dateStart).toLocaleDateString('uk-UA')}`,
-            received > 0
-              ? `Ми отримали вашу оплату: €${received}${invoice.paymentMethod ? ` (${methodLabel[invoice.paymentMethod] || invoice.paymentMethod})` : ''}.`
-              : 'Статус оплати оновлено.',
-            `Всього сплачено: €${Math.round(newPaid)} із €${Math.round(Number(invoice.amount || 0))}.`,
-            remaining === 0 ? 'Поїздку оплачено повністю. Дякуємо!' : `Залишок до сплати: €${remaining}.`,
-          ];
-
-          let chatRoom = await prisma.chatRoom.findUnique({ where: { bookingId: booking.id } });
-          if (!chatRoom) {
-            chatRoom = await prisma.chatRoom.create({
-              data: { bookingId: booking.id, platform: 'WEB', clientName: booking.client.name, clientPhone: booking.client.phone },
-            });
-          }
-          await prisma.message.create({
-            data: { chatRoomId: chatRoom.id, isFromAdmin: true, content: lines.join('\n') },
+        if (received > 0) {
+          const booking = await prisma.booking.findUnique({
+            where: { id: invoice.bookingId },
+            include: { client: true },
           });
-          await prisma.chatRoom.update({ where: { id: chatRoom.id }, data: { updatedAt: new Date() } });
+          if (booking) {
+            const amount = Math.round(Number(invoice.amount || 0));
+            const remaining = Math.max(0, Math.round(amount - newPaid));
+            const deposit = Number(invoice.depositAmount || 0);
+            const methodLabel: Record<string, string> = { CASH: 'готівка', CARD: 'карта', USDT: 'USDT', BANK: 'банківський переказ' };
+            const method = invoice.paymentMethod ? ` (${methodLabel[invoice.paymentMethod] || invoice.paymentMethod})` : '';
+
+            let header: string;
+            let bodyLine: string;
+            if (remaining === 0 && oldPaid === 0) {
+              header = '🧾 Квитанція: повна оплата';
+              bodyLine = `Ми отримали вашу оплату €${received}${method}. Поїздку оплачено повністю. Дякуємо!`;
+            } else if (remaining === 0) {
+              header = '🧾 Квитанція: доплата';
+              bodyLine = `Ми отримали доплату €${received}${method}. Поїздку оплачено повністю. Дякуємо!`;
+            } else if (oldPaid === 0 && deposit > 0 && received <= deposit) {
+              header = '🧾 Квитанція: завдаток';
+              bodyLine = `Ми отримали ваш завдаток €${received}${method}. Бронювання закріплено за вами.`;
+            } else {
+              header = '🧾 Квитанція: часткова оплата';
+              bodyLine = `Ми отримали вашу оплату €${received}${method}.`;
+            }
+
+            const lines = [
+              header,
+              `${booking.routeFrom.split(',')[0]} → ${booking.routeTo.split(',')[0]}, ${new Date(booking.dateStart).toLocaleDateString('uk-UA')}`,
+              bodyLine,
+              `Всього сплачено: €${Math.round(newPaid)} із €${amount}.`,
+            ];
+            if (remaining > 0) lines.push(`Залишок до сплати: €${remaining}.`);
+
+            let chatRoom = await prisma.chatRoom.findUnique({ where: { bookingId: booking.id } });
+            if (!chatRoom) {
+              chatRoom = await prisma.chatRoom.create({
+                data: { bookingId: booking.id, platform: 'WEB', clientName: booking.client.name, clientPhone: booking.client.phone },
+              });
+            }
+            await prisma.message.create({
+              data: { chatRoomId: chatRoom.id, isFromAdmin: true, content: lines.join('\n') },
+            });
+            await prisma.chatRoom.update({ where: { id: chatRoom.id }, data: { updatedAt: new Date() } });
+          }
         }
       } catch (e) {
         console.error('Receipt notify failed:', e);

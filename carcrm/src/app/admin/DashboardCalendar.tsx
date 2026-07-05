@@ -309,7 +309,7 @@ export default function DashboardCalendar({ cars, bookings, drivers = [], onOpen
     updateBooking({ price: value });
   };
 
-  const patchInvoice = async (payload: Record<string, unknown>) => {
+  const patchInvoice = async (payload: Record<string, unknown>, successMessage = 'Оплату оновлено.') => {
     if (!selectedBooking?.invoice) {
       setFinanceNotice('Рахунок ще не створено. Спершу відкоригуй та збережи ціну.');
       return;
@@ -324,10 +324,34 @@ export default function DashboardCalendar({ cars, bookings, drivers = [], onOpen
       const invoice = await res.json();
       if (!res.ok) throw new Error('Invoice update failed');
       setLocalBookings((prev) => prev.map((booking) => (booking.id === selectedBooking.id ? { ...booking, invoice } : booking)));
-      setFinanceNotice('Оплату оновлено.');
+      setFinanceNotice(successMessage);
     } catch {
       setFinanceNotice('Не вдалося оновити оплату.');
     }
+  };
+
+  // Stage actions: deposit receipt, balance/full-payment receipt, silent undo
+  const confirmDeposit = () => {
+    const deposit = Math.max(0, Math.round(Number(depositDraft) || 0));
+    if (deposit <= 0) {
+      setFinanceNotice('Вкажи суму завдатку більше 0.');
+      return;
+    }
+    patchInvoice(
+      { paidAmount: deposit, depositAmount: deposit, paymentMethod: payMethod, paidAt: new Date().toISOString(), notifyClient: true },
+      `Завдаток €${deposit} зафіксовано. Квитанцію надіслано клієнту в чат.`
+    );
+  };
+
+  const confirmFullPayment = () => {
+    patchInvoice(
+      { status: 'PAID', paymentMethod: payMethod, notifyClient: true },
+      'Оплату зафіксовано повністю. Квитанцію надіслано клієнту в чат.'
+    );
+  };
+
+  const undoPayment = () => {
+    patchInvoice({ status: 'UNPAID' }, 'Оплату скинуто. Клієнту нічого не надсилалось.');
   };
 
   const sendPaymentToChat = async () => {
@@ -392,6 +416,16 @@ export default function DashboardCalendar({ cars, bookings, drivers = [], onOpen
     : 0;
   const profit = Number(selectedBooking?.netProfit ?? (bookingPrice - internalCost));
   const marginPercent = bookingPrice > 0 ? Math.round((profit / bookingPrice) * 100) : 0;
+
+  // Payment stage (booking.com-style): awaiting deposit -> deposit paid -> fully paid
+  const paymentStage: 'awaiting' | 'deposit_paid' | 'paid' =
+    bookingPrice > 0 && invoiceRemaining === 0 ? 'paid'
+    : invoicePaid > 0 && invoiceDeposit > 0 && invoicePaid >= invoiceDeposit ? 'deposit_paid'
+    : 'awaiting';
+  // What the client owes right now: deposit first, then the balance
+  const dueNow = paymentStage === 'awaiting' && invoiceDeposit > 0
+    ? Math.max(0, invoiceDeposit - invoicePaid)
+    : invoiceRemaining;
 
   return (
     <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#13131a] shadow-2xl">
@@ -624,31 +658,40 @@ export default function DashboardCalendar({ cars, bookings, drivers = [], onOpen
               <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
                 <div className="mb-3 flex items-center gap-2 text-sm font-bold text-white"><WalletCards size={16} className="text-[#e9c349]" /> Фінанси рейсу</div>
 
-                {/* Дохід: що платить клієнт */}
-                <div className="rounded-lg border border-[#e9c349]/25 bg-[#e9c349]/10 p-3">
-                  <div className="mb-2 text-[11px] font-bold uppercase tracking-widest text-[#b9a35b]">Клієнт платить</div>
-                  <div className="flex items-end gap-2">
-                    <label className="grid flex-1 gap-1">
-                      <span className="text-[11px] text-[#8a8a93]">Повна ціна, € — можна відкоригувати</span>
-                      <input type="number" min="0" value={priceDraft} onChange={(e) => setPriceDraft(e.target.value)} className={fieldClass()} />
-                    </label>
-                    <button onClick={savePrice} disabled={saving} className="inline-flex h-10 items-center gap-1 rounded-lg bg-[#e9c349] px-3 text-xs font-bold text-black disabled:opacity-60">
-                      <Save size={14} /> Зберегти
-                    </button>
+                {/* Оплата: статус -> рахунок списком -> дії за етапом */}
+                <div className={`rounded-lg border p-3 ${paymentStage === 'paid' ? 'border-emerald-400/30 bg-emerald-400/[0.07]' : 'border-[#e9c349]/25 bg-[#e9c349]/[0.07]'}`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[11px] font-bold uppercase tracking-widest text-[#b9a35b]">Оплата</span>
+                    <span className={`rounded-full px-3 py-1 text-[11px] font-bold ${
+                      paymentStage === 'paid' ? 'bg-emerald-400/15 text-emerald-300'
+                      : paymentStage === 'deposit_paid' ? 'bg-sky-400/15 text-sky-300'
+                      : 'bg-[#e9c349]/15 text-[#e9c349]'
+                    }`}>
+                      {paymentStage === 'paid' ? '✓ Оплачено повністю'
+                        : paymentStage === 'deposit_paid' ? `Завдаток сплачено · залишок ${money(invoiceRemaining)}`
+                        : invoiceDeposit > 0 ? `Очікує завдаток ${money(invoiceDeposit)}` : 'Очікує оплату'}
+                    </span>
                   </div>
-                  {(Number(selectedBooking.discountPercent || 0) > 0 || Number(selectedBooking.surcharges || 0) > 0) && (
-                    <div className="mt-2 grid gap-1 text-xs text-[#c7c6ca]">
-                      {Number(selectedBooking.discountPercent || 0) > 0 && (
-                        <div className="flex justify-between"><span>Знижка клієнта</span><strong className="text-white">−{Number(selectedBooking.discountPercent).toFixed(0)}% ({money(selectedBooking.discountAmount)})</strong></div>
-                      )}
-                      {Number(selectedBooking.surcharges || 0) > 0 && (
-                        <div className="flex justify-between"><span>Опції в ціні (крісла, тварини, зустріч...)</span><strong className="text-white">{money(selectedBooking.surcharges)}</strong></div>
-                      )}
+
+                  {/* Рахунок */}
+                  <div className="mt-3 grid gap-1.5 text-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-[#8a8a93]">Повна ціна</span>
+                      <span className="flex items-center gap-1.5">
+                        <input type="number" min="0" value={priceDraft} onChange={(e) => setPriceDraft(e.target.value)} className="h-8 w-24 rounded-md border border-white/10 bg-[#080818] px-2 text-right text-sm font-bold text-white outline-none focus:border-[#e9c349]/60" />
+                        <button onClick={savePrice} disabled={saving} title="Зберегти нову ціну (оновить завдаток і прибуток)" className="flex h-8 w-8 items-center justify-center rounded-md bg-[#e9c349] text-black disabled:opacity-60">
+                          <Save size={13} />
+                        </button>
+                      </span>
                     </div>
-                  )}
-                  <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-                    <div className="rounded-lg bg-black/25 p-2">
-                      <div className="text-[10px] uppercase tracking-widest text-[#8a8a93]">Завдаток, €</div>
+                    {Number(selectedBooking.surcharges || 0) > 0 && (
+                      <div className="flex justify-between gap-3 text-xs"><span className="text-[#8a8a93]">у т.ч. опції (крісла, тварини, зустріч)</span><span className="text-[#c7c6ca]">{money(selectedBooking.surcharges)}</span></div>
+                    )}
+                    {Number(selectedBooking.discountPercent || 0) > 0 && (
+                      <div className="flex justify-between gap-3 text-xs"><span className="text-[#8a8a93]">знижка клієнта</span><span className="text-[#c7c6ca]">−{Number(selectedBooking.discountPercent).toFixed(0)}% ({money(selectedBooking.discountAmount)})</span></div>
+                    )}
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-[#8a8a93]">Завдаток</span>
                       <input
                         type="number"
                         min="0"
@@ -656,45 +699,58 @@ export default function DashboardCalendar({ cars, bookings, drivers = [], onOpen
                         onChange={(e) => setDepositDraft(e.target.value)}
                         onBlur={() => {
                           const value = Math.max(0, Math.round(Number(depositDraft) || 0));
-                          if (value !== invoiceDeposit) patchInvoice({ depositAmount: value });
+                          if (value !== invoiceDeposit) patchInvoice({ depositAmount: value }, 'Суму завдатку оновлено.');
                         }}
-                        className="mt-1 w-full rounded-md border border-white/10 bg-transparent text-center text-sm font-bold text-white outline-none focus:border-[#e9c349]/60"
+                        className="h-8 w-24 rounded-md border border-white/10 bg-[#080818] px-2 text-right text-sm font-bold text-white outline-none focus:border-[#e9c349]/60"
                       />
                     </div>
-                    <div className="rounded-lg bg-black/25 p-2">
-                      <div className="text-[10px] uppercase tracking-widest text-[#8a8a93]">Оплачено</div>
-                      <div className={`text-sm font-bold ${invoicePaid > 0 ? 'text-emerald-300' : 'text-white'}`}>{money(invoicePaid)}</div>
-                      {invoice?.paidAt && <div className="text-[10px] text-[#8a8a93]">{dateTime(invoice.paidAt)}</div>}
+                    <div className="flex justify-between gap-3">
+                      <span className="text-[#8a8a93]">Сплачено</span>
+                      <strong className={invoicePaid > 0 ? 'text-emerald-300' : 'text-white'}>
+                        {money(invoicePaid)}{invoice?.paidAt && invoicePaid > 0 ? ` · ${dateTime(invoice.paidAt)}` : ''}
+                      </strong>
                     </div>
-                    <div className="rounded-lg bg-black/25 p-2">
-                      <div className="text-[10px] uppercase tracking-widest text-[#8a8a93]">Залишок</div>
-                      <div className={`text-sm font-bold ${invoiceRemaining === 0 ? 'text-emerald-300' : 'text-[#e9c349]'}`}>{invoiceRemaining === 0 ? 'Оплачено' : money(invoiceRemaining)}</div>
+                    <div className="flex justify-between gap-3 border-t border-white/10 pt-1.5">
+                      <span className="font-bold text-[#c7c6ca]">Залишок</span>
+                      <strong className={invoiceRemaining === 0 ? 'text-emerald-300' : 'text-[#e9c349]'}>{invoiceRemaining === 0 ? '€0 — оплачено' : money(invoiceRemaining)}</strong>
                     </div>
                   </div>
-                </div>
 
-                {/* Дії з оплатою */}
-                <div className="mt-3 grid gap-2">
-                  <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] gap-2">
-                    <select value={payMethod} onChange={(e) => setPayMethod(e.target.value)} className={fieldClass()}>
-                      {PAY_METHODS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
-                    </select>
-                    <button onClick={() => patchInvoice({ paidAmount: Math.max(0, Math.round(Number(depositDraft) || 0)), depositAmount: Math.max(0, Math.round(Number(depositDraft) || 0)), paymentMethod: payMethod, paidAt: new Date().toISOString(), notifyClient: true })} className="rounded-lg border border-[#e9c349]/40 px-3 text-xs font-bold text-[#e9c349] hover:bg-[#e9c349]/10">
-                      Завдаток отримано
-                    </button>
-                    <button onClick={() => patchInvoice({ status: 'PAID', paymentMethod: payMethod, notifyClient: true })} className="rounded-lg border border-emerald-400/40 px-3 text-xs font-bold text-emerald-300 hover:bg-emerald-400/10">
-                      Повна оплата
-                    </button>
+                  {/* Дії: одна головна кнопка на кожному етапі */}
+                  <div className="mt-3 grid gap-2 border-t border-white/10 pt-3">
+                    {paymentStage !== 'paid' && (
+                      <div className="grid grid-cols-[112px_minmax(0,1fr)] gap-2">
+                        <select value={payMethod} onChange={(e) => setPayMethod(e.target.value)} className="h-10 rounded-lg border border-white/10 bg-[#080818] px-2 text-sm text-white outline-none focus:border-[#e9c349]/60">
+                          {PAY_METHODS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
+                        </select>
+                        {paymentStage === 'awaiting' && invoiceDeposit > 0 ? (
+                          <button onClick={confirmDeposit} className="h-10 rounded-lg bg-[#e9c349] px-3 text-sm font-bold text-black">
+                            ✓ Завдаток {money(Math.max(0, Math.round(Number(depositDraft) || 0)))} отримано
+                          </button>
+                        ) : (
+                          <button onClick={confirmFullPayment} className="h-10 rounded-lg bg-emerald-400 px-3 text-sm font-bold text-black">
+                            ✓ {paymentStage === 'deposit_paid' ? 'Доплата' : 'Оплата'} {money(invoiceRemaining)} отримана
+                          </button>
+                        )}
+                      </div>
+                    )}
+                    {paymentStage === 'awaiting' && invoiceDeposit > 0 && (
+                      <button onClick={confirmFullPayment} className="h-9 rounded-lg border border-emerald-400/40 text-xs font-bold text-emerald-300 hover:bg-emerald-400/10">
+                        Клієнт оплатив одразу всю суму {money(invoiceRemaining)}
+                      </button>
+                    )}
+                    {invoiceRemaining > 0 && (
+                      <button onClick={sendPaymentToChat} disabled={sendingInvoice} className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[#e9c349]/40 bg-[#e9c349]/10 px-4 text-sm font-bold text-[#e9c349] hover:bg-[#e9c349]/20 disabled:opacity-60">
+                        <Send size={15} /> {sendingInvoice ? 'Надсилаємо...' : `Надіслати рахунок клієнту (до сплати ${money(dueNow)})`}
+                      </button>
+                    )}
+                    {invoicePaid > 0 && (
+                      <button onClick={undoPayment} className="justify-self-start text-xs text-[#8a8a93] underline-offset-2 hover:text-[#c7c6ca] hover:underline">
+                        ↩ Скасувати оплату (клієнту нічого не надсилається)
+                      </button>
+                    )}
+                    {financeNotice && <div className="rounded-lg border border-[#e9c349]/25 bg-[#e9c349]/10 px-3 py-2 text-xs text-[#e9c349]">{financeNotice}</div>}
                   </div>
-                  <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
-                    <button onClick={sendPaymentToChat} disabled={sendingInvoice} className="inline-flex items-center justify-center gap-2 rounded-lg bg-[#e9c349] px-4 py-3 text-sm font-bold text-black disabled:opacity-60">
-                      <Send size={15} /> {sendingInvoice ? 'Надсилаємо...' : 'Надіслати рахунок клієнту в чат'}
-                    </button>
-                    <button onClick={() => patchInvoice({ status: 'UNPAID' })} className="rounded-lg border border-white/15 px-3 text-xs font-bold text-[#c7c6ca] hover:bg-white/5">
-                      Скинути
-                    </button>
-                  </div>
-                  {financeNotice && <div className="rounded-lg border border-[#e9c349]/25 bg-[#e9c349]/10 px-3 py-2 text-xs text-[#e9c349]">{financeNotice}</div>}
                 </div>
 
                 {/* Видатки (собівартість) */}
@@ -728,60 +784,51 @@ export default function DashboardCalendar({ cars, bookings, drivers = [], onOpen
                 </div>
               </div>
 
-              <div className="space-y-3 rounded-xl border border-white/10 bg-white/[0.03] p-4">
-                <div className="text-sm font-bold text-white">Редагування рейсу</div>
-                <label className="grid gap-1 text-xs uppercase tracking-widest text-[#8a8a93]">
-                  Виїзд з клієнтом
-                  <input type="datetime-local" value={editDraft.dateStart} onChange={(e) => setEditDraft({ ...editDraft, dateStart: e.target.value })} className={fieldClass()} />
-                  <span className="text-[11px] normal-case leading-4 tracking-normal text-[#6f6f78]">Час, який бачить клієнт як старт свого маршруту.</span>
-                </label>
-                <label className="grid gap-1 text-xs uppercase tracking-widest text-[#8a8a93]">
-                  Прибуття
-                  <input type="datetime-local" value={editDraft.dateEnd} onChange={(e) => setEditDraft({ ...editDraft, dateEnd: e.target.value, desiredArrivalAt: e.target.value })} className={fieldClass()} />
-                  <span className="text-[11px] normal-case leading-4 tracking-normal text-[#6f6f78]">Орієнтовне прибуття клієнта. Впливає на таймлайн і диспетчеризацію.</span>
-                </label>
-                <label className="grid gap-1 text-xs uppercase tracking-widest text-[#8a8a93]">
-                  Виїзд авто з бази
-                  <input type="datetime-local" value={editDraft.carDispatchAt} onChange={(e) => setEditDraft({ ...editDraft, carDispatchAt: e.target.value })} className={fieldClass()} />
-                  <span className="text-[11px] normal-case leading-4 tracking-normal text-[#6f6f78]">Внутрішній час подачі з бази. Клієнту не показується, але важливий для водія.</span>
-                </label>
-                <label className="grid gap-1 text-xs uppercase tracking-widest text-[#8a8a93]">Водій
-                  <select value={editDraft.driverId} onChange={(e) => setEditDraft({ ...editDraft, driverId: e.target.value })} className={fieldClass()}>
-                    <option value="">Не призначено</option>
-                    {localDrivers.map((driver) => <option key={driver.id} value={driver.id}>{driver.user.name}</option>)}
-                  </select>
-                  <span className="text-[11px] normal-case leading-4 tracking-normal text-[#6f6f78]">Заміна водія для конкретного рейсу. Його ставки враховуються у витратах і прибутку.</span>
-                </label>
-                <label className="grid gap-1 text-xs uppercase tracking-widest text-[#8a8a93]">Статус
-                  <select value={editDraft.status} onChange={(e) => setEditDraft({ ...editDraft, status: e.target.value })} className={fieldClass()}>
-                    <option value="PENDING">Нова</option>
-                    <option value="CONFIRMED">Підтверджена</option>
-                    <option value="COMPLETED">Завершена</option>
-                    <option value="CANCELLED">Скасована</option>
-                  </select>
-                  <span className="text-[11px] normal-case leading-4 tracking-normal text-[#6f6f78]">Стан рейсу для календаря, клієнта, водія і фінансового обліку.</span>
-                </label>
-                <label className="flex items-start gap-3 rounded-lg border border-white/10 bg-[#080818] p-3 text-sm normal-case tracking-normal text-[#c7c6ca]">
-                  <input
-                    type="checkbox"
-                    checked={editDraft.isEndingAtBase}
-                    onChange={(e) => setEditDraft({ ...editDraft, isEndingAtBase: e.target.checked })}
-                    className="mt-1 h-4 w-4 accent-[#e9c349]"
-                  />
-                  <span>
-                    <span className="block font-bold text-white">Повернути авто на базу після рейсу</span>
-                    <span className="mt-1 block text-[11px] leading-4 text-[#6f6f78]">
-                      Якщо вимкнено, наступний рейс цього авто стартує з точки прибуття. Якщо увімкнено, система перерахує повернення на базу і повний пробіг.
-                    </span>
-                  </span>
-                </label>
-                <label className="grid gap-1 text-xs uppercase tracking-widest text-[#8a8a93]">Нотатки для водія
-                  <textarea rows={4} value={editDraft.driverNotes} onChange={(e) => setEditDraft({ ...editDraft, driverNotes: e.target.value })} className="w-full resize-y rounded-lg border border-white/10 bg-[#080818] p-3 text-sm normal-case tracking-normal text-white outline-none focus:border-[#e9c349]/60" />
-                  <span className="text-[11px] normal-case leading-4 tracking-normal text-[#6f6f78]">Внутрішня інструкція: багаж, діти, тварини, зустріч, особливості клієнта.</span>
-                </label>
-                <button onClick={saveDetails} disabled={saving} className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#e9c349] px-4 py-3 text-sm font-bold text-black disabled:opacity-60">
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+                <div className="mb-3 text-sm font-bold text-white">Редагування рейсу</div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="grid gap-1 text-[10px] font-bold uppercase tracking-widest text-[#8a8a93]">Виїзд з клієнтом
+                    <input type="datetime-local" value={editDraft.dateStart} onChange={(e) => setEditDraft({ ...editDraft, dateStart: e.target.value })} className={fieldClass()} />
+                  </label>
+                  <label className="grid gap-1 text-[10px] font-bold uppercase tracking-widest text-[#8a8a93]">Прибуття
+                    <input type="datetime-local" value={editDraft.dateEnd} onChange={(e) => setEditDraft({ ...editDraft, dateEnd: e.target.value, desiredArrivalAt: e.target.value })} className={fieldClass()} />
+                  </label>
+                  <label className="grid gap-1 text-[10px] font-bold uppercase tracking-widest text-[#8a8a93]">Виїзд авто з бази
+                    <input type="datetime-local" value={editDraft.carDispatchAt} onChange={(e) => setEditDraft({ ...editDraft, carDispatchAt: e.target.value })} className={fieldClass()} />
+                  </label>
+                  <label className="grid gap-1 text-[10px] font-bold uppercase tracking-widest text-[#8a8a93]">Водій
+                    <select value={editDraft.driverId} onChange={(e) => setEditDraft({ ...editDraft, driverId: e.target.value })} className={fieldClass()}>
+                      <option value="">Не призначено</option>
+                      {localDrivers.map((driver) => <option key={driver.id} value={driver.id}>{driver.user.name}</option>)}
+                    </select>
+                  </label>
+                  <label className="grid gap-1 text-[10px] font-bold uppercase tracking-widest text-[#8a8a93]">Статус рейсу
+                    <select value={editDraft.status} onChange={(e) => setEditDraft({ ...editDraft, status: e.target.value })} className={fieldClass()}>
+                      <option value="PENDING">Нова</option>
+                      <option value="CONFIRMED">Підтверджена</option>
+                      <option value="COMPLETED">Завершена</option>
+                      <option value="CANCELLED">Скасована</option>
+                    </select>
+                  </label>
+                  <label className="flex h-10 items-center gap-2 self-end rounded-lg border border-white/10 bg-[#080818] px-3 text-sm text-[#c7c6ca]">
+                    <input
+                      type="checkbox"
+                      checked={editDraft.isEndingAtBase}
+                      onChange={(e) => setEditDraft({ ...editDraft, isEndingAtBase: e.target.checked })}
+                      className="h-4 w-4 accent-[#e9c349]"
+                    />
+                    <span className="font-bold text-white">Повернути авто на базу</span>
+                  </label>
+                  <label className="grid gap-1 text-[10px] font-bold uppercase tracking-widest text-[#8a8a93] sm:col-span-2">Нотатки для водія
+                    <textarea rows={3} value={editDraft.driverNotes} onChange={(e) => setEditDraft({ ...editDraft, driverNotes: e.target.value })} placeholder="Багаж, діти, тварини, зустріч, особливості клієнта..." className="w-full resize-y rounded-lg border border-white/10 bg-[#080818] p-3 text-sm normal-case tracking-normal text-white outline-none placeholder:text-[#56565f] focus:border-[#e9c349]/60" />
+                  </label>
+                </div>
+                <button onClick={saveDetails} disabled={saving} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#e9c349] px-4 py-3 text-sm font-bold text-black disabled:opacity-60">
                   <Save size={16} /> {saving ? 'Збереження...' : 'Зберегти зміни'}
                 </button>
+                <p className="mb-0 mt-2 text-[11px] leading-4 text-[#6f6f78]">
+                  «Повернути на базу» автоматично перерахує км повернення, робочі години, ночівлю водія (для довгих рейсів) і прибуток.
+                </p>
               </div>
 
               <div className="grid gap-2 sm:grid-cols-2">
