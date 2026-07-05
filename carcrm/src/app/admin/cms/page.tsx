@@ -295,6 +295,18 @@ export default function CMSPage() {
       .sort((a, b) => a.localeCompare(b));
   }, [content]);
 
+  // When active blocks exist, the homepage is built from the constructor —
+  // hero/features/gallery fields are hidden on the "Головна" tab to avoid duplicates.
+  const hasActiveBlocks = useMemo(() => blocks.some((block) => block.active), [blocks]);
+  const baseSectionFields = useMemo(
+    () => [...homeFields.slice(0, 12), ...homeFields.filter((field) => field.key === 'loading_calculator')],
+    []
+  );
+  const heroSectionFields = useMemo(
+    () => homeFields.slice(12).filter((field) => field.key !== 'loading_calculator'),
+    []
+  );
+
   const updateContent = (key: string, value: string) => {
     setContent((prev) => ({ ...prev, [key]: value }));
   };
@@ -343,6 +355,52 @@ export default function CMSPage() {
     });
     const newBlock = await res.json();
     if (newBlock.id) setBlocks((prev) => [...prev, newBlock].sort((a, b) => a.order - b.order));
+  };
+
+  // One-time conversion: builds blocks from the CURRENT site content (no retyping),
+  // after which hero/features/gallery are edited only in the constructor.
+  const convertLayoutToBlocks = async () => {
+    if (!confirm('Зібрати блоки з поточного наповнення головної? Після цього Hero, переваги і галерея редагуються тільки в конструкторі — без дублів.')) return;
+
+    const featureItems = [1, 2, 3, 4]
+      .map((i) => ({
+        icon: content[`feature_${i}_icon`] || 'Star',
+        title: content[`feature_${i}_title`] || '',
+        desc: content[`feature_${i}_desc`] || '',
+      }))
+      .filter((item) => item.title);
+
+    const payloads = [
+      {
+        type: 'HERO',
+        content: JSON.stringify({
+          title: content.hero_title || '',
+          subtitle: content.hero_subtitle || '',
+          bgImage: content.hero_bg_video || content.hero_bg_image || '',
+        }),
+      },
+      {
+        type: 'FEATURES',
+        content: JSON.stringify({ title: content.services_title || 'Переваги', items: featureItems }),
+      },
+      {
+        type: 'GALLERY',
+        content: JSON.stringify({ title: content.gallery_title || '', subtitle: content.gallery_subtitle || '', items: [] }),
+      },
+    ];
+
+    const created: PageBlock[] = [];
+    for (const payload of payloads) {
+      const res = await fetch('/api/page-blocks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const block = await res.json();
+      if (block.id) created.push(block);
+    }
+    setBlocks((prev) => [...prev, ...created].sort((a, b) => a.order - b.order));
+    setNotice('Блоки зібрано з твого контенту. Головна тепер редагується конструктором.');
   };
 
   const deleteBlock = async (id: string) => {
@@ -499,37 +557,68 @@ export default function CMSPage() {
         <main className="space-y-6">
           {activeTab === 'home' && (
             <>
-              <SectionShell icon={Globe2} title="Навігація і бренд" desc="Назва, логотип, меню, кнопки і базова мова сайту.">
-                {renderFields(homeFields.slice(0, 12))}
+              <SectionShell icon={Globe2} title="Навігація і бренд" desc="Назва, логотип, меню, кнопки. Працює завжди, незалежно від блоків.">
+                {renderFields(baseSectionFields)}
               </SectionShell>
-              <SectionShell icon={Sparkles} title="Hero і головні заголовки" desc="Тут працює логіка двоколірного тексту через *зірочки*, як у референсі, але в нашій темі.">
-                {renderFields(homeFields.slice(12), false)}
-              </SectionShell>
-              <SectionShell icon={Sparkles} title="Переваги" desc="Іконки обираються з бібліотеки, назви і описи редагуються як окремі поля.">
-                <div className="grid gap-4 xl:grid-cols-2">
-                  {[1, 2, 3, 4].map((index) => (
-                    <div key={index} className="rounded-lg border border-white/10 bg-[#080818] p-4">
-                      <div className="mb-4 flex items-center justify-between gap-3">
-                        <div>
-                          <div className="text-sm font-bold text-white">Перевага {index}</div>
-                          <div className="text-xs text-[#8a8a93]">Іконка, заголовок, опис</div>
+              {hasActiveBlocks ? (
+                <SectionShell icon={Blocks} title="Hero, переваги і галерея" desc="Головна зараз будується з блоків конструктора.">
+                  <div className="rounded-lg border border-[#e9c349]/20 bg-[#e9c349]/10 p-5">
+                    <p className="m-0 text-sm leading-6 text-[#e4e2e3]">
+                      Ці секції редагуються у вкладці <strong>«Блоки»</strong> — поля тут сховані, щоб не було двох місць редагування одного контенту.
+                      Якщо вимкнути або видалити всі блоки, сайт повернеться до стандартного макета, і поля з'являться знову.
+                    </p>
+                    <button onClick={() => setActiveTab('blocks')} className="mt-4 inline-flex items-center gap-2 rounded-lg bg-[#e9c349] px-4 py-2.5 text-sm font-bold text-black">
+                      <Blocks size={16} /> Відкрити конструктор блоків
+                    </button>
+                  </div>
+                </SectionShell>
+              ) : (
+                <>
+                  <SectionShell icon={Sparkles} title="Hero і головні заголовки" desc="Тут працює логіка двоколірного тексту через *зірочки*, як у референсі, але в нашій темі.">
+                    {renderFields(heroSectionFields, false)}
+                  </SectionShell>
+                  <SectionShell icon={Sparkles} title="Переваги" desc="Іконки обираються з бібліотеки, назви і описи редагуються як окремі поля.">
+                    <div className="grid gap-4 xl:grid-cols-2">
+                      {[1, 2, 3, 4].map((index) => (
+                        <div key={index} className="rounded-lg border border-white/10 bg-[#080818] p-4">
+                          <div className="mb-4 flex items-center justify-between gap-3">
+                            <div>
+                              <div className="text-sm font-bold text-white">Перевага {index}</div>
+                              <div className="text-xs text-[#8a8a93]">Іконка, заголовок, опис</div>
+                            </div>
+                            <DynamicIcon name={content[`feature_${index}_icon`]} size={24} className="text-[#e9c349]" />
+                          </div>
+                          <div className="space-y-4">
+                            <IconPicker value={content[`feature_${index}_icon`]} onChange={(value) => updateContent(`feature_${index}_icon`, value)} />
+                            <CmsField field={{ key: `feature_${index}_title`, label: 'Заголовок', preview: true }} value={content[`feature_${index}_title`]} onChange={(value) => updateContent(`feature_${index}_title`, value)} onUpload={() => undefined} />
+                            <CmsField field={{ key: `feature_${index}_desc`, label: 'Опис', type: 'textarea' }} value={content[`feature_${index}_desc`]} onChange={(value) => updateContent(`feature_${index}_desc`, value)} onUpload={() => undefined} />
+                          </div>
                         </div>
-                        <DynamicIcon name={content[`feature_${index}_icon`]} size={24} className="text-[#e9c349]" />
-                      </div>
-                      <div className="space-y-4">
-                        <IconPicker value={content[`feature_${index}_icon`]} onChange={(value) => updateContent(`feature_${index}_icon`, value)} />
-                        <CmsField field={{ key: `feature_${index}_title`, label: 'Заголовок', preview: true }} value={content[`feature_${index}_title`]} onChange={(value) => updateContent(`feature_${index}_title`, value)} onUpload={() => undefined} />
-                        <CmsField field={{ key: `feature_${index}_desc`, label: 'Опис', type: 'textarea' }} value={content[`feature_${index}_desc`]} onChange={(value) => updateContent(`feature_${index}_desc`, value)} onUpload={() => undefined} />
-                      </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </SectionShell>
+                  </SectionShell>
+                </>
+              )}
             </>
           )}
 
           {activeTab === 'blocks' && (
             <>
+              {blocks.length === 0 && (
+                <SectionShell icon={Sparkles} title="Перенести мій контент у блоки" desc="Разова конвертація без передруковування і без дублів.">
+                  <p className="m-0 mb-4 text-sm leading-6 text-[#c7c6ca]">
+                    Збере Hero (твій заголовок, підзаголовок і фон), Переваги (твої 4 картки з іконками) та Галерею з поточного наповнення бази.
+                    Після цього ці секції редагуються тільки тут, а їхні поля на вкладці «Головна» ховаються.
+                  </p>
+                  <button onClick={convertLayoutToBlocks} className="inline-flex items-center gap-2 rounded-lg bg-[#e9c349] px-5 py-3 text-sm font-bold text-black transition-transform hover:scale-[1.02]">
+                    <Sparkles size={16} /> Зібрати блоки з мого контенту
+                  </button>
+                  <p className="m-0 mt-3 text-xs leading-5 text-[#6f6f78]">
+                    Безпечно: стандартний макет лишається запасним — якщо видалити всі блоки, сайт повернеться до нього.
+                  </p>
+                </SectionShell>
+              )}
+
               <SectionShell icon={Plus} title="Додати секцію" desc="Блоки нижче йдуть у тому порядку, у якому вони показуються на головній.">
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                   {Object.entries(blockLabels).map(([type, label]) => (
@@ -612,8 +701,9 @@ export default function CMSPage() {
                       {block.type === 'GALLERY' && (
                         <>
                           <CmsField field={{ key: 'title', label: 'Заголовок галереї', preview: true }} value={parsed.title || ''} onChange={(value) => updateBlockContent(index, { ...parsed, title: value })} onUpload={() => undefined} />
+                          <CmsField field={{ key: 'subtitle', label: 'Опис галереї', type: 'textarea' }} value={parsed.subtitle || ''} onChange={(value) => updateBlockContent(index, { ...parsed, subtitle: value })} onUpload={() => undefined} />
                           <div className="space-y-3">
-                            <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#8a8a93]">Медіа блоку</div>
+                            <div className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#8a8a93]">Медіа блоку — якщо порожньо, підтягнуться фото авто з автопарку</div>
                             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
                               {(parsed.items || []).map((url: string, mediaIndex: number) => (
                                 <div key={`${url}-${mediaIndex}`} className="group relative aspect-square overflow-hidden rounded-lg border border-white/10 bg-[#080818]">
