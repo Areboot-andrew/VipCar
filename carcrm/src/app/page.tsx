@@ -148,6 +148,26 @@ export default async function Home() {
                 );
               }
 
+              if (block.type === 'CTA') {
+                return (
+                  <section key={block.id} className="max-w-[1280px] mx-auto px-[24px] md:px-[64px] my-16 w-full">
+                    <div className="relative overflow-hidden rounded-3xl border border-[#e9c349]/25 bg-gradient-to-r from-[#13131a] to-[#1c1c28] p-10 text-center md:p-16">
+                      {parsed.bgImage && (
+                        <div className="absolute inset-0 bg-cover bg-center opacity-20" style={{ backgroundImage: `url(${parsed.bgImage})` }}></div>
+                      )}
+                      <div className="absolute -top-24 right-10 h-64 w-64 rounded-full bg-[#e9c349]/10 blur-3xl"></div>
+                      <div className="relative z-10 flex flex-col items-center">
+                        <HighlightedTitle text={toHighlightedText(parsed.title)} as="h2" className="font-headline-lg text-3xl md:text-5xl text-white mb-4" />
+                        {parsed.subtitle && <p className="mb-8 max-w-2xl text-[16px] md:text-lg text-[#c7c6ca]">{parsed.subtitle}</p>}
+                        <Link href={parsed.buttonLink || '#calculator'} className="gold-button font-button text-[14px] uppercase px-8 py-4 rounded-xl font-bold tracking-widest hover:scale-105 transition-all">
+                          {parsed.buttonText || 'Розрахувати поїздку'}
+                        </Link>
+                      </div>
+                    </div>
+                  </section>
+                );
+              }
+
               if (block.type === 'FEATURES') {
                 return (
                   <section key={block.id} className="max-w-[1280px] mx-auto px-[24px] md:px-[64px] my-16" id="services">

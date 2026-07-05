@@ -134,11 +134,34 @@ const explicitKeys = new Set([
   ]),
 ]);
 
+// Keys that have their own proper screens — hidden from the CMS "technical" dump.
+// Integrations/pricing live in Налаштування, campaigns in Маркетинг.
+const managedPrefixes = [
+  'telegram_', 'facebook_', 'whatsapp_', 'google_', 'marketing_', 'payment_', 'pricing_',
+];
+const managedKeys = new Set([
+  'deposit_percent', 'weekend_coefficient', 'amortization_rate', 'margin_rate', 'delivery_rate',
+  'fuel_price_uah', 'eur_to_uah_rate', 'child_seat_fee', 'animal_fee', 'meet_and_greet_fee',
+  'luggage_medium_fee', 'luggage_large_fee', 'base_location_lat', 'base_location_lng',
+  'messenger_last_event_at', '_demo_seed_version',
+]);
+const isManagedElsewhere = (key: string) =>
+  managedKeys.has(key) || managedPrefixes.some((prefix) => key.startsWith(prefix));
+
 const blockLabels: Record<string, string> = {
   HERO: 'Hero банер',
   TEXT_IMAGE: 'Текст + медіа',
   GALLERY: 'Галерея',
   FEATURES: 'Переваги',
+  CTA: 'Заклик до дії',
+};
+
+const blockHints: Record<string, string> = {
+  HERO: 'Великий перший екран: заголовок, підзаголовок, фон (фото або відео).',
+  TEXT_IMAGE: 'Текстова секція з форматуванням і зображенням зліва або справа.',
+  GALLERY: 'Стрічка фото/відео. Якщо медіа не додані — підтягнуться авто з автопарку.',
+  FEATURES: 'Сітка переваг з іконками (пунктів може бути скільки завгодно).',
+  CTA: 'Помітний банер із кнопкою: веде на калькулятор, галерею або будь-який лінк.',
 };
 
 function parseBlockContent(content: string) {
@@ -268,7 +291,7 @@ export default function CMSPage() {
 
   const technicalKeys = useMemo(() => {
     return Object.keys(content)
-      .filter((key) => !explicitKeys.has(key))
+      .filter((key) => !explicitKeys.has(key) && !isManagedElsewhere(key))
       .sort((a, b) => a.localeCompare(b));
   }, [content]);
 
@@ -309,7 +332,9 @@ export default function CMSPage() {
             ? { title: 'Заголовок', text: 'Текст', image: '', imagePosition: 'left' }
             : type === 'FEATURES'
               ? { title: 'Переваги', items: [] }
-              : {};
+              : type === 'CTA'
+                ? { title: 'Готові *їхати*?', subtitle: 'Розрахуйте вартість поїздки за хвилину.', buttonText: 'Розрахувати поїздку', buttonLink: '#calculator', bgImage: '' }
+                : {};
 
     const res = await fetch('/api/page-blocks', {
       method: 'POST',
@@ -506,12 +531,16 @@ export default function CMSPage() {
           {activeTab === 'blocks' && (
             <>
               <SectionShell icon={Plus} title="Додати секцію" desc="Блоки нижче йдуть у тому порядку, у якому вони показуються на головній.">
-                <div className="grid gap-3 md:grid-cols-4">
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                   {Object.entries(blockLabels).map(([type, label]) => (
-                    <button key={type} onClick={() => addBlock(type)} className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-left text-sm font-bold text-white transition-colors hover:border-[#e9c349]/40 hover:bg-[#e9c349]/10">
-                      + {label}
+                    <button key={type} onClick={() => addBlock(type)} className="rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-left transition-colors hover:border-[#e9c349]/40 hover:bg-[#e9c349]/10">
+                      <div className="text-sm font-bold text-white">+ {label}</div>
+                      <div className="mt-1 text-xs leading-4 text-[#8a8a93]">{blockHints[type]}</div>
                     </button>
                   ))}
+                </div>
+                <div className="mt-4 rounded-lg border border-white/10 bg-black/20 p-3 text-xs leading-5 text-[#8a8a93]">
+                  Коли є хоча б один активний блок — головна сторінка будується з цих блоків (плюс Empty Legs, калькулятор і контакти, які завжди внизу). Якщо блоків немає — показується стандартний макет із вкладки «Головна».
                 </div>
               </SectionShell>
 
@@ -532,7 +561,7 @@ export default function CMSPage() {
                         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#080818] text-[#e9c349]">{index + 1}</div>
                         <div>
                           <div className="text-sm font-bold uppercase tracking-[0.12em] text-[#e9c349]">{blockLabels[block.type] || block.type}</div>
-                          <div className="text-xs text-[#8a8a93]">PageBlock: {block.type}</div>
+                          <div className="text-xs text-[#8a8a93]">{blockHints[block.type] || block.type}</div>
                         </div>
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
@@ -618,6 +647,18 @@ export default function CMSPage() {
                         </>
                       )}
 
+                      {block.type === 'CTA' && (
+                        <>
+                          <CmsField field={{ key: 'title', label: 'Заголовок', preview: true, hint: 'Золотий акцент через *зірочки*.' }} value={parsed.title || ''} onChange={(value) => updateBlockContent(index, { ...parsed, title: value })} onUpload={() => undefined} />
+                          <CmsField field={{ key: 'subtitle', label: 'Підзаголовок', type: 'textarea' }} value={parsed.subtitle || ''} onChange={(value) => updateBlockContent(index, { ...parsed, subtitle: value })} onUpload={() => undefined} />
+                          <div className="grid gap-5 lg:grid-cols-2">
+                            <CmsField field={{ key: 'buttonText', label: 'Текст кнопки' }} value={parsed.buttonText || ''} onChange={(value) => updateBlockContent(index, { ...parsed, buttonText: value })} onUpload={() => undefined} />
+                            <CmsField field={{ key: 'buttonLink', label: 'Посилання кнопки', hint: '#calculator — калькулятор, /gallery — галерея, або повний URL.' }} value={parsed.buttonLink || ''} onChange={(value) => updateBlockContent(index, { ...parsed, buttonLink: value })} onUpload={() => undefined} />
+                          </div>
+                          <CmsField field={{ key: 'bgImage', label: 'Фонове зображення (опційно)', type: 'media' }} value={parsed.bgImage || ''} uploading={uploadingState[uploadKey]} onChange={(value) => updateBlockContent(index, { ...parsed, bgImage: value })} onUpload={(file) => handleBlockUpload(index, (data, url) => { data.bgImage = url; }, file)} />
+                        </>
+                      )}
+
                       {block.type === 'FEATURES' && (
                         <>
                           <CmsField field={{ key: 'title', label: 'Заголовок блоку', preview: true }} value={parsed.title || ''} onChange={(value) => updateBlockContent(index, { ...parsed, title: value })} onUpload={() => undefined} />
@@ -674,9 +715,9 @@ export default function CMSPage() {
           )}
 
           {activeTab === 'technical' && (
-            <SectionShell icon={Settings2} title="Технічні ключі" desc="Сюди сховані всі ключі, які ще не мають окремої логічної секції. Це тимчасовий міст, не головний редактор.">
-              <div className="mb-5 rounded-lg border border-[#e9c349]/20 bg-[#e9c349]/10 p-4 text-sm text-[#e4e2e3]">
-                Нові екрани треба переносити з цієї вкладки у нормальні секції. Тут лишаються розрахунки, інтеграції та legacy-поля до їх повного переїзду в окремі сторінки.
+            <SectionShell icon={Settings2} title="Технічні ключі" desc="Контентні ключі без окремої секції. Тільки тексти і медіа — жодних токенів чи тарифів.">
+              <div className="mb-5 rounded-lg border border-[#e9c349]/20 bg-[#e9c349]/10 p-4 text-sm leading-6 text-[#e4e2e3]">
+                Інтеграції (Telegram, Meta, WhatsApp), тарифи, завдаток і реквізити редагуються в <a href="/admin/settings" className="font-bold text-[#e9c349] underline underline-offset-2">Налаштуваннях CRM</a>, пости і кампанії — у <a href="/admin/marketing" className="font-bold text-[#e9c349] underline underline-offset-2">Маркетингу</a>. Тут вони не показуються, щоб випадково нічого не зламати.
               </div>
               <div className="grid gap-4 lg:grid-cols-2">
                 {technicalKeys.map((key) => {

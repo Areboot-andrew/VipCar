@@ -44,7 +44,6 @@ function getNavGroups(c: Record<string, string>): { label: string; items: NavIte
     label: c['admin_group_fleet'],
     items: [
       { href: '/admin/fleet', label: c['admin_nav_fleet'], description: c['admin_nav_fleet_desc'], icon: Car },
-      { href: '/admin/promotions', label: c['admin_nav_promotions'], description: c['admin_nav_promotions_desc'], icon: TicketPercent },
     ],
   },
   {
@@ -55,15 +54,16 @@ function getNavGroups(c: Record<string, string>): { label: string; items: NavIte
     ],
   },
   {
-    label: c['admin_group_content'],
+    label: c['admin_group_marketing'],
     items: [
-      { href: '/admin/cms', label: c['admin_nav_cms'], description: c['admin_nav_cms_desc'], icon: FilePenLine },
+      { href: '/admin/promotions', label: c['admin_nav_promotions'], description: c['admin_nav_promotions_desc'], icon: TicketPercent },
+      { href: '/admin/marketing', label: c['admin_nav_marketing'], description: c['admin_nav_marketing_desc'], icon: Megaphone },
     ],
   },
   {
-    label: c['admin_group_marketing'],
+    label: c['admin_group_content'],
     items: [
-      { href: '/admin/marketing', label: c['admin_nav_marketing'], description: c['admin_nav_marketing_desc'], icon: Megaphone },
+      { href: '/admin/cms', label: c['admin_nav_cms'], description: c['admin_nav_cms_desc'], icon: FilePenLine },
     ],
   },
   {
