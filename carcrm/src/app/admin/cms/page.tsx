@@ -55,22 +55,29 @@ const tabs = [
   { id: 'blocks', label: 'Блоки', desc: 'Конструктор секцій', icon: Blocks },
   { id: 'contacts', label: 'Контакти', desc: 'Форма, footer, CTA', icon: Mail },
   { id: 'seo', label: 'Meta', desc: 'Пошук і schema', icon: Search },
+  { id: 'admin', label: 'Адмінка', desc: 'Назви меню панелі', icon: Settings2 },
   { id: 'technical', label: 'Технічні', desc: 'Решта ключів', icon: Settings2 },
 ] as const;
 
-const homeFields: FieldConfig[] = [
+const brandFields: FieldConfig[] = [
   { key: 'brand_name', label: 'Назва бренду', hint: 'Використовується у шапці, footer і службових підписах.' },
   { key: 'logo_url', label: 'Логотип', type: 'media', hint: 'Основний логотип сайту. Краще PNG/WebP з прозорим або темним фоном.' },
+  { key: 'menu_home', label: 'Меню: головна', hint: 'Текст пункту «Головна» у мобільному меню.' },
   { key: 'menu_services', label: 'Меню: послуги', hint: 'Текст пункту навігації у шапці.' },
   { key: 'menu_fleet', label: 'Меню: автопарк', hint: 'Текст пункту, який веде до автомобілів.' },
   { key: 'menu_gallery', label: 'Меню: галерея', hint: 'Текст пункту, який веде до галереї автопарку.' },
   { key: 'menu_contact', label: 'Меню: контакти', hint: 'Текст пункту контактного блоку.' },
+  { key: 'menu_calculator', label: 'Меню: бронювання', hint: 'Текст пункту, який веде до калькулятора (footer/мобільне меню).' },
   { key: 'menu_login', label: 'Меню: вхід', hint: 'Показується неавторизованому користувачу.' },
   { key: 'menu_profile', label: 'Меню: профіль', hint: 'Показується авторизованому клієнту.' },
   { key: 'menu_driver_cabinet', label: 'Меню: кабінет водія', hint: 'Показується користувачу з роллю водія.' },
   { key: 'menu_logout', label: 'Меню: вихід', hint: 'Текст кнопки виходу з акаунта.' },
   { key: 'btn_book_now', label: 'Кнопка в шапці', hint: 'Головна кнопка швидкого переходу до бронювання.' },
   { key: 'btn_hero_cta', label: 'Головна CTA-кнопка', hint: 'Кнопка в першому екрані головної сторінки.' },
+  { key: 'loading_calculator', label: 'Текст завантаження калькулятора', hint: 'Показується, поки форма бронювання підтягує дані.' },
+];
+
+const heroFields: FieldConfig[] = [
   { key: 'hero_title', label: 'Hero заголовок', type: 'textarea', preview: true, hint: 'Золотий акцент: *текст*. Новий рядок теж підтримується.' },
   { key: 'hero_subtitle', label: 'Hero підзаголовок', type: 'textarea', hint: 'Можна виділяти слова через *зірочки*.' },
   { key: 'hero_bg_image', label: 'Hero фон', type: 'media', hint: 'Фонове зображення першого екрана, якщо відео не задане або не завантажилось.' },
@@ -78,7 +85,39 @@ const homeFields: FieldConfig[] = [
   { key: 'services_title', label: 'Заголовок переваг', preview: true, hint: 'Наприклад: Чому обирають *нас*?' },
   { key: 'gallery_title', label: 'Заголовок галереї', preview: true, hint: 'Заголовок блоку галереї на головній сторінці.' },
   { key: 'gallery_subtitle', label: 'Опис галереї', type: 'textarea', hint: 'Короткий клієнтський опис автопарку, без технічних приміток.' },
-  { key: 'loading_calculator', label: 'Текст завантаження калькулятора', hint: 'Показується, поки форма бронювання підтягує дані.' },
+];
+
+// Admin panel naming: sidebar brand, group titles and menu items
+const adminNavItems: { id: string; label: string }[] = [
+  { id: 'dashboard', label: 'Дашборд' },
+  { id: 'bookings', label: 'Заявки і календар' },
+  { id: 'chat', label: 'Повідомлення' },
+  { id: 'fleet', label: 'Авто і медіа' },
+  { id: 'promotions', label: 'Empty Legs' },
+  { id: 'users', label: 'Клієнти, водії, ролі' },
+  { id: 'feedback', label: "Зворотний зв'язок" },
+  { id: 'cms', label: 'Редактор сайту' },
+  { id: 'marketing', label: 'Соцмережі і пости' },
+  { id: 'invoices', label: 'Рахунки' },
+  { id: 'settings', label: 'Налаштування CRM' },
+];
+
+const adminGroupKeys: { key: string; label: string }[] = [
+  { key: 'admin_group_operations', label: 'Група: Операції' },
+  { key: 'admin_group_fleet', label: 'Група: Автопарк' },
+  { key: 'admin_group_clients', label: 'Група: Клієнти' },
+  { key: 'admin_group_marketing', label: 'Група: Маркетинг' },
+  { key: 'admin_group_content', label: 'Група: Контент' },
+  { key: 'admin_group_finance', label: 'Група: Фінанси' },
+  { key: 'admin_group_system', label: 'Група: Система' },
+];
+
+const adminKeys = [
+  'admin_brand_title',
+  'admin_brand_subtitle',
+  'admin_open_site',
+  ...adminGroupKeys.map((item) => item.key),
+  ...adminNavItems.flatMap((item) => [`admin_nav_${item.id}`, `admin_nav_${item.id}_desc`]),
 ];
 
 const contactFields: FieldConfig[] = [
@@ -121,12 +160,16 @@ const seoFields: FieldConfig[] = [
   { key: 'schema_area_served', label: 'Країни обслуговування', hint: 'Через кому: UA,PL,DE...' },
   { key: 'gallery_seo_title', label: 'Meta title галереї', hint: 'Окремий заголовок сторінки галереї для браузера і пошуку.' },
   { key: 'gallery_seo_description', label: 'Meta description галереї', type: 'textarea', hint: 'Короткий опис сторінки галереї для пошуку. Не показуємо як hero-текст.' },
+  { key: 'gallery_fallback_alt', label: 'Alt фото галереї', hint: 'Запасний alt-текст для фото без власного опису (важливо для SEO і доступності).' },
 ];
 
 const explicitKeys = new Set([
-  ...homeFields.map((field) => field.key),
+  ...brandFields.map((field) => field.key),
+  ...heroFields.map((field) => field.key),
   ...contactFields.map((field) => field.key),
   ...seoFields.map((field) => field.key),
+  ...adminKeys,
+  'standalone_gallery_media',
   ...Array.from({ length: 4 }).flatMap((_, index) => [
     `feature_${index + 1}_icon`,
     `feature_${index + 1}_title`,
@@ -298,14 +341,34 @@ export default function CMSPage() {
   // When active blocks exist, the homepage is built from the constructor —
   // hero/features/gallery fields are hidden on the "Головна" tab to avoid duplicates.
   const hasActiveBlocks = useMemo(() => blocks.some((block) => block.active), [blocks]);
-  const baseSectionFields = useMemo(
-    () => [...homeFields.slice(0, 12), ...homeFields.filter((field) => field.key === 'loading_calculator')],
-    []
-  );
-  const heroSectionFields = useMemo(
-    () => homeFields.slice(12).filter((field) => field.key !== 'loading_calculator'),
-    []
-  );
+
+  // Standalone gallery media (extra photos/videos beside the fleet ones)
+  const standaloneMedia = useMemo(() => {
+    try {
+      const parsed = JSON.parse(content.standalone_gallery_media || '[]');
+      return Array.isArray(parsed) ? (parsed as { type: string; url: string }[]) : [];
+    } catch {
+      return [];
+    }
+  }, [content.standalone_gallery_media]);
+
+  const addStandaloneMedia = async (file: File) => {
+    setUploadingState((prev) => ({ ...prev, standalone_gallery_media: true }));
+    try {
+      const url = await uploadFile(file, 'gallery_media');
+      const items = [...standaloneMedia, { type: url.includes('.mp4') || url.includes('.webm') ? 'video' : 'image', url }];
+      updateContent('standalone_gallery_media', JSON.stringify(items));
+    } catch {
+      setNotice('Не вдалося завантажити медіа.');
+    } finally {
+      setUploadingState((prev) => ({ ...prev, standalone_gallery_media: false }));
+    }
+  };
+
+  const removeStandaloneMedia = (removeIndex: number) => {
+    const items = standaloneMedia.filter((_, itemIndex) => itemIndex !== removeIndex);
+    updateContent('standalone_gallery_media', JSON.stringify(items));
+  };
 
   const updateContent = (key: string, value: string) => {
     setContent((prev) => ({ ...prev, [key]: value }));
@@ -558,7 +621,7 @@ export default function CMSPage() {
           {activeTab === 'home' && (
             <>
               <SectionShell icon={Globe2} title="Навігація і бренд" desc="Назва, логотип, меню, кнопки. Працює завжди, незалежно від блоків.">
-                {renderFields(baseSectionFields)}
+                {renderFields(brandFields)}
               </SectionShell>
               {hasActiveBlocks ? (
                 <SectionShell icon={Blocks} title="Hero, переваги і галерея" desc="Головна зараз будується з блоків конструктора.">
@@ -575,7 +638,7 @@ export default function CMSPage() {
               ) : (
                 <>
                   <SectionShell icon={Sparkles} title="Hero і головні заголовки" desc="Тут працює логіка двоколірного тексту через *зірочки*, як у референсі, але в нашій темі.">
-                    {renderFields(heroSectionFields, false)}
+                    {renderFields(heroFields, false)}
                   </SectionShell>
                   <SectionShell icon={Sparkles} title="Переваги" desc="Іконки обираються з бібліотеки, назви і описи редагуються як окремі поля.">
                     <div className="grid gap-4 xl:grid-cols-2">
@@ -599,6 +662,32 @@ export default function CMSPage() {
                   </SectionShell>
                 </>
               )}
+
+              <SectionShell icon={GalleryHorizontalEnd} title="Додаткові медіа галереї" desc="Фото/відео, які показуються в галереї на додачу до медіа автомобілів з автопарку.">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                  {standaloneMedia.map((item, mediaIndex) => (
+                    <div key={`${item.url}-${mediaIndex}`} className="group relative aspect-square overflow-hidden rounded-lg border border-white/10 bg-[#080818]">
+                      {item.type === 'video' ? (
+                        <video src={item.url} className="h-full w-full object-cover" muted />
+                      ) : (
+                        <img src={item.url} alt="" className="h-full w-full object-cover" />
+                      )}
+                      <button
+                        onClick={() => removeStandaloneMedia(mediaIndex)}
+                        className="absolute right-2 top-2 rounded bg-red-500 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  ))}
+                  <label className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-white/20 bg-white/5 text-sm font-bold text-[#c7c6ca] hover:border-[#e9c349]/40 hover:text-[#e9c349]">
+                    {uploadingState['standalone_gallery_media'] ? <Loader2 className="animate-spin" /> : <Upload size={20} />}
+                    Додати
+                    <input type="file" className="hidden" accept="image/*,video/*" onChange={(event) => event.target.files?.[0] && addStandaloneMedia(event.target.files[0])} />
+                  </label>
+                </div>
+                <p className="m-0 mt-3 text-xs leading-5 text-[#6f6f78]">Основні фото авто керуються в «Авто і медіа». Тут — додаткові кадри: офіс, водії, атмосферні фото.</p>
+              </SectionShell>
             </>
           )}
 
@@ -804,11 +893,58 @@ export default function CMSPage() {
             </SectionShell>
           )}
 
+          {activeTab === 'admin' && (
+            <>
+              <SectionShell icon={Settings2} title="Бренд панелі" desc="Заголовок і підпис у лівому верхньому куті адмінки.">
+                <div className="grid gap-5 lg:grid-cols-3">
+                  <CmsField field={{ key: 'admin_brand_title', label: 'Назва панелі' }} value={content['admin_brand_title'] || ''} onChange={(value) => updateContent('admin_brand_title', value)} onUpload={() => undefined} />
+                  <CmsField field={{ key: 'admin_brand_subtitle', label: 'Підпис під назвою' }} value={content['admin_brand_subtitle'] || ''} onChange={(value) => updateContent('admin_brand_subtitle', value)} onUpload={() => undefined} />
+                  <CmsField field={{ key: 'admin_open_site', label: 'Кнопка «Відкрити сайт»' }} value={content['admin_open_site'] || ''} onChange={(value) => updateContent('admin_open_site', value)} onUpload={() => undefined} />
+                </div>
+              </SectionShell>
+
+              <SectionShell icon={Settings2} title="Групи меню" desc="Назви розділів у лівому меню адмінки.">
+                <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+                  {adminGroupKeys.map((group) => (
+                    <CmsField key={group.key} field={{ key: group.key, label: group.label }} value={content[group.key] || ''} onChange={(value) => updateContent(group.key, value)} onUpload={() => undefined} />
+                  ))}
+                </div>
+              </SectionShell>
+
+              <SectionShell icon={Settings2} title="Пункти меню" desc="Назва і короткий опис кожного пункту лівого меню.">
+                <div className="grid gap-3">
+                  {adminNavItems.map((item) => (
+                    <div key={item.id} className="grid gap-3 rounded-lg border border-white/10 bg-[#080818] p-3 lg:grid-cols-[180px_1fr_1.4fr] lg:items-center">
+                      <div className="text-sm font-bold text-[#e9c349]">{item.label}</div>
+                      <input
+                        value={content[`admin_nav_${item.id}`] || ''}
+                        onChange={(event) => updateContent(`admin_nav_${item.id}`, event.target.value)}
+                        placeholder="Назва пункту"
+                        className={fieldClass()}
+                      />
+                      <input
+                        value={content[`admin_nav_${item.id}_desc`] || ''}
+                        onChange={(event) => updateContent(`admin_nav_${item.id}_desc`, event.target.value)}
+                        placeholder="Короткий опис під назвою"
+                        className={fieldClass()}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </SectionShell>
+            </>
+          )}
+
           {activeTab === 'technical' && (
             <SectionShell icon={Settings2} title="Технічні ключі" desc="Контентні ключі без окремої секції. Тільки тексти і медіа — жодних токенів чи тарифів.">
               <div className="mb-5 rounded-lg border border-[#e9c349]/20 bg-[#e9c349]/10 p-4 text-sm leading-6 text-[#e4e2e3]">
                 Інтеграції (Telegram, Meta, WhatsApp), тарифи, завдаток і реквізити редагуються в <a href="/admin/settings" className="font-bold text-[#e9c349] underline underline-offset-2">Налаштуваннях CRM</a>, пости і кампанії — у <a href="/admin/marketing" className="font-bold text-[#e9c349] underline underline-offset-2">Маркетингу</a>. Тут вони не показуються, щоб випадково нічого не зламати.
               </div>
+              {technicalKeys.length === 0 && (
+                <div className="rounded-lg border border-dashed border-white/15 bg-[#080818] p-8 text-center text-sm text-[#8a8a93]">
+                  Все розкладено по секціях — нерозібраних ключів немає. Нові невідомі ключі з бази з'являться тут автоматично.
+                </div>
+              )}
               <div className="grid gap-4 lg:grid-cols-2">
                 {technicalKeys.map((key) => {
                   const defaultValue = SITE_CONTENT_DEFAULTS[key];
