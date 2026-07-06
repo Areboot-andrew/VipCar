@@ -199,6 +199,9 @@ export const SITE_CONTENT_DEFAULTS: Record<string, string> = {
       hashtags: '#emptylegs #firstlinetransfer #transferdeal #viptransfer',
     },
   ]),
+  marketing_telegram_chat_id: '',
+  marketing_cron_secret: '',
+  marketing_post_log: '[]',
   marketing_schedule_rules: JSON.stringify({
     timezone: 'Europe/Kyiv',
     enabled: true,

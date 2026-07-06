@@ -217,7 +217,38 @@ export default function MarketingPage() {
     setSaving(false);
   };
 
+  const [publishing, setPublishing] = useState<string | null>(null);
+  const [publishNote, setPublishNote] = useState("");
+
+  const updateSetting = (key: string, value: string) => setSettings((prev) => ({ ...prev, [key]: value }));
+
+  const publishNow = async (preset: PostPreset) => {
+    setPublishing(preset.id);
+    setPublishNote("");
+    try {
+      // Save first so the engine posts the current template/channels
+      await saveMarketingSettings();
+      const res = await fetch("/api/marketing/publish", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ presetId: preset.id }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setPublishNote(`✓ «${preset.name}» опубліковано: ${data.channels.filter((c: any) => c.ok).map((c: any) => c.channel).join(", ")}`);
+      } else {
+        const errs = (data.channels || []).filter((c: any) => !c.ok).map((c: any) => `${c.channel}: ${c.error}`).join("; ");
+        setPublishNote(`✗ ${data.skipped || data.error || errs || "не опубліковано"}`);
+      }
+    } catch {
+      setPublishNote("✗ Помилка публікації.");
+    } finally {
+      setPublishing(null);
+    }
+  };
+
   const enabledPresets = postPresets.filter((preset) => preset.enabled).length;
+  const postLog = readJsonSetting<{ at: string; presetName: string; result: string }[]>(settings.marketing_post_log, []);
 
   return (
     <div className="min-h-screen text-[#e4e2e3]">
@@ -367,6 +398,9 @@ export default function MarketingPage() {
                         </div>
                       </div>
 
+                      <button type="button" onClick={() => publishNow(preset)} disabled={publishing === preset.id} className="mb-2 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#e9c349] px-3 py-2 text-sm font-bold text-black disabled:opacity-60">
+                        <Send size={15} /> {publishing === preset.id ? "Публікуємо..." : "Опублікувати зараз"}
+                      </button>
                       <button type="button" onClick={() => setPostPresets((prev) => prev.filter((item) => item.id !== preset.id))} className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-red-400/20 px-3 py-2 text-sm font-bold text-red-200 hover:bg-red-400/10">
                         <Trash2 size={15} />
                         Видалити пресет
@@ -470,26 +504,58 @@ export default function MarketingPage() {
 
           <section className="rounded-xl border border-white/10 bg-[#13131a] p-5">
             <h2 className="flex items-center gap-2 text-xl font-black text-white">
-              <CalendarClock className="text-[#e9c349]" size={22} />
-              Автопости Empty Legs
+              <Send className="text-[#e9c349]" size={22} />
+              Канали автопостингу і запуск
             </h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-[#a7a6ad]">
-              Чернетки акційних маршрутів мають брати фото авто, карту маршруту, стару/нову ціну, текст із пресету і найближчий дозволений час із правил антиспаму.
+              Пости публікуються у Telegram-канал (через бота) і/або на Facebook-сторінку. Instagram через API окремо — поки шлемо Telegram + Facebook.
             </p>
-            <div className="mt-4 grid gap-3 md:grid-cols-3">
-              <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
-                <div className="text-sm font-bold text-white">Джерело</div>
-                <div className="mt-1 text-xs text-[#8a8a93]">Автоматичні Empty Legs із бронювань.</div>
+
+            {publishNote && (
+              <div className={`mt-4 rounded-lg border px-4 py-3 text-sm ${publishNote.startsWith("✓") ? "border-emerald-400/25 bg-emerald-400/10 text-emerald-300" : "border-red-400/25 bg-red-400/10 text-red-200"}`}>
+                {publishNote}
               </div>
-              <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
-                <div className="text-sm font-bold text-white">Креатив</div>
-                <div className="mt-1 text-xs text-[#8a8a93]">Фото авто + карта маршруту + стара/нова ціна.</div>
-              </div>
-              <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
-                <div className="text-sm font-bold text-white">Дія клієнта</div>
-                <div className="mt-1 text-xs text-[#8a8a93]">Клік на сайт, галерею, авто або Messenger/WhatsApp.</div>
+            )}
+
+            <div className="mt-4 grid gap-4 lg:grid-cols-2">
+              <label className="grid gap-1 text-xs font-bold uppercase tracking-widest text-[#8a8a93]">
+                Telegram канал (chat id або @username)
+                <input value={settings.marketing_telegram_chat_id || ""} onChange={(e) => updateSetting("marketing_telegram_chat_id", e.target.value)} placeholder="@mychannel або -1001234567890" className="rounded-lg border border-white/10 bg-[#080818] px-3 py-2 text-sm normal-case tracking-normal text-white outline-none focus:border-[#e9c349]/60" />
+                <span className="text-[11px] normal-case tracking-normal text-[#6f6f78]">Бот має бути адміном каналу. Токен бота — у Налаштування → Месенджери.</span>
+              </label>
+              <label className="grid gap-1 text-xs font-bold uppercase tracking-widest text-[#8a8a93]">
+                Секрет для cron
+                <input value={settings.marketing_cron_secret || ""} onChange={(e) => updateSetting("marketing_cron_secret", e.target.value)} placeholder="довільний рядок-пароль" className="rounded-lg border border-white/10 bg-[#080818] px-3 py-2 text-sm normal-case tracking-normal text-white outline-none focus:border-[#e9c349]/60" />
+                <span className="text-[11px] normal-case tracking-normal text-[#6f6f78]">Захищає URL запуску. Без нього автопостинг за розкладом не працює.</span>
+              </label>
+            </div>
+
+            <div className="mt-4 rounded-lg border border-white/10 bg-[#080818] p-4">
+              <div className="mb-2 text-sm font-bold text-white">URL для планувальника (cron кожні ~15 хв)</div>
+              <code className="block break-all rounded-md bg-black/40 px-3 py-2 text-xs text-[#e9c349]">
+                {origin || "https://your-domain"}/api/marketing/run?key={settings.marketing_cron_secret || "ВАШ_СЕКРЕТ"}
+              </code>
+              <div className="mt-2 text-[11px] leading-5 text-[#6f6f78]">
+                Постав цей URL у cron-job.org або Coolify cron. За один виклик публікується максимум один пост, час якого щойно настав (з урахуванням тихих годин, ліміту на день і паузи між постами). «Опублікувати зараз» на пресеті — публікує негайно, вручну.
               </div>
             </div>
+
+            {postLog.length > 0 && (
+              <div className="mt-4">
+                <div className="mb-2 text-sm font-bold text-white">Останні публікації</div>
+                <div className="grid gap-2">
+                  {postLog.slice(0, 8).map((entry, index) => (
+                    <div key={index} className="flex items-center justify-between gap-3 rounded-lg border border-white/5 bg-[#080818] px-3 py-2 text-xs">
+                      <span className="text-[#c7c6ca]">{entry.presetName}</span>
+                      <span className="flex items-center gap-3">
+                        <span className={entry.result?.startsWith("OK") ? "text-emerald-300" : "text-red-200"}>{entry.result}</span>
+                        <span className="text-[#6f6f78]">{new Date(entry.at).toLocaleString("uk-UA")}</span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </section>
 
           <section className="rounded-xl border border-white/10 bg-[#13131a] p-5">

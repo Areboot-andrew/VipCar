@@ -8,6 +8,7 @@ const PUBLIC_API = [
   "/api/quote",                   // price preview in the booking modal
   "/api/promotions/resolve-code", // promo-code check in the calculator
   "/api/cars/availability",       // availability check in the calculator
+  "/api/marketing/run",           // autoposting cron (guarded by its own secret)
 ];
 
 // Admin-only API namespaces — every method. These expose client data,
