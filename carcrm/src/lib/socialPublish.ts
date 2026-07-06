@@ -49,7 +49,7 @@ function parseJson<T>(value: string | undefined, fallback: T): T {
   }
 }
 
-function fill(template: string, values: Record<string, string>) {
+export function fillTemplate(template: string, values: Record<string, string>) {
   return template.replace(/\{(\w+)\}/g, (_, key) => values[key] ?? '');
 }
 
@@ -93,7 +93,7 @@ async function buildPost(preset: PostPreset, siteUrl: string): Promise<{ caption
     imageUrl = carCover(promo.car);
   }
 
-  const caption = `${fill(preset.captionTemplate, values)}\n\n${preset.hashtags || ''}`.trim();
+  const caption = `${fillTemplate(preset.captionTemplate, values)}\n\n${preset.hashtags || ''}`.trim();
   return { caption, imageUrl };
 }
 
@@ -187,15 +187,21 @@ function nowInTz(tz: string) {
   return { date: `${parts.year}-${parts.month}-${parts.day}`, hm: `${parts.hour}:${parts.minute}`, minutes: Number(parts.hour) * 60 + Number(parts.minute) };
 }
 
-const toMinutes = (hm: string) => {
+export const toMinutes = (hm: string) => {
   const [h, m] = hm.split(':').map(Number);
   return (h || 0) * 60 + (m || 0);
 };
 
-function inQuietHours(nowMin: number, start: string, end: string) {
+export function isQuietHours(nowMin: number, start: string, end: string) {
   const s = toMinutes(start);
   const e = toMinutes(end);
   return s > e ? nowMin >= s || nowMin < e : nowMin >= s && nowMin < e; // handles overnight window
+}
+
+// A time slot is "due" if now is within [slot, slot + window)
+export function slotIsDue(nowMin: number, slot: string, windowMinutes: number) {
+  const slotMin = toMinutes(slot);
+  return nowMin >= slotMin && nowMin < slotMin + windowMinutes;
 }
 
 // The scheduler brain: called by a cron ping. Posts at most one due preset per run.
@@ -210,7 +216,7 @@ export async function runScheduledPosts(windowMinutes = 20): Promise<PublishResu
   const tz = rules.timezone || 'Europe/Kyiv';
   const { date, minutes } = nowInTz(tz);
 
-  if (rules.quietHoursStart && rules.quietHoursEnd && inQuietHours(minutes, rules.quietHoursStart, rules.quietHoursEnd)) {
+  if (rules.quietHoursStart && rules.quietHoursEnd && isQuietHours(minutes, rules.quietHoursStart, rules.quietHoursEnd)) {
     return { ran: false, ok: false, channels: [], caption: '', skipped: 'Тихі години.' };
   }
 
@@ -226,10 +232,8 @@ export async function runScheduledPosts(windowMinutes = 20): Promise<PublishResu
   // Find an enabled preset with a slot that has just come due and wasn't posted today
   for (const preset of presets.filter((p) => p.enabled)) {
     for (const slot of preset.timeSlots || []) {
-      const slotMin = toMinutes(slot);
-      const due = minutes >= slotMin && minutes < slotMin + windowMinutes;
       const key = `${date}|${preset.id}|${slot}`;
-      if (due && !log.some((e) => e.key === key)) {
+      if (slotIsDue(minutes, slot, windowMinutes) && !log.some((e) => e.key === key)) {
         const result = await publishPreset(preset);
         await appendLog({
           key,
