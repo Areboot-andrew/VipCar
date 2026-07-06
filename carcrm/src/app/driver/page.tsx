@@ -17,10 +17,26 @@ type Booking = {
   status: string;
   distance: number;
   deliveryDistance: number;
+  driverPay?: number;
+  collectFromClient?: number;
   driverNotes?: string;
   notes?: string;
   client: { name: string; phone: string };
-  car: { make: string; model: string };
+  car: { make: string; model: string; plateNumber?: string | null };
+};
+
+const statusLabel: Record<string, string> = {
+  PENDING: 'Нова',
+  CONFIRMED: 'Підтверджена',
+  COMPLETED: 'Виконана',
+  CANCELLED: 'Скасована',
+};
+
+const statusClass: Record<string, string> = {
+  PENDING: 'bg-yellow-500/20 text-yellow-400',
+  CONFIRMED: 'bg-[#e9c349]/20 text-[#e9c349]',
+  COMPLETED: 'bg-green-500/20 text-green-400',
+  CANCELLED: 'bg-red-500/20 text-red-400',
 };
 
 export default function DriverPortal() {
@@ -92,12 +108,12 @@ export default function DriverPortal() {
             <div className="text-4xl font-light text-green-400">{data.stats.completed}</div>
           </div>
           <div className="bg-white/5 p-6 rounded-2xl border border-white/10 backdrop-blur-sm">
-            <div className="text-xs text-[#c7c6ca] mb-1 font-label-caps uppercase tracking-widest">Ставка за км</div>
-            <div className="text-4xl font-light text-[#e9c349]">€{data.stats.salaryPerKm}</div>
+            <div className="text-xs text-[#c7c6ca] mb-1 font-label-caps uppercase tracking-widest">До виконання</div>
+            <div className="text-4xl font-light text-[#e9c349]">€{Math.round(data.stats.pendingEarnings || 0)}</div>
           </div>
           <div className="bg-white/5 p-6 rounded-2xl border border-white/10 backdrop-blur-sm bg-gradient-to-br from-green-500/10 to-transparent border-green-500/20">
             <div className="text-xs text-green-400 mb-1 font-label-caps uppercase tracking-widest font-bold">Зароблено</div>
-            <div className="text-4xl font-light text-green-400">€{data.stats.totalEarned.toFixed(2)}</div>
+            <div className="text-4xl font-light text-green-400">€{Math.round(data.stats.totalEarned)}</div>
           </div>
         </div>
 
@@ -109,8 +125,8 @@ export default function DriverPortal() {
               <div className="flex-1">
                 <div className="flex items-center gap-4 mb-4">
                   <div className="text-[#e9c349] font-bold text-lg">{format(new Date(b.dateStart), "dd MMMM yyyy, HH:mm", { locale: uk })}</div>
-                  <div className={`px-2 py-1 text-xs font-bold rounded uppercase ${b.status === 'COMPLETED' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
-                    {b.status}
+                  <div className={`px-2 py-1 text-xs font-bold rounded uppercase ${statusClass[b.status] || statusClass.PENDING}`}>
+                    {statusLabel[b.status] || b.status}
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-300">
@@ -120,11 +136,11 @@ export default function DriverPortal() {
                   </div>
                   <div>
                     <span className="text-gray-500 block mb-1">Клієнт:</span>
-                    <span className="font-medium text-white">{b.client.name}</span> ({b.client.phone})
+                    <a href={`tel:${b.client.phone}`} className="font-medium text-white hover:text-[#e9c349]">{b.client.name} ({b.client.phone})</a>
                   </div>
                   <div>
                     <span className="text-gray-500 block mb-1">Авто:</span>
-                    <span className="font-medium text-white">{b.car.make} {b.car.model}</span>
+                    <span className="font-medium text-white">{b.car.make} {b.car.model}{b.car.plateNumber ? ` • ${b.car.plateNumber}` : ''}</span>
                   </div>
                   <div>
                     <span className="text-gray-500 block mb-1">Кілометраж:</span>
@@ -132,6 +148,19 @@ export default function DriverPortal() {
                       {b.distance} км <span className="text-gray-400 text-xs">+{b.deliveryDistance || 0} км доїзд</span>
                       <span className="text-[#e9c349] ml-2 font-bold">={b.distance + (b.deliveryDistance || 0)} км</span>
                     </span>
+                  </div>
+                </div>
+
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-3">
+                    <div className="text-xs text-gray-400 mb-1">Ваша оплата за рейс</div>
+                    <div className="text-lg font-bold text-green-400">€{b.driverPay ?? 0}</div>
+                  </div>
+                  <div className={`rounded-xl border p-3 ${Number(b.collectFromClient) > 0 ? 'border-[#e9c349]/25 bg-[#e9c349]/10' : 'border-white/10 bg-white/5'}`}>
+                    <div className="text-xs text-gray-400 mb-1">Отримати з клієнта</div>
+                    <div className={`text-lg font-bold ${Number(b.collectFromClient) > 0 ? 'text-[#e9c349]' : 'text-green-400'}`}>
+                      {Number(b.collectFromClient) > 0 ? `€${b.collectFromClient}` : 'Оплачено'}
+                    </div>
                   </div>
                 </div>
                 

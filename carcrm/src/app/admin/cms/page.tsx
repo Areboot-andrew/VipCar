@@ -161,6 +161,7 @@ const seoFields: FieldConfig[] = [
   { key: 'gallery_seo_title', label: 'Meta title галереї', hint: 'Окремий заголовок сторінки галереї для браузера і пошуку.' },
   { key: 'gallery_seo_description', label: 'Meta description галереї', type: 'textarea', hint: 'Короткий опис сторінки галереї для пошуку. Не показуємо як hero-текст.' },
   { key: 'gallery_fallback_alt', label: 'Alt фото галереї', hint: 'Запасний alt-текст для фото без власного опису (важливо для SEO і доступності).' },
+  { key: 'google_analytics_id', label: 'Google Analytics ID', hint: 'Вимірювальний ID (G-XXXXXXX або UA-...). Порожньо — аналітика вимкнена. sitemap.xml і robots.txt працюють автоматично.' },
 ];
 
 const explicitKeys = new Set([

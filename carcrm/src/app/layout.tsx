@@ -69,6 +69,16 @@ export default async function RootLayout({
         />
       </head>
       <body className={`${inter.className} antialiased`}>
+        {c['google_analytics_id'] && (
+          <>
+            <script async src={`https://www.googletagmanager.com/gtag/js?id=${c['google_analytics_id']}`}></script>
+            <script
+              dangerouslySetInnerHTML={{
+                __html: `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${c['google_analytics_id']}');`,
+              }}
+            />
+          </>
+        )}
         <AuthProvider>
           {children}
         </AuthProvider>

@@ -345,41 +345,26 @@ export default async function AdminDashboardPage() {
               Потребує уваги
             </h2>
             <div className="mt-4 grid gap-3">
-              <div className="rounded-xl border border-white/10 bg-[#17171f] p-4">
+              <a href="/admin/bookings" className={`rounded-xl border p-4 transition ${unassignedBookings > 0 ? 'border-red-400/20 bg-red-400/5 hover:border-red-300/45' : 'border-white/10 bg-[#17171f] hover:border-white/25'}`}>
                 <div className="text-2xl font-black text-white">{unassignedBookings}</div>
                 <div className="text-sm text-[#a7a6ad]">майбутніх рейсів без водія</div>
-              </div>
-              <a href="/admin/bookings" className="rounded-xl border border-red-400/20 bg-red-400/5 p-4 transition hover:border-red-300/45">
+              </a>
+              <a href="/admin/bookings" className={`rounded-xl border p-4 transition ${openRequests.length > 0 ? 'border-red-400/20 bg-red-400/5 hover:border-red-300/45' : 'border-white/10 bg-[#17171f] hover:border-white/25'}`}>
                 <div className="text-2xl font-black text-white">{openRequests.length}</div>
                 <div className="text-sm text-[#a7a6ad]">відкритих заявок без підтвердження</div>
               </a>
-              <a href="/admin/chat" className="rounded-xl border border-red-400/20 bg-red-400/5 p-4 transition hover:border-red-300/45">
+              <a href="/admin/chat" className={`rounded-xl border p-4 transition ${unansweredChats.length > 0 ? 'border-red-400/20 bg-red-400/5 hover:border-red-300/45' : 'border-white/10 bg-[#17171f] hover:border-white/25'}`}>
                 <div className="text-2xl font-black text-white">{unansweredChats.length}</div>
                 <div className="text-sm text-[#a7a6ad]">чатів очікують відповідь</div>
               </a>
-              <div className="rounded-xl border border-white/10 bg-[#17171f] p-4">
+              <a href="/admin/fleet" className="rounded-xl border border-white/10 bg-[#17171f] p-4 transition hover:border-white/25">
                 <div className="text-2xl font-black text-white">{availableCars} / {cars.length}</div>
                 <div className="text-sm text-[#a7a6ad]">авто доступні в автопарку</div>
-              </div>
-              <div className="rounded-xl border border-white/10 bg-[#17171f] p-4">
+              </a>
+              <a href="/admin/users" className="rounded-xl border border-white/10 bg-[#17171f] p-4 transition hover:border-white/25">
                 <div className="text-2xl font-black text-white">{activeDrivers} / {drivers.length}</div>
                 <div className="text-sm text-[#a7a6ad]">активні водії</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-white/10 bg-[#10101a] p-5">
-            <h2 className="flex items-center gap-2 text-xl font-black text-white">
-              <Inbox className="text-[#e9c349]" size={22} />
-              Відкриті заявки
-            </h2>
-            <p className="mt-1 text-sm text-[#8a8a93]">Нові бронювання, які ще треба підтвердити, уточнити або відхилити.</p>
-            <div className="mt-4 grid gap-3">
-              {openRequests.length > 0 ? (
-                openRequests.slice(0, 4).map((booking) => <BookingCard key={booking.id} booking={toPlain(booking)} compact />)
-              ) : (
-                <div className="rounded-xl border border-dashed border-white/15 p-4 text-sm text-[#a7a6ad]">Немає відкритих непідтверджених заявок.</div>
-              )}
+              </a>
             </div>
           </div>
 

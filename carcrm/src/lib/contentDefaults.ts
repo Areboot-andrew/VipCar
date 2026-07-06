@@ -12,6 +12,7 @@ export const SITE_CONTENT_DEFAULTS: Record<string, string> = {
   schema_address_city: 'Kyiv',
   schema_address_country: 'UA',
   schema_area_served: 'UA,PL,DE,CZ,AT,HU,SK',
+  google_analytics_id: '',
 
   menu_services: 'Послуги',
   menu_fleet: 'Автопарк',
