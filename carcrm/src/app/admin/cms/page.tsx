@@ -11,7 +11,6 @@ import {
   FileText,
   GalleryHorizontalEnd,
   Globe2,
-  ImageIcon,
   LayoutTemplate,
   Loader2,
   Mail,
@@ -24,6 +23,7 @@ import {
   Upload,
 } from 'lucide-react';
 import IconPicker from '@/components/admin/IconPicker';
+import MediaField from '@/components/admin/MediaField';
 import DynamicIcon from '@/components/ui/DynamicIcon';
 import HighlightedTitle from '@/components/ui/HighlightedTitle';
 import { SITE_CONTENT_DEFAULTS, withContentDefaults } from '@/lib/contentDefaults';
@@ -48,7 +48,24 @@ type FieldConfig = {
   hint?: string;
   type?: 'text' | 'textarea' | 'media' | 'secret';
   preview?: boolean;
+  mediaPreset?: string;
+  mediaAspect?: number;
+  mediaCrop?: boolean;
+  mediaAllowVideo?: boolean;
 };
+
+// Sensible crop/preset defaults per media field, overridable via FieldConfig.
+function mediaOptionsFor(field: FieldConfig) {
+  const key = field.key.toLowerCase();
+  const isLogo = key.includes('logo');
+  const isBg = key.includes('bg') || key.includes('hero');
+  return {
+    preset: field.mediaPreset ?? (isBg ? 'hero' : 'gallery'),
+    aspect: field.mediaAspect,
+    crop: field.mediaCrop ?? !isLogo, // logos are optimized without forced crop
+    allowVideo: field.mediaAllowVideo ?? (isBg || key.includes('video')),
+  };
+}
 
 const tabs = [
   { id: 'home', label: 'Головна', desc: 'Hero, меню, переваги', icon: LayoutTemplate },
@@ -183,15 +200,13 @@ function SectionShell({
 function CmsField({
   field,
   value,
-  uploading,
   onChange,
-  onUpload,
 }: {
   field: FieldConfig;
   value: string;
   uploading?: boolean;
   onChange: (value: string) => void;
-  onUpload: (file: File) => void;
+  onUpload?: (file: File) => void;
 }) {
   const inputId = `cms-${field.key}`;
   const isMedia = field.type === 'media';
@@ -203,36 +218,16 @@ function CmsField({
       </label>
       {field.type === 'textarea' ? (
         <textarea id={inputId} rows={6} value={value || ''} onChange={(event) => onChange(event.target.value)} className={`${fieldClass()} admin-form-textarea resize-y`} />
+      ) : isMedia ? (
+        <MediaField value={value} onChange={onChange} {...mediaOptionsFor(field)} />
       ) : (
-        <div className={isMedia ? 'grid gap-3 md:grid-cols-[96px_1fr_auto]' : ''}>
-          {isMedia && (
-            <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-[#080818]">
-              {value ? (
-                value.includes('.mp4') || value.includes('.webm') ? (
-                  <video src={value} className="h-full w-full object-cover" muted />
-                ) : (
-                  <img src={value} alt={field.label} className="h-full w-full object-cover" />
-                )
-              ) : (
-                <ImageIcon className="text-[#64646d]" />
-              )}
-            </div>
-          )}
-          <input
-            id={inputId}
-            type={field.type === 'secret' ? 'password' : 'text'}
-            value={value || ''}
-            onChange={(event) => onChange(event.target.value)}
-            className={fieldClass()}
-          />
-          {isMedia && (
-            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm font-bold text-white transition-colors hover:border-[#e9c349]/40 hover:bg-[#e9c349]/10">
-              {uploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
-              {uploading ? 'Завантаження' : 'Файл'}
-              <input type="file" className="hidden" onChange={(event) => event.target.files?.[0] && onUpload(event.target.files[0])} />
-            </label>
-          )}
-        </div>
+        <input
+          id={inputId}
+          type={field.type === 'secret' ? 'password' : 'text'}
+          value={value || ''}
+          onChange={(event) => onChange(event.target.value)}
+          className={fieldClass()}
+        />
       )}
       {field.hint && <p className="m-0 text-xs text-[#6f6f78]">{field.hint}</p>}
       {field.preview && value && (
