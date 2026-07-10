@@ -194,6 +194,7 @@ const isManagedElsewhere = (key: string) =>
 
 const blockLabels: Record<string, string> = {
   HERO: 'Hero банер',
+  INFO: 'Інформація (фото + текст)',
   TEXT_IMAGE: 'Текст + медіа',
   GALLERY: 'Галерея',
   FEATURES: 'Переваги',
@@ -202,6 +203,7 @@ const blockLabels: Record<string, string> = {
 
 const blockHints: Record<string, string> = {
   HERO: 'Великий перший екран: заголовок, підзаголовок, фон (фото або відео).',
+  INFO: 'Інформаційна секція: заголовок + пункти «фото + форматований опис». Пункти чергуються ліво/право, додаються і прибираються.',
   TEXT_IMAGE: 'Текстова секція з форматуванням і зображенням зліва або справа.',
   GALLERY: 'Стрічка фото/відео. Якщо медіа не додані — підтягнуться авто з автопарку.',
   FEATURES: 'Сітка переваг з іконками (пунктів може бути скільки завгодно).',
@@ -402,6 +404,8 @@ export default function CMSPage() {
     const defaultContent =
       type === 'HERO'
         ? { title: 'Новий *банер*', subtitle: 'Опис банеру', bgImage: '' }
+        : type === 'INFO'
+          ? { title: 'Про наш сервіс', subtitle: '', items: [{ title: '', text: 'Опис…', image: '' }] }
         : type === 'GALLERY'
           ? { title: 'Галерея', items: [] }
           : type === 'TEXT_IMAGE'
@@ -763,6 +767,65 @@ export default function CMSPage() {
                           <CmsField field={{ key: 'title', label: 'Заголовок', type: 'textarea', preview: true, hint: 'Золотий акцент через *зірочки*.' }} value={parsed.title || ''} onChange={(value) => updateBlockContent(index, { ...parsed, title: value })} onUpload={() => undefined} />
                           <CmsField field={{ key: 'subtitle', label: 'Підзаголовок', type: 'textarea' }} value={parsed.subtitle || ''} onChange={(value) => updateBlockContent(index, { ...parsed, subtitle: value })} onUpload={() => undefined} />
                           <CmsField field={{ key: 'bgImage', label: 'Фон hero', type: 'media' }} value={parsed.bgImage || ''} uploading={uploadingState[uploadKey]} onChange={(value) => updateBlockContent(index, { ...parsed, bgImage: value })} onUpload={(file) => handleBlockUpload(index, (data, url) => { data.bgImage = url; }, file)} />
+                        </>
+                      )}
+
+                      {block.type === 'INFO' && (
+                        <>
+                          <CmsField field={{ key: 'title', label: 'Заголовок секції', preview: true, hint: 'Золотий акцент через *зірочки*. Можна лишити порожнім.' }} value={parsed.title || ''} onChange={(value) => updateBlockContent(index, { ...parsed, title: value })} onUpload={() => undefined} />
+                          <CmsField field={{ key: 'subtitle', label: 'Підзаголовок секції', type: 'textarea' }} value={parsed.subtitle || ''} onChange={(value) => updateBlockContent(index, { ...parsed, subtitle: value })} onUpload={() => undefined} />
+
+                          <div className="space-y-4">
+                            {(parsed.items || []).map((item: any, itemIndex: number) => (
+                              <div key={itemIndex} className="rounded-xl border border-white/10 bg-[#080818] p-4">
+                                <div className="mb-3 flex items-center justify-between">
+                                  <span className="text-sm font-bold text-[#e9c349]">Пункт {itemIndex + 1} {itemIndex % 2 === 1 ? '(фото справа)' : '(фото зліва)'}</span>
+                                  <button onClick={() => {
+                                    const items = [...(parsed.items || [])];
+                                    items.splice(itemIndex, 1);
+                                    updateBlockContent(index, { ...parsed, items });
+                                  }} className="rounded-lg bg-red-500/10 p-2 text-red-300 hover:bg-red-500/20"><Trash2 size={15} /></button>
+                                </div>
+                                <input
+                                  value={item.title || ''}
+                                  onChange={(event) => {
+                                    const items = [...(parsed.items || [])];
+                                    items[itemIndex] = { ...items[itemIndex], title: event.target.value };
+                                    updateBlockContent(index, { ...parsed, items });
+                                  }}
+                                  placeholder="Заголовок пункту (необов'язково)"
+                                  className={`${fieldClass()} mb-3`}
+                                />
+                                <div className="mb-3 overflow-hidden rounded-lg border border-white/10 bg-white text-black">
+                                  <RichEditor
+                                    value={item.text || ''}
+                                    onChange={(value) => {
+                                      const items = [...(parsed.items || [])];
+                                      items[itemIndex] = { ...items[itemIndex], text: value };
+                                      updateBlockContent(index, { ...parsed, items });
+                                    }}
+                                  />
+                                </div>
+                                <CmsField
+                                  field={{ key: `info-img-${itemIndex}`, label: 'Фото / відео пункту', type: 'media' }}
+                                  value={item.image || ''}
+                                  uploading={uploadingState[uploadKey]}
+                                  onChange={(value) => {
+                                    const items = [...(parsed.items || [])];
+                                    items[itemIndex] = { ...items[itemIndex], image: value };
+                                    updateBlockContent(index, { ...parsed, items });
+                                  }}
+                                  onUpload={(file) => handleBlockUpload(index, (data, url) => {
+                                    if (!data.items) data.items = [];
+                                    data.items[itemIndex] = { ...data.items[itemIndex], image: url };
+                                  }, file)}
+                                />
+                              </div>
+                            ))}
+                            <button onClick={() => updateBlockContent(index, { ...parsed, items: [...(parsed.items || []), { title: '', text: '', image: '' }] })} className="rounded-lg border border-[#e9c349]/30 px-4 py-2 text-sm font-bold text-[#e9c349] hover:bg-[#e9c349]/10">
+                              + Додати пункт
+                            </button>
+                          </div>
                         </>
                       )}
 

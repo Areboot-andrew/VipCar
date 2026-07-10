@@ -127,13 +127,54 @@ export default async function Home() {
                     <div className={`flex flex-col gap-12 items-center ${parsed.imagePosition === 'right' ? 'md:flex-row' : 'md:flex-row-reverse'}`}>
                       <div className="flex-1 space-y-6">
                         <HighlightedTitle text={toHighlightedText(parsed.title)} as="h2" className="font-headline-lg text-4xl text-[#e4e2e3]" />
-                        <div className="prose prose-invert prose-lg text-[#c7c6ca]" dangerouslySetInnerHTML={{__html: parsed.text || ''}}></div>
+                        <div className="rich-content" dangerouslySetInnerHTML={{__html: parsed.text || ''}}></div>
                       </div>
                       {parsed.image && (
                         <div className="flex-1">
                           <img src={parsed.image} alt={parsed.title} className="w-full rounded-2xl shadow-2xl border border-white/5" />
                         </div>
                       )}
+                    </div>
+                  </section>
+                );
+              }
+
+              if (block.type === 'INFO') {
+                const items: any[] = Array.isArray(parsed.items) ? parsed.items : [];
+                return (
+                  <section key={block.id} className="max-w-[1280px] mx-auto px-[24px] md:px-[64px] my-20">
+                    {parsed.title && (
+                      <div className="mb-12 text-center">
+                        <HighlightedTitle text={toHighlightedText(parsed.title)} as="h2" className="font-headline-lg text-3xl md:text-[42px] leading-tight text-white" />
+                        <div className="mx-auto mt-4 h-[3px] w-16 rounded-full bg-[#e9c349]"></div>
+                        {parsed.subtitle && <p className="mx-auto mt-4 max-w-2xl text-[#c7c6ca]" dangerouslySetInnerHTML={{ __html: parseAccent(parsed.subtitle) }}></p>}
+                      </div>
+                    )}
+                    <div className="flex flex-col gap-14 md:gap-20">
+                      {items.map((item: any, i: number) => {
+                        const hasImage = Boolean(item.image);
+                        const isVideo = hasImage && (item.image.includes('.mp4') || item.image.includes('.webm'));
+                        return (
+                          <div key={i} className={`flex flex-col items-center gap-8 md:gap-14 ${hasImage ? (i % 2 === 1 ? 'md:flex-row-reverse' : 'md:flex-row') : ''}`}>
+                            <div className={hasImage ? 'flex-1 min-w-0' : 'max-w-3xl mx-auto text-center'}>
+                              {item.title && <h3 className="font-headline-md text-2xl md:text-3xl text-white mb-4">{item.title}</h3>}
+                              <div className="rich-content" dangerouslySetInnerHTML={{ __html: item.text || '' }}></div>
+                            </div>
+                            {hasImage && (
+                              <div className="flex-1 min-w-0 w-full">
+                                <div className="group relative overflow-hidden rounded-3xl border border-white/10 shadow-[0_24px_80px_rgba(0,0,0,0.45)]">
+                                  {isVideo ? (
+                                    <video src={item.image} autoPlay loop muted playsInline className="aspect-[4/3] w-full object-cover" />
+                                  ) : (
+                                    <img src={item.image} alt={item.title || 'Інформація'} className="aspect-[4/3] w-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                                  )}
+                                  <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-[#e9c349]/10"></div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </section>
                 );
