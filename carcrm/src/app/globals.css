@@ -154,3 +154,49 @@
 .custom-map-tooltip.leaflet-tooltip-top:before {
   border-top-color: rgba(233, 195, 73, 0.5) !important;
 }
+
+/* --- Cross-browser form controls (Safari/mac fix: native steppers and spinners) --- */
+select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23e9c349' d='M6 8 0 0h12z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 10px 7px;
+  padding-right: 2.25rem !important;
+}
+select::-ms-expand { display: none; }
+
+/* Hide number input spinners (deposit/price fields look broken with them on mac) */
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* --- Rich text from the CMS editor, styled for the dark theme (shared class) --- */
+.rich-content { font-size: 1.0625rem; line-height: 1.75; color: #c7c6ca; }
+.rich-content > *:first-child { margin-top: 0; }
+.rich-content > *:last-child { margin-bottom: 0; }
+.rich-content p { margin: 0 0 1rem; }
+.rich-content h1, .rich-content h2, .rich-content h3 { color: #fff; font-weight: 700; line-height: 1.25; margin: 1.75rem 0 0.75rem; }
+.rich-content h1 { font-size: 1.75rem; }
+.rich-content h2 { font-size: 1.5rem; }
+.rich-content h3 { font-size: 1.25rem; }
+.rich-content strong, .rich-content b { color: #fff; font-weight: 700; }
+.rich-content em { font-style: italic; }
+.rich-content a { color: #e9c349; text-decoration: underline; text-underline-offset: 2px; }
+.rich-content a:hover { color: #ffe175; }
+.rich-content ul, .rich-content ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+.rich-content ul { list-style: disc; }
+.rich-content ol { list-style: decimal; }
+.rich-content li { margin: 0.35rem 0; }
+.rich-content li::marker { color: #e9c349; }
+.rich-content blockquote { border-left: 3px solid rgba(233,195,73,0.6); padding: 0.25rem 0 0.25rem 1rem; margin: 1rem 0; color: #d8d7db; font-style: italic; }
+.rich-content img { border-radius: 0.75rem; margin: 1rem 0; max-width: 100%; }
+.rich-content hr { border: 0; border-top: 1px solid rgba(255,255,255,0.12); margin: 1.5rem 0; }

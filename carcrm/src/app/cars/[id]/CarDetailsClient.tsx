@@ -326,7 +326,7 @@ export default function CarDetailsPage() {
               })}
             </div>
           ) : car.description && (
-            <div className="prose prose-invert prose-lg max-w-none prose-p:text-[#c7c6ca] prose-headings:text-white prose-a:text-[#e9c349]" dangerouslySetInnerHTML={{ __html: car.description }}></div>
+            <div className="rich-content max-w-none" dangerouslySetInnerHTML={{ __html: car.description }}></div>
           )}
 
           {/* Features */}
