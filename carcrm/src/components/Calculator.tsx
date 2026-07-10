@@ -760,7 +760,7 @@ export default function Calculator({ cars, cmsSettings, siteSettings, globalFuel
                         cover.type === 'video' ? (
                           <video src={cover.url} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" muted loop playsInline />
                         ) : (
-                          <img src={cover.url} alt={cover.alt || car.model} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                          <img loading="lazy" decoding="async" src={cover.url} alt={cover.alt || car.model} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                         )
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">

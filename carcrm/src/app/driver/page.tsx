@@ -25,12 +25,7 @@ type Booking = {
   car: { make: string; model: string; plateNumber?: string | null };
 };
 
-const statusLabel: Record<string, string> = {
-  PENDING: 'Нова',
-  CONFIRMED: 'Підтверджена',
-  COMPLETED: 'Виконана',
-  CANCELLED: 'Скасована',
-};
+import { BOOKING_STATUS_LABEL as statusLabel } from "@/lib/format";
 
 const statusClass: Record<string, string> = {
   PENDING: 'bg-yellow-500/20 text-yellow-400',

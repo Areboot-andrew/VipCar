@@ -126,7 +126,7 @@ export default function GalleryShowcase({ cars }: { cars: GalleryCar[] }) {
                   cover.type === 'video' ? (
                     <video src={cover.url} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" muted loop playsInline />
                   ) : (
-                    <img src={cover.url} alt={cover.alt || `${car.make} ${car.model}`} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                    <img loading="lazy" decoding="async" src={cover.url} alt={cover.alt || `${car.make} ${car.model}`} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
                   )
                 ) : (
                   <div className="flex h-full items-center justify-center text-[#64646d]">
@@ -179,7 +179,7 @@ export default function GalleryShowcase({ cars }: { cars: GalleryCar[] }) {
                             <Film className="absolute left-1.5 top-1.5 text-white drop-shadow" size={14} />
                           </>
                         ) : (
-                          <img src={item.url} alt={item.alt || `${car.make} ${car.model}`} className="h-full w-full object-cover" />
+                          <img loading="lazy" decoding="async" src={item.url} alt={item.alt || `${car.make} ${car.model}`} className="h-full w-full object-cover" />
                         )}
                       </div>
                     ))}

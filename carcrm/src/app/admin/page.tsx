@@ -18,34 +18,9 @@ import {
 } from 'lucide-react';
 import { prisma } from '@/lib/prisma';
 import BookingCard, { type DashboardBooking } from '@/components/admin/BookingCard';
+import { BOOKING_STATUS_LABEL as statusLabel, money as eur, shortPlace } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
-
-const statusLabel: Record<string, string> = {
-  PENDING: 'Нова',
-  CONFIRMED: 'Підтверджена',
-  COMPLETED: 'Завершена',
-  CANCELLED: 'Скасована',
-};
-
-const statusClass: Record<string, string> = {
-  PENDING: 'border-white/10 bg-white/5 text-white',
-  CONFIRMED: 'border-[#e9c349]/40 bg-[#e9c349]/15 text-[#e9c349]',
-  COMPLETED: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300',
-  CANCELLED: 'border-red-400/30 bg-red-400/10 text-red-300',
-};
-
-function eur(value?: number | null) {
-  return `€${Number(value || 0).toFixed(0)}`;
-}
-
-function km(value?: number | null) {
-  return `${Number(value || 0).toFixed(0)} км`;
-}
-
-function shortPlace(value: string) {
-  return value.split(',')[0] || value;
-}
 
 function tripTime(value: Date) {
   return format(value, 'dd MMM, HH:mm', { locale: uk });

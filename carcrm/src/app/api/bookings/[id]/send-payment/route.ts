@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
-const money = (value: number) => `€${Math.round(value).toLocaleString('uk-UA')}`;
+import { money } from '@/lib/format';
 
 // POST: send a payment request message into the booking chat, so the client
 // sees driver, car, full price, deposit, paid amount and payment requisites.

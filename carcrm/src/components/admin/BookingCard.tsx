@@ -16,6 +16,8 @@ import {
 
 const EmptyLegRouteMap = dynamic(() => import('@/components/EmptyLegRouteMap'), { ssr: false });
 
+import { BOOKING_STATUS_CLASS, BOOKING_STATUS_LABEL, km, money, shortPlace } from '@/lib/format';
+
 export type DashboardBooking = {
   id: string;
   status: string;
@@ -62,23 +64,10 @@ export type DashboardBooking = {
   invoice?: { amount: number; depositAmount?: number; paidAmount?: number; paidAt?: string | null; paymentMethod?: string | null; status: string } | null;
 };
 
-const statusLabel: Record<string, string> = {
-  PENDING: 'Нова',
-  CONFIRMED: 'Підтверджена',
-  COMPLETED: 'Завершена',
-  CANCELLED: 'Скасована',
-};
+const statusLabel = BOOKING_STATUS_LABEL;
+const statusClass = BOOKING_STATUS_CLASS;
+const eur = money;
 
-const statusClass: Record<string, string> = {
-  PENDING: 'border-white/10 bg-white/5 text-white',
-  CONFIRMED: 'border-[#e9c349]/40 bg-[#e9c349]/15 text-[#e9c349]',
-  COMPLETED: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300',
-  CANCELLED: 'border-red-400/30 bg-red-400/10 text-red-300',
-};
-
-const eur = (value?: number | null) => `€${Number(value || 0).toFixed(0)}`;
-const km = (value?: number | null) => `${Number(value || 0).toFixed(0)} км`;
-const shortPlace = (value: string) => value.split(',')[0] || value;
 const dt = (value?: string | null) =>
   value ? new Date(value).toLocaleString('uk-UA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '--';
 

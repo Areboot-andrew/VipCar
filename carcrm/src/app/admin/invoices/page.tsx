@@ -27,15 +27,7 @@ type Invoice = {
   }
 };
 
-const METHODS = [
-  { value: "CASH", label: "Готівка" },
-  { value: "CARD", label: "Карта" },
-  { value: "USDT", label: "USDT" },
-  { value: "BANK", label: "Банк. переказ" },
-];
-
-const money = (value?: number | null) => `€${Math.round(Number(value || 0)).toLocaleString("uk-UA")}`;
-const methodLabel = (m?: string | null) => METHODS.find((x) => x.value === m)?.label || m || "";
+import { PAY_METHODS as METHODS, money, paymentMethodLabel as methodLabel } from "@/lib/format";
 
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);

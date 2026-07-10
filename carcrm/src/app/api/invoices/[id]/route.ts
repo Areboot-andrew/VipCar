@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from "@/lib/prisma";
+import { paymentMethodLabel } from "@/lib/format";
 
 
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -73,8 +74,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
             const amount = Math.round(Number(invoice.amount || 0));
             const remaining = Math.max(0, Math.round(amount - newPaid));
             const deposit = Number(invoice.depositAmount || 0);
-            const methodLabel: Record<string, string> = { CASH: 'готівка', CARD: 'карта', USDT: 'USDT', BANK: 'банківський переказ' };
-            const method = invoice.paymentMethod ? ` (${methodLabel[invoice.paymentMethod] || invoice.paymentMethod})` : '';
+            const method = invoice.paymentMethod ? ` (${paymentMethodLabel(invoice.paymentMethod)})` : '';
 
             let header: string;
             let bodyLine: string;

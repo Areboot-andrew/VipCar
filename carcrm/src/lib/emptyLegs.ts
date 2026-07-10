@@ -1,14 +1,11 @@
 import { prisma } from './prisma';
 import { isCarAvailableForInterval } from './bookingAvailability';
 import { coord, haversineRoadKm, type LatLng } from './geo';
+import { shortPlace } from './format';
 
 const AUTO_EMPTY_PREFIX = 'auto-empty-';
 const AUTO_EMPTY_WINDOW_DAYS = 7;
 const AUTO_EMPTY_PICKUP_RADIUS_KM = 50;
-
-function shortPlace(value?: string | null) {
-  return (value || '').split(',')[0].trim();
-}
 
 export function autoEmptyDiscount(dateStart: Date, now = new Date()) {
   const hoursToStart = (dateStart.getTime() - now.getTime()) / 36e5;

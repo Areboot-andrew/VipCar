@@ -31,6 +31,7 @@ import {
   Baby,
   WalletCards,
 } from 'lucide-react';
+import { BOOKING_STATUS_CLASS, BOOKING_STATUS_LABEL, PAY_METHODS, km, money, shortPlace } from '@/lib/format';
 
 type Car = {
   id: string;
@@ -110,13 +111,6 @@ type Booking = {
   status: string;
 };
 
-const PAY_METHODS = [
-  { value: 'CASH', label: 'Готівка' },
-  { value: 'CARD', label: 'Карта' },
-  { value: 'USDT', label: 'USDT' },
-  { value: 'BANK', label: 'Банк. переказ' },
-];
-
 type Props = {
   cars: Car[];
   bookings: Booking[];
@@ -124,23 +118,8 @@ type Props = {
   onOpenChat?: (bookingId: string) => void;
 };
 
-const statusLabel: Record<string, string> = {
-  PENDING: 'Нова',
-  CONFIRMED: 'Підтверджена',
-  COMPLETED: 'Завершена',
-  CANCELLED: 'Скасована',
-};
-
-const statusClass: Record<string, string> = {
-  PENDING: 'border-white/10 bg-white/5 text-white',
-  CONFIRMED: 'border-[#e9c349]/40 bg-[#e9c349]/15 text-[#e9c349]',
-  COMPLETED: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300',
-  CANCELLED: 'border-red-400/30 bg-red-400/10 text-red-300',
-};
-
-function shortPlace(value: string) {
-  return value.split(',')[0] || value;
-}
+const statusLabel = BOOKING_STATUS_LABEL;
+const statusClass = BOOKING_STATUS_CLASS;
 
 function time(value?: string | null) {
   if (!value) return '--:--';
@@ -150,14 +129,6 @@ function time(value?: string | null) {
 function dateTime(value?: string | null) {
   if (!value) return '--';
   return format(new Date(value), 'dd MMM, HH:mm', { locale: uk });
-}
-
-function money(value?: number | null) {
-  return `€${Number(value || 0).toFixed(0)}`;
-}
-
-function km(value?: number | null) {
-  return `${Number(value || 0).toFixed(0)} км`;
 }
 
 function hours(value?: number | null) {

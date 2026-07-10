@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { recalculateChain } from '@/lib/chaining';
 import { prisma } from '@/lib/prisma';
+import { shortPlace } from '@/lib/format';
 
 const round2 = (value: number) => Math.round(value * 100) / 100;
-const shortPlace = (value: string) => value.split(',')[0] || value;
 
 type FullBooking = NonNullable<Awaited<ReturnType<typeof fetchBooking>>>;
 

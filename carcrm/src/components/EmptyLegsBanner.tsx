@@ -110,7 +110,7 @@ export default function EmptyLegsBanner({ cmsSettings = {} }: { cmsSettings?: Re
               <div className="flex min-h-[520px] flex-col">
                 <div className="relative h-[290px] overflow-hidden bg-[#080818]">
                   {cover ? (
-                    <img src={cover} alt={promo.car ? `${promo.car.make} ${promo.car.model}` : promo.title} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                    <img loading="lazy" decoding="async" src={cover} alt={promo.car ? `${promo.car.make} ${promo.car.model}` : promo.title} className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
                   ) : (
                     <div className="flex h-full items-center justify-center text-[#56565f]">
                       <CarFront size={58} />

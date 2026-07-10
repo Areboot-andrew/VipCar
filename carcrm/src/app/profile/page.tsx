@@ -32,17 +32,7 @@ type Booking = {
   driver?: { user?: { name: string; phone?: string | null } | null } | null;
 };
 
-const paymentMethodLabel = (method?: string | null) => {
-  switch (method) {
-    case "CASH": return "готівка";
-    case "CARD": return "карта";
-    case "USDT": return "USDT";
-    case "BANK": return "банк. переказ";
-    default: return method || "";
-  }
-};
-
-const money = (value?: number | null) => `€${Math.round(Number(value || 0)).toLocaleString("uk-UA")}`;
+import { money, paymentMethodLabel } from "@/lib/format";
 
 export default function ProfilePage() {
   const { data: session, status } = useSession();
