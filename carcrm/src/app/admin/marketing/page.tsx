@@ -530,13 +530,22 @@ export default function MarketingPage() {
               </label>
             </div>
 
-            <div className="mt-4 rounded-lg border border-white/10 bg-[#080818] p-4">
-              <div className="mb-2 text-sm font-bold text-white">URL для планувальника (cron кожні ~15 хв)</div>
+            <div className="mt-4 rounded-lg border border-emerald-400/25 bg-emerald-400/[0.07] p-4">
+              <div className="mb-1 flex items-center gap-2 text-sm font-bold text-emerald-300">
+                <span className="h-2 w-2 rounded-full bg-emerald-400"></span> Автопостинг працює автоматично
+              </div>
+              <div className="text-[11px] leading-5 text-[#a7a6ad]">
+                Сервер сам перевіряє розклад кожні 5 хв і публікує пост, час якого настав (з урахуванням тихих годин, ліміту на день і паузи). Зовнішній cron не потрібен. «Опублікувати зараз» на пресеті — публікує негайно вручну.
+              </div>
+            </div>
+
+            <div className="mt-3 rounded-lg border border-white/10 bg-[#080818] p-4">
+              <div className="mb-2 text-sm font-bold text-white">Резервний зовнішній тригер (необов'язково)</div>
               <code className="block break-all rounded-md bg-black/40 px-3 py-2 text-xs text-[#e9c349]">
                 {origin || "https://your-domain"}/api/marketing/run?key={settings.marketing_cron_secret || "ВАШ_СЕКРЕТ"}
               </code>
               <div className="mt-2 text-[11px] leading-5 text-[#6f6f78]">
-                Постав цей URL у cron-job.org або Coolify cron. За один виклик публікується максимум один пост, час якого щойно настав (з урахуванням тихих годин, ліміту на день і паузи між постами). «Опублікувати зараз» на пресеті — публікує негайно, вручну.
+                Якщо колись сервер працюватиме в кількох інстансах — цей URL можна повісити на cron-job.org як єдину точку запуску.
               </div>
             </div>
 

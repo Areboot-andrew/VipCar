@@ -10,8 +10,18 @@ declare global {
 }
 
 export const getTelegramClient = async (forceReconnect = false): Promise<TelegramClient | null> => {
-  if (!forceReconnect && global.tgClient && global.tgClient.connected) {
-    return global.tgClient;
+  if (!forceReconnect && global.tgClient) {
+    // Healthy — reuse as is
+    if (global.tgClient.connected) return global.tgClient;
+    // Dropped — reconnect the SAME client (handler stays attached, no leak)
+    try {
+      await global.tgClient.connect();
+      console.log('Telegram MTProto reconnected.');
+      return global.tgClient;
+    } catch (err) {
+      console.error('Telegram reconnect failed, rebuilding client:', err);
+      global.tgClient = undefined;
+    }
   }
 
   try {
