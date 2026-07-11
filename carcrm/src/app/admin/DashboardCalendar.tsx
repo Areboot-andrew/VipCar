@@ -1,6 +1,9 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import dynamic from 'next/dynamic';
+
+const EmptyLegRouteMap = dynamic(() => import('@/components/EmptyLegRouteMap'), { ssr: false });
 import {
   addDays,
   addMonths,
@@ -66,6 +69,10 @@ type Booking = {
   driverId?: string | null;
   routeFrom: string;
   routeTo: string;
+  originLat?: number | null;
+  originLng?: number | null;
+  destinationLat?: number | null;
+  destinationLng?: number | null;
   distance: number;
   price: number;
   promoCode?: string | null;
@@ -581,6 +588,19 @@ export default function DashboardCalendar({ cars, bookings, drivers = [], onOpen
                   <div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-widest text-[#8a8a93]"><User size={14} /> Водій</div>
                   <div className="font-bold text-white">{selectedBooking.driver?.user?.name || 'Водія не призначено'}</div>
                   <div className="mt-1 text-xs text-[#8a8a93]">{selectedBookingCar?.baseCity ? `база: ${selectedBookingCar.baseCity}` : 'база не вказана'}</div>
+                </div>
+              </div>
+
+              <div className="overflow-hidden rounded-xl border border-white/10 bg-[#080818]">
+                <div className="flex items-center justify-between border-b border-white/10 px-4 py-2.5">
+                  <span className="flex items-center gap-2 text-sm font-bold text-white"><MapPin size={15} className="text-[#e9c349]" /> Карта маршруту</span>
+                  <span className="text-xs font-bold text-[#c7c6ca]">{km(selectedBooking.distance)}</span>
+                </div>
+                <div className="h-[240px]">
+                  <EmptyLegRouteMap
+                    from={{ lat: selectedBooking.originLat, lng: selectedBooking.originLng, label: shortPlace(selectedBooking.routeFrom) }}
+                    to={{ lat: selectedBooking.destinationLat, lng: selectedBooking.destinationLng, label: shortPlace(selectedBooking.routeTo) }}
+                  />
                 </div>
               </div>
 
